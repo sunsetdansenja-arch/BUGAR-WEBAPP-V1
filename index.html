@@ -1,468 +1,420 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { 
-  Trash2, LogOut, Loader2, AlertCircle, Trophy, 
-  TrendingUp, Users, DollarSign, RefreshCcw, ArrowUpRight,
-  BarChart3, Medal, Share2
-} from 'lucide-react';
-
-const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
-
-// --- KONFIGURASI CABANG (STANDALONE) ---
-const DAFTAR_PAKET = ["Refleksi 60m", "Refleksi 90m", "Full Body 120m"];
-
-const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
-
-// ==========================================
-// 1. KOMPONEN DASHBOARD OWNER (PAK SUTARMAN)
-// ==========================================
-const OwnerView = ({ onLogout }) => {
-  const [data, setData] = useState({ 
-    grandTotalHariIni: 0, 
-    grandTotalBulanIni: 0, 
-    leaderboard: [],
-    trenHari: [],
-    topTerapis: []
-  });
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const loadOwnerData = async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bugar Connect V4.2</title>
     
-    try {
-      const res = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'owner_load' })
-      });
-      const result = await res.json();
-      
-      let finalData = Array.isArray(result) ? result[0] : result;
-      if (finalData && finalData.json) finalData = finalData.json;
-
-      setData(finalData || { grandTotalHariIni: 0, grandTotalBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [] });
-    } catch (e) {
-      console.error("Gagal memuat data owner");
-    }
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    keyframes: {
+                        shake: { '0%, 100%': { transform: 'translateX(0)' }, '25%': { transform: 'translateX(-8px)' }, '75%': { transform: 'translateX(8px)' } },
+                        slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }
+                    },
+                    animation: { shake: 'shake 0.3s ease-in-out', 'slide-up': 'slideUp 0.5s ease-out' }
+                }
+            }
+        }
+    </script>
     
-    setLoading(false);
-    setRefreshing(false);
-  };
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { -webkit-tap-highlight-color: transparent; }
+    </style>
 
-  useEffect(() => { loadOwnerData(); }, []);
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  // Format Pesan WhatsApp
-  const handleShareWA = () => {
-    let text = `*📊 LAPORAN BUGAR REFLEKSI*\n\n`;
-    text += `💰 *Omset Hari Ini*: ${formatIDR(data.grandTotalHariIni)}\n`;
-    text += `📈 *Akumulasi Bulan Ini*: ${formatIDR(data.grandTotalBulanIni)}\n\n`;
-    
-    if (data.leaderboard && data.leaderboard.length > 0) {
-      text += `🏆 *Top 3 Cabang Hari Ini*:\n`;
-      data.leaderboard.slice(0, 3).forEach((c, idx) => {
-        text += `${idx + 1}. ${c.id} - ${formatIDR(c.omsetHariIni)}\n`;
-      });
-    }
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-[#1C1C1E]">
+    <div id="root"></div>
 
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
-  };
+    <script type="text/babel">
+        const { useState, useCallback, useEffect } = React;
 
-  // Kalkulasi maksimal pasien untuk persentase grafik batang
-  const maxPasien = data.trenHari?.length > 0 ? Math.max(...data.trenHari.map(d => d.pasien), 1) : 1;
+        const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
+        const DAFTAR_PAKET = ["Refleksi 60m", "Refleksi 90m", "Full Body 120m"];
+        const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#000000] flex items-center justify-center">
-      <Loader2 className="animate-spin text-[#FF3B30]" size={48} />
-    </div>
-  );
+        // ==========================================
+        // 1. KOMPONEN DASHBOARD OWNER
+        // ==========================================
+        const OwnerView = ({ onLogout }) => {
+            const [data, setData] = useState({ grandTotalHariIni: 0, grandTotalBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [] });
+            const [loading, setLoading] = useState(true);
+            const [refreshing, setRefreshing] = useState(false);
 
-  return (
-    <div className="min-h-screen bg-[#000000] text-white pb-24 font-sans animate-slide-up">
-      {/* HEADER BESAR - EXECUTIVE VIEW */}
-      <div className="bg-[#1C1C1E] px-6 py-10 rounded-b-[3rem] shadow-2xl border-b-2 border-[#FF3B30]/30">
-        <div className="max-w-xl mx-auto">
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <p className="text-[#FF3B30] font-black text-xs uppercase tracking-[0.4em] mb-2">Executive Portal</p>
-              <h1 className="text-4xl font-black tracking-tighter uppercase leading-none text-white">Bugar<br/>Analytics</h1>
-            </div>
-            <div className="flex flex-col gap-3">
-              <button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all text-white flex justify-center border border-white/10">
-                <RefreshCcw size={24} className={refreshing ? 'animate-spin text-[#FF3B30]' : ''} />
-              </button>
-              <button onClick={onLogout} className="p-4 bg-[#FF3B30]/10 text-[#FF3B30] rounded-2xl hover:bg-[#FF3B30]/20 active:scale-90 transition-all flex items-center justify-center border border-[#FF3B30]/20">
-                <LogOut size={24}/>
-              </button>
-            </div>
-          </div>
+            const loadOwnerData = async (isRefresh = false) => {
+                if (isRefresh) setRefreshing(true); else setLoading(true);
+                try {
+                    const res = await fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'owner_load' })
+                    });
+                    const result = await res.json();
+                    let finalData = Array.isArray(result) ? result[0] : result;
+                    if (finalData && finalData.json) finalData = finalData.json;
+                    setData(finalData || { grandTotalHariIni: 0, grandTotalBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [] });
+                } catch (e) { console.error("Gagal memuat data owner"); }
+                setLoading(false); setRefreshing(false);
+            };
 
-          {/* KARTU OMSET SUPER BESAR */}
-          <div className="bg-[#FF3B30] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.3)] relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-6 opacity-20"><TrendingUp size={80}/></div>
-            <p className="text-white/80 font-black uppercase tracking-widest text-xs mb-2 relative z-10">Total Omset Hari Ini</p>
-            <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.grandTotalHariIni)}</h2>
-          </div>
-          
-          <div className="bg-[#111111] border border-white/10 p-6 rounded-[2rem] mt-4 flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 font-black uppercase tracking-widest text-[10px] mb-1">Akumulasi Bulan Ini</p>
-              <h3 className="text-2xl font-black text-gray-200 tracking-tight">{formatIDR(data.grandTotalBulanIni)}</h3>
-            </div>
-            <div className="bg-white/5 p-4 rounded-full text-gray-400"><DollarSign size={24}/></div>
-          </div>
-        </div>
-      </div>
+            useEffect(() => { loadOwnerData(); }, []);
 
-      <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
-        
-        {/* GRAFIK TREN KERAMAIAN HARI */}
-        <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
-          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-8 flex items-center gap-3">
-            <BarChart3 size={20} className="text-[#FF3B30]"/> Tren Keramaian
-          </h3>
-          <div className="space-y-4">
-            {data.trenHari && data.trenHari.map((item, idx) => {
-              const persentase = (item.pasien / maxPasien) * 100;
-              const isTertinggi = item.pasien === maxPasien && item.pasien > 0;
-              
-              return (
-                <div key={idx} className="flex items-center gap-4">
-                  <div className="w-16 text-xs font-black uppercase text-gray-400 tracking-wider">{item.hari}</div>
-                  <div className="flex-1 h-8 bg-black rounded-full overflow-hidden relative border border-white/5">
-                    <div 
-                      className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isTertinggi ? 'bg-[#FF3B30]' : 'bg-white/20'}`}
-                      style={{ width: `${persentase}%` }}
-                    />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white mix-blend-difference">
-                      {item.pasien} Pax
-                    </div>
-                  </div>
+            const handleShareWA = () => {
+                let text = `*📊 LAPORAN BUGAR REFLEKSI*\n\n`;
+                text += `💰 *Omset Hari Ini*: ${formatIDR(data.grandTotalHariIni)}\n`;
+                text += `📈 *Akumulasi Bulan Ini*: ${formatIDR(data.grandTotalBulanIni)}\n\n`;
+                if (data.leaderboard && data.leaderboard.length > 0) {
+                    text += `🏆 *Top 3 Cabang Hari Ini*:\n`;
+                    data.leaderboard.slice(0, 3).forEach((c, idx) => { text += `${idx + 1}. ${c.id} - ${formatIDR(c.omsetHariIni)}\n`; });
+                }
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            };
+
+            const maxPasien = data.trenHari?.length > 0 ? Math.max(...data.trenHari.map(d => d.pasien), 1) : 1;
+
+            if (loading) return (
+                <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+                    <i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl"></i>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* LEADERBOARD CABANG */}
-        <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
-          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
-            <Trophy size={20} className="text-[#FF3B30]"/> Performa Cabang
-          </h3>
-          <div className="space-y-3">
-            {data.leaderboard && data.leaderboard.map((cabang, idx) => (
-              <div key={cabang.id} className="bg-black p-5 rounded-2xl border border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-[#FF3B30] text-white' : 'bg-[#1C1C1E] text-gray-400'}`}>
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <h4 className="font-black text-lg tracking-tight uppercase text-white leading-none mb-1">{cabang.id}</h4>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Share Owner: {formatIDR(cabang.omsetHariIni * cabang.persenOwner)}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-black text-[#FF3B30]">{formatIDR(cabang.omsetHariIni)}</p>
-                  {cabang.batalHariIni > 0 && (
-                    <p className="text-[9px] font-black text-orange-500 uppercase mt-1 flex items-center justify-end gap-1">
-                      <AlertCircle size={10}/> Batal: {cabang.batalHariIni}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* TOP TERAPIS */}
-        {data.topTerapis && data.topTerapis.length > 0 && (
-          <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
-            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
-              <Medal size={20} className="text-[#FF3B30]"/> Bintang Terapis
-            </h3>
-            <div className="space-y-3">
-              {data.topTerapis.map((terapis, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-black p-4 rounded-2xl border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[#FF3B30] font-black opacity-50">#{idx + 1}</span>
-                    <span className="font-black text-sm uppercase text-gray-200">{terapis.nama}</span>
-                  </div>
-                  <span className="font-black text-sm text-gray-400">{formatIDR(terapis.omset)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </main>
-      
-      {/* FLOATING ACTION BUTTON - SHARE WA */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xl px-6 z-50">
-        <button 
-          onClick={handleShareWA}
-          className="w-full bg-[#FF3B30] text-white p-5 rounded-full font-black uppercase tracking-widest text-sm shadow-[0_10px_30px_rgba(255,59,48,0.4)] flex justify-center items-center gap-3 hover:bg-red-600 active:scale-95 transition-all"
-        >
-          <Share2 size={20} /> Bagikan Laporan via WA
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// ==========================================
-// 2. KOMPONEN DASHBOARD KASIR / ADMIN CABANG
-// ==========================================
-const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState(''); 
-  const [activeCabang, setActiveCabang] = useState('');
-  const [loginData, setLoginData] = useState({ id: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(false);
-  const [shakeLogin, setShakeLogin] = useState(false);
-  
-  const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0 });
-  const [history, setHistory] = useState([]);
-  const [filter, setFilter] = useState('ALL');
-  const [formData, setFormData] = useState({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '' });
-
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
-  const [isDeleting, setIsDeleting] = useState(null);
-
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-  };
-
-  const sendToN8N = async (action, payload = {}) => {
-    try {
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...payload })
-      });
-      const text = await response.text();
-      if (!text) return {};
-      
-      const rawData = JSON.parse(text);
-      let unwrapped = Array.isArray(rawData) ? rawData[0] : rawData;
-      if (unwrapped && unwrapped.json) unwrapped = unwrapped.json;
-      
-      return unwrapped;
-    } catch (error) {
-      showToast("Koneksi Error", 'error');
-      return { status: 'error' };
-    }
-  };
-
-  const loadDashboardData = useCallback(async (cabangId, isInitial = false) => {
-    if (isInitial) setFetching(true);
-    const res = await sendToN8N('load_data', { CABANG_ID: cabangId });
-    if (res && (res.status === 'success' || res.history)) {
-      setStats(res.stats || { hariIni: 0, bulanIni: 0 });
-      setHistory(res.history || []);
-    }
-    if (isInitial) setFetching(false);
-  }, []);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setShakeLogin(false);
-    
-    // PERBAIKAN: Pemaksa Huruf Kapital Otomatis
-    const cleanId = loginData.id.trim().toUpperCase();
-    const cleanPass = loginData.password.trim();
-    
-    const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
-    
-    if (res && res.status === 'success') {
-      const isOwner = cleanId.includes('OWNER');
-      
-      setUserRole(isOwner ? 'OWNER' : 'CABANG');
-      setActiveCabang(cleanId);
-      setIsLoggedIn(true);
-      
-      if (!isOwner) {
-        await loadDashboardData(cleanId, true);
-      }
-    } else {
-      setShakeLogin(true);
-      showToast(res.message || 'ID atau Password Salah', 'error');
-    }
-    setLoading(false);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    const res = await sendToN8N('insert', { ...formData, CABANG_ID: activeCabang });
-    if (res && (res.id || res.status === 'success')) {
-      setFormData({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '' });
-      showToast('Berhasil Disimpan');
-      setFilter('ALL');
-      await loadDashboardData(activeCabang);
-    } else {
-      showToast('Gagal Menyimpan Data', 'error');
-    }
-    setLoading(false);
-  };
-
-  const executeDelete = async () => {
-    const item = confirmModal.item;
-    const targetId = item.id || item.db_id || item.ID || item.id_database;
-    
-    setConfirmModal({ show: false, item: null });
-    setIsDeleting(targetId);
-    
-    await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
-    showToast('Transaksi Dibatalkan');
-    await loadDashboardData(activeCabang);
-    setIsDeleting(null);
-  };
-
-  const filteredHistory = history.filter(item => {
-    const isBatal = Number(item.TAGIHAN) === 0;
-    if (filter === 'SUCCESS') return !isBatal;
-    if (filter === 'CANCELED') return isBatal;
-    return true; 
-  });
-
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.innerHTML = `
-      @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-      .animate-shake { animation: shake 0.3s ease-in-out; }
-      @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-      .animate-slide-up { animation: slideUp 0.5s ease-out; }
-      .no-scrollbar::-webkit-scrollbar { display: none; }
-    `;
-    document.head.appendChild(style);
-  }, []);
-
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center p-6">
-        <div className={`bg-white/10 backdrop-blur-md p-10 rounded-[2.5rem] w-full max-w-md border border-white/5 shadow-2xl ${shakeLogin ? 'animate-shake' : ''}`}>
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1>
-            <p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V4.2</p>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input type="text" placeholder="ID AKSES" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest"
-              value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
-            <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest"
-              value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
-            <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase">
-              {loading ? <Loader2 className="animate-spin mx-auto" /> : "MASUK SEKARANG"}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  if (userRole === 'OWNER') return <OwnerView onLogout={() => setIsLoggedIn(false)} />;
-
-  return (
-    <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-slide-up font-sans">
-      <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40">
-        <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm">
-          <div className="flex items-center gap-2 text-[#1C1C1E]"><div className="w-2 h-2 rounded-full bg-[#FF3B30] animate-pulse"></div>CABANG {activeCabang}</div>
-          <button onClick={() => setIsLoggedIn(false)} className="text-[#FF3B30] bg-[#FF3B30]/10 px-4 py-2 rounded-full text-[10px] flex items-center gap-1 hover:bg-[#FF3B30]/20 active:scale-95 transition-all tracking-widest"><LogOut size={12}/> Keluar</button>
-        </div>
-      </nav>
-
-      <main className="max-w-xl mx-auto p-4 space-y-5">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-[#FF3B30] p-5 rounded-3xl text-white shadow-lg shadow-red-500/10">
-            <p className="text-[9px] uppercase font-black opacity-70 tracking-widest mb-1">Hari Ini</p>
-            <h3 className="text-xl font-black">{formatIDR(stats.hariIni)}</h3>
-          </div>
-          <div className="bg-[#1C1C1E] p-5 rounded-3xl text-white shadow-lg">
-            <p className="text-[9px] uppercase font-black opacity-40 tracking-widest mb-1">Bulan Ini</p>
-            <h3 className="text-xl font-black">{formatIDR(stats.bulanIni)}</h3>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
-          <h4 className="font-black text-[10px] text-gray-400 mb-5 tracking-widest uppercase flex items-center gap-2">
-            Input Transaksi
-          </h4>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
-            <input type="tel" placeholder="WhatsApp (Cth: 0812...)" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
-            <div className="grid grid-cols-2 gap-3">
-              <select required className="p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all appearance-none" value={formData.PAKET} onChange={e => setFormData({...formData, PAKET: e.target.value})}>
-                <option value="">Pilih Paket</option>
-                {DAFTAR_PAKET.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-              <input type="number" placeholder="Total Rp" required className="p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
-            </div>
-            <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value})} />
-            <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#FF3B30] active:scale-[0.98] transition-all mt-2 shadow-lg shadow-black/10 tracking-widest uppercase text-sm">
-              {loading ? <Loader2 className="animate-spin mx-auto" /> : "SIMPAN DATA"}
-            </button>
-          </form>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex flex-col gap-3 px-1 mb-3">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Aktivitas Terbaru</p>
-            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-              <button onClick={() => setFilter('ALL')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all active:scale-95 tracking-wider ${filter === 'ALL' ? 'bg-[#1C1C1E] text-white shadow-md' : 'bg-gray-200 text-gray-400'}`}>Semua</button>
-              <button onClick={() => setFilter('SUCCESS')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all active:scale-95 tracking-wider ${filter === 'SUCCESS' ? 'bg-[#1C1C1E] text-white shadow-md' : 'bg-gray-200 text-gray-400'}`}>Sukses</button>
-              <button onClick={() => setFilter('CANCELED')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all active:scale-95 tracking-wider ${filter === 'CANCELED' ? 'bg-[#1C1C1E] text-white shadow-md' : 'bg-gray-200 text-gray-400'}`}>Batal</button>
-            </div>
-          </div>
-          
-          {fetching && history.length === 0 && <div className="text-center py-10"><Loader2 className="animate-spin mx-auto text-gray-300" /></div>}
-
-          {filteredHistory.map((item, idx) => {
-            const currentId = item.id || item.db_id || item.ID || item.id_database;
-            const isBatal = Number(item.TAGIHAN) === 0;
-            
-            return (
-              <div key={idx} className={`p-4 rounded-2xl border flex justify-between items-center transition-all duration-500 ${isBatal ? 'bg-red-50 border-red-100 opacity-60 scale-[0.98]' : 'bg-white border-gray-100'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isBatal ? 'bg-red-100 text-[#FF3B30]' : 'bg-[#F2F2F7] text-[#1C1C1E]'}`}>{item.NAMA_PASIEN?.charAt(0)}</div>
-                  <div>
-                    <h5 className={`font-black text-sm leading-none mb-1 text-[#1C1C1E] ${isBatal ? 'line-through opacity-70' : ''}`}>{item.NAMA_PASIEN}</h5>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase">{item.PAKET} • {item.TERAPIS}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className={`text-sm font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p>
-                  <button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`p-2 transition-all rounded-xl ${isBatal ? 'text-transparent cursor-default' : 'text-gray-300 hover:text-white hover:bg-[#FF3B30] active:scale-90'}`}>
-                    {isDeleting === currentId ? <Loader2 size={18} className="animate-spin text-[#FF3B30]" /> : (!isBatal && <Trash2 size={18} />)}
-                  </button>
-                </div>
-              </div>
             );
-          })}
-        </div>
-      </main>
 
-      {confirmModal.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up">
-            <AlertCircle size={48} className="text-[#FF3B30] mx-auto mb-5" />
-            <h3 className="text-xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batal Transaksi?</h3>
-            <p className="text-xs text-gray-500 font-bold mb-8 uppercase tracking-widest">Pasien: {confirmModal.item.NAMA_PASIEN}</p>
-            <button onClick={executeDelete} className="w-full py-5 bg-[#FF3B30] text-white font-black rounded-2xl mb-3 active:scale-95 transition-all tracking-widest uppercase">YA, BATALKAN</button>
-            <button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-5 bg-[#F2F2F7] text-[#1C1C1E] font-black rounded-2xl active:scale-95 transition-all tracking-widest uppercase">KEMBALI</button>
-          </div>
-        </div>
-      )}
-      {toast.show && (
-        <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-bounce shadow-2xl ${toast.type === 'success' ? 'bg-[#1C1C1E]' : 'bg-[#FF3B30]'}`}>
-          {toast.message}
-        </div>
-      )}
-    </div>
-  );
-};
+            return (
+                <div className="min-h-screen bg-[#000000] text-white pb-24 font-sans animate-slide-up">
+                    <div className="bg-[#1C1C1E] px-6 py-10 rounded-b-[3rem] shadow-2xl border-b-2 border-[#FF3B30]/30">
+                        <div className="max-w-xl mx-auto">
+                            <div className="flex justify-between items-start mb-8">
+                                <div>
+                                    <p className="text-[#FF3B30] font-black text-xs uppercase tracking-[0.4em] mb-2">Executive Portal</p>
+                                    <h1 className="text-4xl font-black tracking-tighter uppercase leading-none text-white">Bugar<br/>Analytics</h1>
+                                </div>
+                                <div className="flex flex-col gap-3">
+                                    <button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all text-white flex justify-center border border-white/10">
+                                        <i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#FF3B30]' : ''}`}></i>
+                                    </button>
+                                    <button onClick={onLogout} className="p-4 bg-[#FF3B30]/10 text-[#FF3B30] rounded-2xl hover:bg-[#FF3B30]/20 active:scale-90 transition-all flex items-center justify-center border border-[#FF3B30]/20">
+                                        <i className="fa-solid fa-right-from-bracket text-xl"></i>
+                                    </button>
+                                </div>
+                            </div>
 
-export default App;
+                            <div className="bg-[#FF3B30] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.3)] relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-6 opacity-20"><i className="fa-solid fa-chart-line text-[80px]"></i></div>
+                                <p className="text-white/80 font-black uppercase tracking-widest text-xs mb-2 relative z-10">Total Omset Hari Ini</p>
+                                <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.grandTotalHariIni)}</h2>
+                            </div>
+                            
+                            <div className="bg-[#111111] border border-white/10 p-6 rounded-[2rem] mt-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-500 font-black uppercase tracking-widest text-[10px] mb-1">Akumulasi Bulan Ini</p>
+                                    <h3 className="text-2xl font-black text-gray-200 tracking-tight">{formatIDR(data.grandTotalBulanIni)}</h3>
+                                </div>
+                                <div className="bg-white/5 p-4 rounded-full text-gray-400"><i className="fa-solid fa-dollar-sign text-2xl"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
+                        {/* TREN KERAMAIAN */}
+                        <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-8 flex items-center gap-3">
+                                <i className="fa-solid fa-chart-column text-[#FF3B30]"></i> Tren Keramaian
+                            </h3>
+                            <div className="space-y-4">
+                                {data.trenHari && data.trenHari.map((item, idx) => {
+                                    const persentase = (item.pasien / maxPasien) * 100;
+                                    const isTertinggi = item.pasien === maxPasien && item.pasien > 0;
+                                    return (
+                                        <div key={idx} className="flex items-center gap-4">
+                                            <div className="w-16 text-xs font-black uppercase text-gray-400 tracking-wider">{item.hari}</div>
+                                            <div className="flex-1 h-8 bg-black rounded-full overflow-hidden relative border border-white/5">
+                                                <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isTertinggi ? 'bg-[#FF3B30]' : 'bg-white/20'}`} style={{ width: `${persentase}%` }}></div>
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white mix-blend-difference">{item.pasien} Pax</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* LEADERBOARD */}
+                        <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
+                                <i className="fa-solid fa-trophy text-[#FF3B30]"></i> Performa Cabang
+                            </h3>
+                            <div className="space-y-3">
+                                {data.leaderboard && data.leaderboard.map((cabang, idx) => (
+                                    <div key={cabang.id} className="bg-black p-5 rounded-2xl border border-white/5 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-[#FF3B30] text-white' : 'bg-[#1C1C1E] text-gray-400'}`}>{idx + 1}</div>
+                                            <div>
+                                                <h4 className="font-black text-lg tracking-tight uppercase text-white leading-none mb-1">{cabang.id}</h4>
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Share Owner: {formatIDR(cabang.omsetHariIni * cabang.persenOwner)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-lg font-black text-[#FF3B30]">{formatIDR(cabang.omsetHariIni)}</p>
+                                            {cabang.batalHariIni > 0 && <p className="text-[9px] font-black text-orange-500 uppercase mt-1 flex items-center justify-end gap-1"><i className="fa-solid fa-circle-exclamation"></i> Batal: {cabang.batalHariIni}</p>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* TOP TERAPIS */}
+                        {data.topTerapis && data.topTerapis.length > 0 && (
+                            <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
+                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
+                                    <i className="fa-solid fa-medal text-[#FF3B30]"></i> Bintang Terapis
+                                </h3>
+                                <div className="space-y-3">
+                                    {data.topTerapis.map((terapis, idx) => (
+                                        <div key={idx} className="flex justify-between items-center bg-black p-4 rounded-2xl border border-white/5">
+                                            <div className="flex items-center gap-3"><span className="text-[#FF3B30] font-black opacity-50">#{idx + 1}</span><span className="font-black text-sm uppercase text-gray-200">{terapis.nama}</span></div>
+                                            <span className="font-black text-sm text-gray-400">{formatIDR(terapis.omset)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                    
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xl px-6 z-50">
+                        <button onClick={handleShareWA} className="w-full bg-[#FF3B30] text-white p-5 rounded-full font-black uppercase tracking-widest text-sm shadow-[0_10px_30px_rgba(255,59,48,0.4)] flex justify-center items-center gap-3 hover:bg-red-600 active:scale-95 transition-all">
+                            <i className="fa-solid fa-share-nodes text-lg"></i> Bagikan Laporan via WA
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 2. KOMPONEN DASHBOARD KASIR
+        // ==========================================
+        const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
+            const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0 });
+            const [history, setHistory] = useState([]);
+            const [filter, setFilter] = useState('ALL');
+            const [formData, setFormData] = useState({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '' });
+            const [loading, setLoading] = useState(false);
+            const [fetching, setFetching] = useState(false);
+            const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
+            const [isDeleting, setIsDeleting] = useState(null);
+
+            const loadDashboardData = useCallback(async (isInitial = false) => {
+                if (isInitial) setFetching(true);
+                const res = await sendToN8N('load_data', { CABANG_ID: activeCabang });
+                if (res && (res.status === 'success' || res.history)) {
+                    setStats(res.stats || { hariIni: 0, bulanIni: 0 });
+                    setHistory(res.history || []);
+                }
+                if (isInitial) setFetching(false);
+            }, [activeCabang]);
+
+            useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault(); setLoading(true);
+                const res = await sendToN8N('insert', { ...formData, CABANG_ID: activeCabang });
+                if (res && (res.id || res.status === 'success')) {
+                    setFormData({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '' });
+                    showToast('Berhasil Disimpan'); setFilter('ALL'); await loadDashboardData();
+                } else { showToast('Gagal Menyimpan Data', 'error'); }
+                setLoading(false);
+            };
+
+            const executeDelete = async () => {
+                const item = confirmModal.item;
+                const targetId = item.id || item.db_id || item.ID || item.id_database;
+                setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
+                await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
+                showToast('Transaksi Dibatalkan'); await loadDashboardData(); setIsDeleting(null);
+            };
+
+            const filteredHistory = history.filter(item => {
+                const isBatal = Number(item.TAGIHAN) === 0;
+                if (filter === 'SUCCESS') return !isBatal;
+                if (filter === 'CANCELED') return isBatal;
+                return true; 
+            });
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-slide-up font-sans">
+                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40">
+                        <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm">
+                            <div className="flex items-center gap-2 text-[#1C1C1E]"><div className="w-2 h-2 rounded-full bg-[#FF3B30] animate-pulse"></div>CABANG {activeCabang}</div>
+                            <button onClick={onLogout} className="text-[#FF3B30] bg-[#FF3B30]/10 px-4 py-2 rounded-full text-[10px] flex items-center gap-2 hover:bg-[#FF3B30]/20 active:scale-95 transition-all tracking-widest"><i className="fa-solid fa-right-from-bracket"></i> KELUAR</button>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-xl mx-auto p-4 space-y-5">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-[#FF3B30] p-5 rounded-3xl text-white shadow-lg shadow-red-500/10">
+                                <p className="text-[9px] uppercase font-black opacity-70 tracking-widest mb-1">Hari Ini</p>
+                                <h3 className="text-xl font-black">{formatIDR(stats.hariIni)}</h3>
+                            </div>
+                            <div className="bg-[#1C1C1E] p-5 rounded-3xl text-white shadow-lg">
+                                <p className="text-[9px] uppercase font-black opacity-40 tracking-widest mb-1">Bulan Ini</p>
+                                <h3 className="text-xl font-black">{formatIDR(stats.bulanIni)}</h3>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
+                            <h4 className="font-black text-[10px] text-gray-400 mb-5 tracking-widest uppercase">Input Transaksi</h4>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
+                                <input type="tel" placeholder="WhatsApp (Cth: 0812...)" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <select required className="p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all appearance-none" value={formData.PAKET} onChange={e => setFormData({...formData, PAKET: e.target.value})}>
+                                        <option value="">Pilih Paket</option>
+                                        {DAFTAR_PAKET.map(p => <option key={p} value={p}>{p}</option>)}
+                                    </select>
+                                    <input type="number" placeholder="Total Rp" required className="p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
+                                </div>
+                                <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value})} />
+                                <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#FF3B30] active:scale-[0.98] transition-all mt-2 shadow-lg shadow-black/10 tracking-widest uppercase text-sm">
+                                    {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN DATA"}
+                                </button>
+                            </form>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex flex-col gap-3 px-1 mb-3">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Aktivitas Terbaru</p>
+                                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                                    <button onClick={() => setFilter('ALL')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all active:scale-95 tracking-wider ${filter === 'ALL' ? 'bg-[#1C1C1E] text-white' : 'bg-gray-200 text-gray-400'}`}>Semua</button>
+                                    <button onClick={() => setFilter('SUCCESS')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all active:scale-95 tracking-wider ${filter === 'SUCCESS' ? 'bg-[#1C1C1E] text-white' : 'bg-gray-200 text-gray-400'}`}>Sukses</button>
+                                    <button onClick={() => setFilter('CANCELED')} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all active:scale-95 tracking-wider ${filter === 'CANCELED' ? 'bg-[#1C1C1E] text-white' : 'bg-gray-200 text-gray-400'}`}>Batal</button>
+                                </div>
+                            </div>
+                            
+                            {fetching && history.length === 0 && <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-300 text-2xl"></i></div>}
+
+                            {filteredHistory.map((item, idx) => {
+                                const currentId = item.id || item.db_id || item.ID || item.id_database;
+                                const isBatal = Number(item.TAGIHAN) === 0;
+                                return (
+                                    <div key={idx} className={`p-4 rounded-2xl border flex justify-between items-center transition-all duration-500 ${isBatal ? 'bg-red-50 border-red-100 opacity-60 scale-[0.98]' : 'bg-white border-gray-100'}`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isBatal ? 'bg-red-100 text-[#FF3B30]' : 'bg-[#F2F2F7] text-[#1C1C1E]'}`}>{item.NAMA_PASIEN?.charAt(0)}</div>
+                                            <div>
+                                                <h5 className={`font-black text-sm leading-none mb-1 text-[#1C1C1E] ${isBatal ? 'line-through opacity-70' : ''}`}>{item.NAMA_PASIEN}</h5>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase">{item.PAKET} • {item.TERAPIS}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <p className={`text-sm font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p>
+                                            <button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`p-3 transition-all rounded-xl ${isBatal ? 'text-transparent cursor-default' : 'text-gray-300 hover:text-white hover:bg-[#FF3B30] active:scale-90'}`}>
+                                                {isDeleting === currentId ? <i className="fa-solid fa-spinner fa-spin text-[#FF3B30]"></i> : (!isBatal && <i className="fa-solid fa-trash"></i>)}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </main>
+
+                    {confirmModal.show && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+                            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+                            <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up">
+                                <i className="fa-solid fa-circle-exclamation text-[#FF3B30] text-[48px] mb-5"></i>
+                                <h3 className="text-xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batal Transaksi?</h3>
+                                <p className="text-xs text-gray-500 font-bold mb-8 uppercase tracking-widest">Pasien: {confirmModal.item.NAMA_PASIEN}</p>
+                                <button onClick={executeDelete} className="w-full py-5 bg-[#FF3B30] text-white font-black rounded-2xl mb-3 active:scale-95 transition-all tracking-widest uppercase">YA, BATALKAN</button>
+                                <button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-5 bg-[#F2F2F7] text-[#1C1C1E] font-black rounded-2xl active:scale-95 transition-all tracking-widest uppercase">KEMBALI</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // MAIN APP (LOGIN & ROUTER)
+        // ==========================================
+        const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [userRole, setUserRole] = useState(''); 
+            const [activeCabang, setActiveCabang] = useState('');
+            const [loginData, setLoginData] = useState({ id: '', password: '' });
+            const [loading, setLoading] = useState(false);
+            const [shakeLogin, setShakeLogin] = useState(false);
+            const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+            const showToast = (message, type = 'success') => {
+                setToast({ show: true, message, type });
+                setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+            };
+
+            const sendToN8N = async (action, payload = {}) => {
+                try {
+                    const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...payload }) });
+                    const text = await response.text();
+                    if (!text) return {};
+                    const rawData = JSON.parse(text);
+                    let unwrapped = Array.isArray(rawData) ? rawData[0] : rawData;
+                    if (unwrapped && unwrapped.json) unwrapped = unwrapped.json;
+                    return unwrapped;
+                } catch (error) { showToast("Koneksi Error", 'error'); return { status: 'error' }; }
+            };
+
+            const handleLogin = async (e) => {
+                e.preventDefault(); setLoading(true); setShakeLogin(false);
+                const cleanId = loginData.id.trim().toUpperCase();
+                const cleanPass = loginData.password.trim();
+                const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
+                
+                if (res && res.status === 'success') {
+                    setUserRole(cleanId.includes('OWNER') ? 'OWNER' : 'CABANG');
+                    setActiveCabang(cleanId);
+                    setIsLoggedIn(true);
+                } else {
+                    setShakeLogin(true);
+                    showToast(res.message || 'ID atau Password Salah', 'error');
+                }
+                setLoading(false);
+            };
+
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center p-6">
+                        <div className={`bg-white/10 backdrop-blur-md p-10 rounded-[2.5rem] w-full max-w-md border border-white/5 shadow-2xl ${shakeLogin ? 'animate-shake' : ''}`}>
+                            <div className="text-center mb-10">
+                                <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1>
+                                <p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V4.3</p>
+                            </div>
+                            <form onSubmit={handleLogin} className="space-y-4">
+                                <input type="text" placeholder="ID AKSES" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
+                                <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
+                                <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase">
+                                    {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "MASUK SEKARANG"}
+                                </button>
+                            </form>
+                        </div>
+                        {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-bounce shadow-2xl ${toast.type === 'success' ? 'bg-[#1C1C1E]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                    </div>
+                );
+            }
+
+            return (
+                <div>
+                    {userRole === 'OWNER' ? <OwnerView onLogout={() => setIsLoggedIn(false)} /> : <CashierView activeCabang={activeCabang} onLogout={() => setIsLoggedIn(false)} sendToN8N={sendToN8N} showToast={showToast} />}
+                    {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-bounce shadow-2xl ${toast.type === 'success' ? 'bg-[#1C1C1E]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
