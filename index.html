@@ -45,14 +45,14 @@
         
         // --- DAFTAR PAKET TERBARU ---
         const DAFTAR_PAKET = [
-            "Paket 1 (70 Menit) - Rp 100.000",
-            "Paket 2 (90 Menit) - Rp 120.000",
-            "Paket 3 (120 Menit) - Rp 140.000",
-            "Paket 4 (120 Menit) - Rp 150.000",
-            "Paket 5 (120 Menit) - Rp 150.000",
-            "Paket 6 (120 Menit) - Rp 170.000",
-            "Paket 7 (120 Menit) - Rp 200.000",
-            "Paket 8 - Rp 300.000: Chiropractic"
+            "Paket 1 (70 Menit) - Rp 100.000: Refleksi, Body Massage, Pijat Kepala",
+            "Paket 2 (90 Menit) - Rp 120.000: Refleksi, Body Massage, Pijat Kepala, Totok Wajah",
+            "Paket 3 (120 Menit) - Rp 140.000: Refleksi, Body Massage, Pijat Kepala",
+            "Paket 4 (120 Menit) - Rp 150.000: Refleksi, Body Massage, Pijat Kepala, Body Scrub",
+            "Paket 5 (120 Menit) - Rp 150.000: Refleksi, Body Massage, Pijat Kepala, Bekam Kering",
+            "Paket 6 (120 Menit) - Rp 170.000: Refleksi, Body Massage, Pijat Kepala, Bekam Basah",
+            "Paket 7 (120 Menit) - Rp 200.000: Refleksi, Body Massage, Pijat Kepala, Totok Wajah, Lulur",
+            "Paket 8 - Rp 300.000: Chiropractic (Kretek) 17 Gerakan"
         ];
         
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
@@ -141,7 +141,6 @@
                     </div>
 
                     <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
-                        {/* TREN KERAMAIAN */}
                         <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
                             <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-8 flex items-center gap-3">
                                 <i className="fa-solid fa-chart-column text-[#FF3B30]"></i> Tren Keramaian
@@ -163,7 +162,6 @@
                             </div>
                         </div>
 
-                        {/* LEADERBOARD */}
                         <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
                             <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
                                 <i className="fa-solid fa-trophy text-[#FF3B30]"></i> Performa Cabang
@@ -187,7 +185,6 @@
                             </div>
                         </div>
 
-                        {/* TOP TERAPIS */}
                         {data.topTerapis && data.topTerapis.length > 0 && (
                             <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
                                 <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
@@ -238,6 +235,24 @@
             }, [activeCabang]);
 
             useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
+
+            // --- LOGIKA AUTO-FILL HARGA ---
+            const handlePaketChange = (e) => {
+                const selectedPaket = e.target.value;
+                let autoHarga = formData.TAGIHAN; // Defaultnya tagihan tetap seperti semula
+                
+                if (selectedPaket) {
+                    // Cari pola teks: "Rp [angka.angka]" dari daftar paket
+                    const match = selectedPaket.match(/Rp\s*([\d.]+)/);
+                    if (match && match[1]) {
+                        // Hapus titik pada angka (contoh: 100.000 menjadi 100000)
+                        autoHarga = match[1].replace(/\./g, '');
+                    }
+                }
+                
+                // Update state form dengan paket baru dan harga yang diekstrak
+                setFormData({ ...formData, PAKET: selectedPaket, TAGIHAN: autoHarga });
+            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault(); setLoading(true);
@@ -293,13 +308,15 @@
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
                                 <input type="tel" placeholder="WhatsApp (Cth: 0812...)" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <select required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold text-xs focus:border-[#FF3B30] border border-transparent transition-all appearance-none" value={formData.PAKET} onChange={e => setFormData({...formData, PAKET: e.target.value})}>
+                                
+                                <div className="grid grid-cols-1 gap-3">
+                                    <select required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold text-[11px] focus:border-[#FF3B30] border border-transparent transition-all appearance-none" value={formData.PAKET} onChange={handlePaketChange}>
                                         <option value="">Pilih Paket...</option>
                                         {DAFTAR_PAKET.map(p => <option key={p} value={p}>{p}</option>)}
                                     </select>
                                     <input type="number" placeholder="Total Tagihan (Rp)" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
                                 </div>
+                                
                                 <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] border border-transparent transition-all" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value})} />
                                 <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#FF3B30] active:scale-[0.98] transition-all mt-2 shadow-lg shadow-black/10 tracking-widest uppercase text-sm">
                                     {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN DATA"}
@@ -363,7 +380,6 @@
         // MAIN APP (LOGIN & ROUTER WITH LOCAL STORAGE)
         // ==========================================
         const App = () => {
-            // Cek LocalStorage saat aplikasi pertama kali dimuat
             const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
             const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || ''); 
             const [activeCabang, setActiveCabang] = useState(localStorage.getItem('activeCabang') || '');
@@ -399,7 +415,6 @@
                 if (res && res.status === 'success') {
                     const detectedRole = cleanId.includes('OWNER') ? 'OWNER' : 'CABANG';
                     
-                    // Simpan sesi ke LocalStorage
                     localStorage.setItem('isLoggedIn', 'true');
                     localStorage.setItem('userRole', detectedRole);
                     localStorage.setItem('activeCabang', cleanId);
@@ -415,7 +430,6 @@
             };
 
             const handleLogout = () => {
-                // Hapus sesi dari LocalStorage saat logout
                 localStorage.removeItem('isLoggedIn');
                 localStorage.removeItem('userRole');
                 localStorage.removeItem('activeCabang');
@@ -432,7 +446,7 @@
                             <div className="text-center mb-10">
                                 <img src={LOGO_URL} alt="Bugar Logo" className="h-16 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,59,48,0.6)]" />
                                 <h1 className="text-3xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1>
-                                <p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V4.3</p>
+                                <p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V4.4</p>
                             </div>
                             <form onSubmit={handleLogin} className="space-y-4">
                                 <input type="text" placeholder="ID AKSES" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
