@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bugar Connect V5.1</title>
+    <title>Bugar Connect V5.2</title>
     
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     
@@ -58,23 +58,17 @@
         
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 
-        // Generator Tanggal untuk Dropdown
-        const getFilterOptions = () => {
+        // Generator Filter Tanggal Gaji (15 Hari Mundur)
+        const getFilterGajiOptions = () => {
             const options = [];
             const today = new Date();
-            
-            // Format YYYY-MM-DD
             const getIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             
-            // Rentang
             const date15DaysAgo = new Date(today);
             date15DaysAgo.setDate(today.getDate() - 15);
-            
-            options.push({ label: "15 Hari Terakhir (Akumulasi)", start: getIso(date15DaysAgo), end: getIso(today) });
-            options.push({ label: "Bulan Ini", start: getIso(today).substring(0,7) + '-01', end: getIso(today) });
+            options.push({ label: "15 Hari Terakhir", start: getIso(date15DaysAgo), end: getIso(today) });
             options.push({ label: "--- Per Tanggal ---", start: "", end: "", disabled: true });
 
-            // 15 Hari Mundur
             for(let i = 0; i <= 15; i++) {
                 const d = new Date(today);
                 d.setDate(today.getDate() - i);
@@ -85,11 +79,28 @@
             return options;
         };
 
+        // Generator Filter Bulan (Untuk Slip Laporan)
+        const getFilterBulanOptions = () => {
+            const options = [];
+            const today = new Date();
+            const getIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            
+            for(let i=0; i<6; i++){
+                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                const monthName = d.toLocaleDateString('id-ID', {month:'long', year:'numeric'});
+                const start = getIso(d);
+                const endD = new Date(today.getFullYear(), today.getMonth() - i + 1, 0);
+                const end = getIso(endD);
+                options.push({ label: monthName, start, end });
+            }
+            return options;
+        }
+
         // ==========================================
         // 1. KOMPONEN DASHBOARD OWNER (2 TABS)
         // ==========================================
         const OwnerView = ({ onLogout }) => {
-            const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' atau 'report'
+            const [activeTab, setActiveTab] = useState('dashboard');
             const [data, setData] = useState({ 
                 grandTotalHariIni: 0, grandTotalBulanIni: 0, 
                 expenseHariIni: 0, expenseBulanIni: 0,
@@ -99,14 +110,17 @@
             const [loading, setLoading] = useState(true);
             const [refreshing, setRefreshing] = useState(false);
 
+            // Options
+            const optGaji = getFilterGajiOptions();
+            const optBulan = getFilterBulanOptions();
+
+            // State Filter Laporan Keuangan
+            const [filterReport, setFilterReport] = useState({ preset: optBulan[0].label, startDate: optBulan[0].start, endDate: optBulan[0].end, cabang: 'ALL' });
+            const [reportData, setReportData] = useState(null);
+            const [loadingReport, setLoadingReport] = useState(false);
+
             // State Filter Gaji
-            const filterOptions = getFilterOptions();
-            const [filterGaji, setFilterGaji] = useState({ 
-                preset: filterOptions[0].label, 
-                startDate: filterOptions[0].start, 
-                endDate: filterOptions[0].end, 
-                cabang: '' 
-            });
+            const [filterGaji, setFilterGaji] = useState({ preset: optGaji[0].label, startDate: optGaji[0].start, endDate: optGaji[0].end, cabang: '' });
             const [slipData, setSlipData] = useState([]);
             const [loadingSlip, setLoadingSlip] = useState(false);
 
@@ -128,34 +142,75 @@
 
             useEffect(() => { loadOwnerData(); }, []);
 
-            const handlePresetChange = (e) => {
-                const selected = filterOptions.find(opt => opt.label === e.target.value);
-                if (selected && !selected.disabled) {
-                    setFilterGaji({ ...filterGaji, preset: selected.label, startDate: selected.start, endDate: selected.end });
-                }
+            const fetchReportData = async () => {
+                setLoadingReport(true);
+                try {
+                    const res = await fetch(WEBHOOK_URL, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'filter_report', startDate: filterReport.startDate, endDate: filterReport.endDate, cabang: filterReport.cabang })
+                    });
+                    const result = await res.json();
+                    let finalData = Array.isArray(result) ? result[0] : result;
+                    setReportData(finalData?.json?.data || null);
+                } catch (e) { alert("Gagal menarik data Laporan"); }
+                setLoadingReport(false);
             };
 
             const fetchSlipGaji = async () => {
                 setLoadingSlip(true);
                 try {
                     const res = await fetch(WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'filter_gaji', startDate: filterGaji.startDate, endDate: filterGaji.endDate, cabang: filterGaji.cabang })
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'filter_report', startDate: filterGaji.startDate, endDate: filterGaji.endDate, cabang: filterGaji.cabang })
                     });
                     const result = await res.json();
                     let finalData = Array.isArray(result) ? result[0] : result;
-                    if (finalData && finalData.json) finalData = finalData.json;
-                    setSlipData(finalData.data || []);
+                    setSlipData(finalData?.json?.data?.daftarTerapis || []);
                 } catch (e) { alert("Gagal menarik data gaji terapis"); }
                 setLoadingSlip(false);
+            };
+
+            const downloadSlipLaporan = () => {
+                if(!reportData) return;
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ format: 'a5' });
+                
+                doc.setFontSize(16); doc.setTextColor(255, 59, 48);
+                doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
+                
+                doc.setFontSize(12); doc.setTextColor(28, 28, 30);
+                doc.text("REKAP LAPORAN KEUANGAN", 74, 28, { align: "center" });
+                
+                doc.setLineWidth(0.5); doc.line(10, 35, 138, 35);
+                
+                doc.setFontSize(10); doc.setTextColor(100, 100, 100);
+                doc.text(`Cabang     : ${filterReport.cabang === 'ALL' ? 'SEMUA CABANG' : filterReport.cabang}`, 15, 45);
+                doc.text(`Periode    : ${filterReport.startDate} s/d ${filterReport.endDate}`, 15, 53);
+                
+                doc.line(10, 60, 138, 60);
+                
+                doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+                doc.text(`Total Pemasukan (Omset) :`, 15, 75); doc.text(`${formatIDR(reportData.omset)}`, 133, 75, {align: 'right'});
+                doc.text(`Total Pengeluaran       :`, 15, 85); doc.text(`${formatIDR(reportData.expense)}`, 133, 85, {align: 'right'});
+                
+                doc.setLineWidth(0.5); doc.line(15, 95, 133, 95);
+                
+                doc.setFont(undefined, 'bold'); doc.setFontSize(14);
+                const isRugi = reportData.laba < 0;
+                if(isRugi) doc.setTextColor(255, 59, 48);
+                doc.text(`LABA BERSIH`, 15, 110); doc.text(`${formatIDR(reportData.laba)}`, 133, 110, {align: 'right'});
+                
+                doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(150, 150, 150);
+                doc.text("Dokumen ini di-generate otomatis oleh Bugar Connect", 74, 140, { align: "center" });
+                
+                doc.save(`Laporan_${filterReport.cabang}_${filterReport.preset.replace(/\s+/g, '_')}.pdf`);
             };
 
             const downloadSlipTerapis = (terapis) => {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ format: 'a5' });
                 
-                doc.setFontSize(20); doc.setTextColor(255, 59, 48);
+                doc.setFontSize(18); doc.setTextColor(255, 59, 48);
                 doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
                 
                 doc.setFontSize(12); doc.setTextColor(28, 28, 30);
@@ -179,7 +234,7 @@
                 doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(150, 150, 150);
                 doc.text("Terima kasih atas kerja keras Anda bersama Bugar Refleksi!", 74, 130, { align: "center" });
                 
-                doc.save(`Slip_${filterGaji.cabang}_${terapis.nama.replace(/\s+/g, '_')}.pdf`);
+                doc.save(`SlipGaji_${filterGaji.cabang}_${terapis.nama.replace(/\s+/g, '_')}.pdf`);
             };
 
             const handleShareWA = () => {
@@ -202,11 +257,10 @@
             );
 
             const maxPasien = data.trenHari?.length > 0 ? Math.max(...data.trenHari.map(d => d.pasien), 1) : 1;
-            const fallbackLabaHariIni = (data.grandTotalHariIni || 0) - (data.expenseHariIni || 0);
-            const fallbackLabaBulanIni = (data.grandTotalBulanIni || 0) - (data.expenseBulanIni || 0);
 
             return (
                 <div className="min-h-screen bg-[#000000] text-white font-sans animate-fade-in pb-28">
+                    
                     {/* TAB 1: DASHBOARD EKSEKUTIF */}
                     {activeTab === 'dashboard' && (
                         <div className="animate-slide-up">
@@ -225,11 +279,11 @@
                                         </button>
                                     </div>
 
-                                    {/* KARTU LABA BERSIH */}
+                                    {/* KARTU LABA BERSIH HARI INI */}
                                     <div className="bg-[#FF3B30] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.3)] relative overflow-hidden">
                                         <div className="absolute top-0 right-0 p-6 opacity-20"><i className="fa-solid fa-wallet text-[80px]"></i></div>
                                         <p className="text-white/80 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Bersih Hari Ini</p>
-                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni !== undefined ? data.globalLabaHariIni : fallbackLabaHariIni)}</h2>
+                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
                                         <div className="flex justify-between items-center mt-5 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4">
                                             <div><span className="opacity-70 block mb-1">Omset</span> {formatIDR(data.grandTotalHariIni)}</div>
                                             <div className="text-right"><span className="opacity-70 block mb-1">Pengeluaran</span> {formatIDR(data.expenseHariIni)}</div>
@@ -239,7 +293,7 @@
                                     <div className="bg-[#111111] border border-white/10 p-6 rounded-[2rem] mt-4 flex items-center justify-between">
                                         <div>
                                             <p className="text-gray-500 font-black uppercase tracking-widest text-[10px] mb-1">Laba Bersih Bulan Ini</p>
-                                            <h3 className="text-2xl font-black text-gray-200 tracking-tight">{formatIDR(data.globalLabaBulanIni !== undefined ? data.globalLabaBulanIni : fallbackLabaBulanIni)}</h3>
+                                            <h3 className="text-2xl font-black text-gray-200 tracking-tight">{formatIDR(data.globalLabaBulanIni)}</h3>
                                         </div>
                                         <div className="bg-white/5 p-4 rounded-full text-gray-400"><i className="fa-solid fa-vault text-2xl"></i></div>
                                     </div>
@@ -247,7 +301,7 @@
                             </div>
 
                             <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
-                                {/* LEADERBOARD CABANG (DENGAN LABA) */}
+                                {/* PERFORMA CABANG (DENGAN LABA) */}
                                 <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
                                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
                                         <i className="fa-solid fa-trophy text-[#FF3B30]"></i> Performa Cabang (Hari Ini)
@@ -262,7 +316,7 @@
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-1">Laba Bersih</p>
-                                                        <p className="text-lg font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni !== undefined ? cabang.labaHariIni : (cabang.omsetHariIni - (cabang.expenseHariIni || 0)))}</p>
+                                                        <p className="text-lg font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4 text-[10px] font-bold uppercase tracking-wider text-gray-400">
@@ -308,10 +362,60 @@
                         <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-6">
                             <div className="mb-8">
                                 <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Laporan & Gaji</h2>
-                                <p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-1">Pusat Administrasi Cabang</p>
+                                <p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-1">Pusat Administrasi & Pembukuan</p>
                             </div>
 
-                            {/* SEGMEN CETAK SLIP GAJI */}
+                            {/* SEGMEN 1: SLIP LAPORAN KEUANGAN */}
+                            <div className="bg-[#111111] p-8 rounded-[2.5rem] border border-white/10 shadow-2xl">
+                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
+                                    <i className="fa-solid fa-chart-pie text-[#FF3B30]"></i> Cetak Laporan Keuangan
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Pilih Bulan Laporan</label>
+                                        <select className="w-full p-4 bg-[#1C1C1E] rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" 
+                                            value={filterReport.preset} 
+                                            onChange={e => {
+                                                const sel = optBulan.find(o => o.label === e.target.value);
+                                                if(sel) setFilterReport({...filterReport, preset: sel.label, startDate: sel.start, endDate: sel.end});
+                                            }}>
+                                            {optBulan.map((opt, i) => <option key={i} value={opt.label}>{opt.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Filter Cabang</label>
+                                        <select className="w-full p-4 bg-[#1C1C1E] rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" 
+                                            value={filterReport.cabang} onChange={e => setFilterReport({...filterReport, cabang: e.target.value})}>
+                                            <option value="ALL">Semua Cabang (Global)</option>
+                                            {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                                        </select>
+                                    </div>
+                                    <button onClick={fetchReportData} disabled={loadingReport} className="w-full bg-white text-black font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest mt-2 shadow-[0_10px_20px_rgba(255,255,255,0.1)]">
+                                        {loadingReport ? <i className="fa-solid fa-spinner fa-spin"></i> : "HITUNG LAPORAN"}
+                                    </button>
+                                </div>
+
+                                {reportData && (
+                                    <div className="mt-6 pt-6 border-t border-white/10 animate-fade-in">
+                                        <div className="bg-black p-5 rounded-2xl border border-white/5 space-y-3 mb-4">
+                                            <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                                <span>Omset Kotor</span> <span className="text-white">{formatIDR(reportData.omset)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                                <span>Pengeluaran</span> <span className="text-white">{formatIDR(reportData.expense)}</span>
+                                            </div>
+                                            <div className="pt-3 border-t border-white/10 flex justify-between text-sm font-black uppercase tracking-widest">
+                                                <span className="text-[#FF3B30]">Laba Bersih</span> <span className={reportData.laba < 0 ? "text-[#FF3B30]" : "text-white"}>{formatIDR(reportData.laba)}</span>
+                                            </div>
+                                        </div>
+                                        <button onClick={downloadSlipLaporan} className="w-full bg-[#FF3B30] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex justify-center items-center gap-2 hover:bg-red-600 transition-all shadow-[0_10px_20px_rgba(255,59,48,0.3)]">
+                                            <i className="fa-solid fa-file-pdf"></i> Download PDF Laporan
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* SEGMEN 2: SLIP GAJI TERAPIS */}
                             <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
                                 <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
                                     <i className="fa-solid fa-file-invoice-dollar text-[#FF3B30]"></i> Cetak Slip Terapis
@@ -319,87 +423,62 @@
                                 <div className="space-y-4">
                                     <div>
                                         <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Filter Tanggal (15 Hari Mundur)</label>
-                                        <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs" value={filterGaji.preset} onChange={handlePresetChange}>
-                                            {filterOptions.map((opt, i) => (
-                                                <option key={i} value={opt.label} disabled={opt.disabled}>{opt.label}</option>
-                                            ))}
+                                        <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" 
+                                            value={filterGaji.preset} 
+                                            onChange={e => {
+                                                const sel = optGaji.find(o => o.label === e.target.value);
+                                                if(sel && !sel.disabled) setFilterGaji({...filterGaji, preset: sel.label, startDate: sel.start, endDate: sel.end});
+                                            }}>
+                                            {optGaji.map((opt, i) => <option key={i} value={opt.label} disabled={opt.disabled}>{opt.label}</option>)}
                                         </select>
                                     </div>
-                                    
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="text-[9px] text-gray-600 uppercase font-black tracking-widest mb-1 block">Dari</label>
-                                            <input type="date" disabled className="w-full p-3 bg-black/50 rounded-xl text-gray-400 outline-none font-bold text-xs" value={filterGaji.startDate} />
-                                        </div>
-                                        <div>
-                                            <label className="text-[9px] text-gray-600 uppercase font-black tracking-widest mb-1 block">Sampai</label>
-                                            <input type="date" disabled className="w-full p-3 bg-black/50 rounded-xl text-gray-400 outline-none font-bold text-xs" value={filterGaji.endDate} />
-                                        </div>
-                                    </div>
-
                                     <div>
-                                        <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block mt-2">Pilih Cabang</label>
-                                        <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs" value={filterGaji.cabang} onChange={e => setFilterGaji({...filterGaji, cabang: e.target.value})}>
-                                            <option value="">-- Pilih Cabang --</option>
+                                        <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block mt-2">Pilih Cabang (Wajib)</label>
+                                        <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" 
+                                            value={filterGaji.cabang} onChange={e => setFilterGaji({...filterGaji, cabang: e.target.value})}>
+                                            <option value="">-- Pilih Cabang Terapis --</option>
                                             {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
                                         </select>
                                     </div>
                                     
-                                    <button onClick={fetchSlipGaji} disabled={loadingSlip || !filterGaji.startDate || !filterGaji.endDate || !filterGaji.cabang} className="w-full bg-[#FF3B30] text-white font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest mt-4 disabled:opacity-50 shadow-[0_10px_20px_rgba(255,59,48,0.3)]">
-                                        {loadingSlip ? <i className="fa-solid fa-spinner fa-spin"></i> : "CARI DATA KOMISI"}
+                                    <button onClick={fetchSlipGaji} disabled={loadingSlip || !filterGaji.cabang} className="w-full bg-[#111111] border border-white/10 text-white font-black py-4 rounded-2xl hover:bg-[#FF3B30] active:scale-95 transition-all text-xs uppercase tracking-widest mt-4 disabled:opacity-50">
+                                        {loadingSlip ? <i className="fa-solid fa-spinner fa-spin"></i> : "CARI DATA KOMISI TERAPIS"}
                                     </button>
                                 </div>
 
                                 {/* Hasil Terapis & Tombol Download */}
                                 {slipData.length > 0 && (
-                                    <div className="mt-6 space-y-3 pt-6 border-t border-white/10">
+                                    <div className="mt-6 space-y-3 pt-6 border-t border-white/10 animate-fade-in">
                                         {slipData.map((terapis, idx) => (
                                             <div key={idx} className="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center">
                                                 <div>
                                                     <p className="font-black text-sm uppercase text-white mb-1">{terapis.nama}</p>
                                                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{terapis.totalPasien} Pasien • <span className="text-[#FF3B30]">{formatIDR(terapis.totalKomisi)}</span></p>
                                                 </div>
-                                                <button onClick={() => downloadSlipTerapis(terapis)} className="bg-white/10 hover:bg-white/20 text-white w-12 h-12 rounded-xl active:scale-90 transition-all flex justify-center items-center">
-                                                    <i className="fa-solid fa-file-pdf"></i>
+                                                <button onClick={() => downloadSlipTerapis(terapis)} className="bg-white/10 hover:bg-[#FF3B30] text-white w-12 h-12 rounded-xl active:scale-90 transition-all flex justify-center items-center">
+                                                    <i className="fa-solid fa-download"></i>
                                                 </button>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
-
-                            {/* TOP TERAPIS */}
-                            {data.topTerapis && data.topTerapis.length > 0 && (
-                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
-                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
-                                        <i className="fa-solid fa-medal text-[#FF3B30]"></i> Bintang Terapis (Bulan Ini)
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {data.topTerapis.map((terapis, idx) => (
-                                            <div key={idx} className="flex justify-between items-center bg-black p-4 rounded-2xl border border-white/5">
-                                                <div className="flex items-center gap-3"><span className="text-[#FF3B30] font-black opacity-50">#{idx + 1}</span><span className="font-black text-sm uppercase text-gray-200">{terapis.nama}</span></div>
-                                                <span className="font-black text-sm text-gray-400">{formatIDR(terapis.omset)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )}
 
                     {/* BOTTOM NAVIGATION BAR */}
-                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#1C1C1E]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6 rounded-t-3xl">
-                        <div className="flex justify-between items-center mb-2">
+                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+                        <div className="flex justify-between items-center mb-3 mt-1">
                             <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-3 flex flex-col items-center gap-1 transition-all ${activeTab === 'dashboard' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}>
-                                <i className="fa-solid fa-house text-xl"></i>
+                                <i className="fa-solid fa-house text-xl mb-1"></i>
                                 <span className="text-[9px] font-black uppercase tracking-widest">Dasbor</span>
                             </button>
                             <button onClick={() => setActiveTab('report')} className={`flex-1 py-3 flex flex-col items-center gap-1 transition-all ${activeTab === 'report' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}>
-                                <i className="fa-solid fa-file-signature text-xl"></i>
+                                <i className="fa-solid fa-file-signature text-xl mb-1"></i>
                                 <span className="text-[9px] font-black uppercase tracking-widest">Laporan</span>
                             </button>
                             <button onClick={onLogout} className="flex-1 py-3 flex flex-col items-center gap-1 transition-all text-gray-600 hover:text-white">
-                                <i className="fa-solid fa-power-off text-xl"></i>
+                                <i className="fa-solid fa-power-off text-xl mb-1"></i>
                                 <span className="text-[9px] font-black uppercase tracking-widest">Keluar</span>
                             </button>
                         </div>
@@ -644,7 +723,7 @@
                             <div className="text-center mb-10">
                                 <img src={LOGO_URL} alt="Bugar Logo" className="h-16 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,59,48,0.6)]" />
                                 <h1 className="text-3xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1>
-                                <p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V5.1</p>
+                                <p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V5.2</p>
                             </div>
                             <form onSubmit={handleLogin} className="space-y-4">
                                 <input type="text" placeholder="ID AKSES" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
