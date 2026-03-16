@@ -3,26 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bugar Connect V5.0</title>
+    <title>Bugar Connect V5.1</title>
     
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    keyframes: {
+                        shake: { '0%, 100%': { transform: 'translateX(0)' }, '25%': { transform: 'translateX(-8px)' }, '75%': { transform: 'translateX(8px)' } },
+                        slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } },
+                        fadeIn: { 'from': { opacity: '0' }, 'to': { opacity: '1' } }
+                    },
+                    animation: { shake: 'shake 0.3s ease-in-out', 'slide-up': 'slideUp 0.4s ease-out', 'fade-in': 'fadeIn 0.3s ease-out' }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { -webkit-tap-highlight-color: transparent; }
+    </style>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        body { -webkit-tap-highlight-color: transparent; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-slide-up { animation: slideUp 0.5s ease-out; }
-    </style>
 </head>
 <body class="bg-[#1C1C1E]">
     <div id="root"></div>
@@ -46,20 +58,55 @@
         
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 
+        // Generator Tanggal untuk Dropdown
+        const getFilterOptions = () => {
+            const options = [];
+            const today = new Date();
+            
+            // Format YYYY-MM-DD
+            const getIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            
+            // Rentang
+            const date15DaysAgo = new Date(today);
+            date15DaysAgo.setDate(today.getDate() - 15);
+            
+            options.push({ label: "15 Hari Terakhir (Akumulasi)", start: getIso(date15DaysAgo), end: getIso(today) });
+            options.push({ label: "Bulan Ini", start: getIso(today).substring(0,7) + '-01', end: getIso(today) });
+            options.push({ label: "--- Per Tanggal ---", start: "", end: "", disabled: true });
+
+            // 15 Hari Mundur
+            for(let i = 0; i <= 15; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() - i);
+                const iso = getIso(d);
+                const label = i === 0 ? "Hari Ini" : i === 1 ? "Kemarin" : d.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+                options.push({ label: label, start: iso, end: iso });
+            }
+            return options;
+        };
+
         // ==========================================
-        // 1. KOMPONEN DASHBOARD OWNER
+        // 1. KOMPONEN DASHBOARD OWNER (2 TABS)
         // ==========================================
         const OwnerView = ({ onLogout }) => {
+            const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' atau 'report'
             const [data, setData] = useState({ 
                 grandTotalHariIni: 0, grandTotalBulanIni: 0, 
-                expenseHariIni: 0, expenseBulanIni: 0, // NEW: Data Pengeluaran
+                expenseHariIni: 0, expenseBulanIni: 0,
+                globalLabaHariIni: 0, globalLabaBulanIni: 0,
                 leaderboard: [], trenHari: [], topTerapis: [] 
             });
             const [loading, setLoading] = useState(true);
             const [refreshing, setRefreshing] = useState(false);
 
-            // State untuk Filter Gaji
-            const [filterGaji, setFilterGaji] = useState({ startDate: '', endDate: '', cabang: '' });
+            // State Filter Gaji
+            const filterOptions = getFilterOptions();
+            const [filterGaji, setFilterGaji] = useState({ 
+                preset: filterOptions[0].label, 
+                startDate: filterOptions[0].start, 
+                endDate: filterOptions[0].end, 
+                cabang: '' 
+            });
             const [slipData, setSlipData] = useState([]);
             const [loadingSlip, setLoadingSlip] = useState(false);
 
@@ -74,12 +121,19 @@
                     const result = await res.json();
                     let finalData = Array.isArray(result) ? result[0] : result;
                     if (finalData && finalData.json) finalData = finalData.json;
-                    setData(finalData || { grandTotalHariIni: 0, grandTotalBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [] });
+                    setData(finalData || {});
                 } catch (e) { console.error("Gagal memuat data owner"); }
                 setLoading(false); setRefreshing(false);
             };
 
             useEffect(() => { loadOwnerData(); }, []);
+
+            const handlePresetChange = (e) => {
+                const selected = filterOptions.find(opt => opt.label === e.target.value);
+                if (selected && !selected.disabled) {
+                    setFilterGaji({ ...filterGaji, preset: selected.label, startDate: selected.start, endDate: selected.end });
+                }
+            };
 
             const fetchSlipGaji = async () => {
                 setLoadingSlip(true);
@@ -87,7 +141,7 @@
                     const res = await fetch(WEBHOOK_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'filter_gaji', ...filterGaji })
+                        body: JSON.stringify({ action: 'filter_gaji', startDate: filterGaji.startDate, endDate: filterGaji.endDate, cabang: filterGaji.cabang })
                     });
                     const result = await res.json();
                     let finalData = Array.isArray(result) ? result[0] : result;
@@ -97,48 +151,49 @@
                 setLoadingSlip(false);
             };
 
-            // FUNGSI CETAK PDF SLIP GAJI
             const downloadSlipTerapis = (terapis) => {
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ format: 'a5' }); // Ukuran A5 agar pas seperti struk/slip
+                const doc = new jsPDF({ format: 'a5' });
                 
-                doc.setFontSize(20);
-                doc.setTextColor(255, 59, 48);
+                doc.setFontSize(20); doc.setTextColor(255, 59, 48);
                 doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
                 
-                doc.setFontSize(12);
-                doc.setTextColor(28, 28, 30);
+                doc.setFontSize(12); doc.setTextColor(28, 28, 30);
                 doc.text("SLIP KOMISI TERAPIS", 74, 28, { align: "center" });
                 
-                doc.setLineWidth(0.5);
-                doc.line(10, 35, 138, 35);
+                doc.setLineWidth(0.5); doc.line(10, 35, 138, 35);
                 
-                doc.setFontSize(10);
-                doc.setTextColor(100, 100, 100);
+                doc.setFontSize(10); doc.setTextColor(100, 100, 100);
                 doc.text(`Cabang     : ${filterGaji.cabang}`, 15, 45);
                 doc.text(`Nama       : ${terapis.nama}`, 15, 53);
                 doc.text(`Periode    : ${filterGaji.startDate} s/d ${filterGaji.endDate}`, 15, 61);
                 
                 doc.line(10, 70, 138, 70);
                 
-                doc.setFontSize(12);
-                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(12); doc.setTextColor(0, 0, 0);
                 doc.text(`Total Pasien Diselesaikan: ${terapis.totalPasien} Orang`, 15, 85);
                 
-                doc.setFont(undefined, 'bold');
-                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold'); doc.setFontSize(14);
                 doc.text(`TOTAL KOMISI : ${formatIDR(terapis.totalKomisi)}`, 15, 100);
                 
-                doc.setFont(undefined, 'normal');
-                doc.setFontSize(9);
-                doc.setTextColor(150, 150, 150);
+                doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(150, 150, 150);
                 doc.text("Terima kasih atas kerja keras Anda bersama Bugar Refleksi!", 74, 130, { align: "center" });
                 
-                const fileName = `Slip_${filterGaji.cabang}_${terapis.nama.replace(/\s+/g, '_')}.pdf`;
-                doc.save(fileName);
+                doc.save(`Slip_${filterGaji.cabang}_${terapis.nama.replace(/\s+/g, '_')}.pdf`);
             };
 
-            const maxPasien = data.trenHari?.length > 0 ? Math.max(...data.trenHari.map(d => d.pasien), 1) : 1;
+            const handleShareWA = () => {
+                let text = `*📊 LAPORAN BUGAR REFLEKSI*\n\n`;
+                text += `💰 *Laba Hari Ini*: ${formatIDR(data.globalLabaHariIni)}\n`;
+                text += `*(Omset: ${formatIDR(data.grandTotalHariIni)} | Exp: ${formatIDR(data.expenseHariIni)})*\n\n`;
+                if (data.leaderboard && data.leaderboard.length > 0) {
+                    text += `🏆 *Top 3 Cabang Hari Ini*:\n`;
+                    data.leaderboard.slice(0, 3).forEach((c, idx) => { 
+                        text += `${idx + 1}. ${c.id} - Laba: ${formatIDR(c.labaHariIni)}\n`; 
+                    });
+                }
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            };
 
             if (loading) return (
                 <div className="min-h-screen bg-[#000000] flex items-center justify-center">
@@ -146,129 +201,218 @@
                 </div>
             );
 
+            const maxPasien = data.trenHari?.length > 0 ? Math.max(...data.trenHari.map(d => d.pasien), 1) : 1;
+            const fallbackLabaHariIni = (data.grandTotalHariIni || 0) - (data.expenseHariIni || 0);
+            const fallbackLabaBulanIni = (data.grandTotalBulanIni || 0) - (data.expenseBulanIni || 0);
+
             return (
-                <div className="min-h-screen bg-[#000000] text-white pb-10 font-sans animate-slide-up">
-                    <div className="bg-[#1C1C1E] px-6 py-10 rounded-b-[3rem] shadow-2xl border-b-2 border-[#FF3B30]/30">
-                        <div className="max-w-xl mx-auto">
-                            <div className="flex justify-between items-start mb-8">
-                                <div className="flex items-center gap-3">
-                                    <img src={LOGO_URL} alt="Bugar Logo" className="h-12 w-12 object-contain drop-shadow-[0_0_10px_rgba(255,59,48,0.5)]" />
-                                    <div>
-                                        <p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p>
-                                        <h1 className="text-2xl font-black tracking-tighter uppercase leading-none text-white">Bugar Analytics</h1>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-3">
-                                    <button onClick={() => loadOwnerData(true)} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all text-white flex justify-center border border-white/10">
-                                        <i className={`fa-solid fa-rotate-right text-lg ${refreshing ? 'fa-spin text-[#FF3B30]' : ''}`}></i>
-                                    </button>
-                                    <button onClick={onLogout} className="p-3 bg-[#FF3B30]/10 text-[#FF3B30] rounded-2xl hover:bg-[#FF3B30]/20 active:scale-90 transition-all flex items-center justify-center border border-[#FF3B30]/20">
-                                        <i className="fa-solid fa-right-from-bracket text-lg"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* KARTU LABA BERSIH HARI INI */}
-                            <div className="bg-[#FF3B30] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.3)] relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-6 opacity-20"><i className="fa-solid fa-wallet text-[80px]"></i></div>
-                                <p className="text-white/80 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Bersih Hari Ini (Omset - Expense)</p>
-                                <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.grandTotalHariIni - (data.expenseHariIni || 0))}</h2>
-                                <div className="flex gap-4 mt-4 relative z-10 text-[10px] font-bold uppercase opacity-80 border-t border-white/20 pt-3">
-                                    <span>Omset: {formatIDR(data.grandTotalHariIni)}</span>
-                                    <span>Expense: {formatIDR(data.expenseHariIni || 0)}</span>
-                                </div>
-                            </div>
-                            
-                            <div className="bg-[#111111] border border-white/10 p-6 rounded-[2rem] mt-4 flex items-center justify-between">
-                                <div>
-                                    <p className="text-gray-500 font-black uppercase tracking-widest text-[10px] mb-1">Laba Bersih Bulan Ini</p>
-                                    <h3 className="text-2xl font-black text-gray-200 tracking-tight">{formatIDR(data.grandTotalBulanIni - (data.expenseBulanIni || 0))}</h3>
-                                </div>
-                                <div className="bg-white/5 p-4 rounded-full text-gray-400"><i className="fa-solid fa-vault text-2xl"></i></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
-                        
-                        {/* SEGMEN CETAK SLIP GAJI */}
-                        <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
-                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
-                                <i className="fa-solid fa-file-invoice-dollar text-[#FF3B30]"></i> Slip Gaji Terapis
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1 block">Dari Tanggal</label>
-                                        <input type="date" className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs" value={filterGaji.startDate} onChange={e => setFilterGaji({...filterGaji, startDate: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1 block">S/D Tanggal</label>
-                                        <input type="date" className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs" value={filterGaji.endDate} onChange={e => setFilterGaji({...filterGaji, endDate: e.target.value})} />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1 block">Pilih Cabang</label>
-                                    <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs" value={filterGaji.cabang} onChange={e => setFilterGaji({...filterGaji, cabang: e.target.value})}>
-                                        <option value="">-- Pilih --</option>
-                                        {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
-                                    </select>
-                                </div>
-                                <button onClick={fetchSlipGaji} disabled={loadingSlip || !filterGaji.startDate || !filterGaji.endDate || !filterGaji.cabang} className="w-full bg-white text-black font-black py-4 rounded-2xl hover:bg-gray-200 active:scale-95 transition-all text-xs uppercase tracking-widest mt-2 disabled:opacity-50">
-                                    {loadingSlip ? <i className="fa-solid fa-spinner fa-spin"></i> : "Cari Data Terapis"}
-                                </button>
-                            </div>
-
-                            {/* Hasil Terapis & Tombol Download */}
-                            {slipData.length > 0 && (
-                                <div className="mt-6 space-y-3">
-                                    {slipData.map((terapis, idx) => (
-                                        <div key={idx} className="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                <div className="min-h-screen bg-[#000000] text-white font-sans animate-fade-in pb-28">
+                    {/* TAB 1: DASHBOARD EKSEKUTIF */}
+                    {activeTab === 'dashboard' && (
+                        <div className="animate-slide-up">
+                            <div className="bg-[#1C1C1E] px-6 py-10 rounded-b-[3rem] shadow-2xl border-b-2 border-[#FF3B30]/30">
+                                <div className="max-w-xl mx-auto">
+                                    <div className="flex justify-between items-start mb-8">
+                                        <div className="flex items-center gap-3">
+                                            <img src={LOGO_URL} alt="Logo" className="h-12 w-12 object-contain drop-shadow-[0_0_10px_rgba(255,59,48,0.5)]" />
                                             <div>
-                                                <p className="font-black text-sm uppercase text-white mb-1">{terapis.nama}</p>
-                                                <p className="text-[10px] text-[#FF3B30] font-bold uppercase tracking-widest">{terapis.totalPasien} Pasien • {formatIDR(terapis.totalKomisi)}</p>
+                                                <p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p>
+                                                <h1 className="text-2xl font-black tracking-tighter uppercase leading-none text-white">Bugar Analytics</h1>
                                             </div>
-                                            <button onClick={() => downloadSlipTerapis(terapis)} className="bg-[#FF3B30] text-white w-12 h-12 rounded-xl active:scale-90 transition-all shadow-lg flex justify-center items-center">
-                                                <i className="fa-solid fa-download"></i>
-                                            </button>
                                         </div>
-                                    ))}
+                                        <button onClick={() => loadOwnerData(true)} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all text-white border border-white/10">
+                                            <i className={`fa-solid fa-rotate-right text-lg ${refreshing ? 'fa-spin text-[#FF3B30]' : ''}`}></i>
+                                        </button>
+                                    </div>
+
+                                    {/* KARTU LABA BERSIH */}
+                                    <div className="bg-[#FF3B30] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.3)] relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-6 opacity-20"><i className="fa-solid fa-wallet text-[80px]"></i></div>
+                                        <p className="text-white/80 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Bersih Hari Ini</p>
+                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni !== undefined ? data.globalLabaHariIni : fallbackLabaHariIni)}</h2>
+                                        <div className="flex justify-between items-center mt-5 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4">
+                                            <div><span className="opacity-70 block mb-1">Omset</span> {formatIDR(data.grandTotalHariIni)}</div>
+                                            <div className="text-right"><span className="opacity-70 block mb-1">Pengeluaran</span> {formatIDR(data.expenseHariIni)}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-[#111111] border border-white/10 p-6 rounded-[2rem] mt-4 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-gray-500 font-black uppercase tracking-widest text-[10px] mb-1">Laba Bersih Bulan Ini</p>
+                                            <h3 className="text-2xl font-black text-gray-200 tracking-tight">{formatIDR(data.globalLabaBulanIni !== undefined ? data.globalLabaBulanIni : fallbackLabaBulanIni)}</h3>
+                                        </div>
+                                        <div className="bg-white/5 p-4 rounded-full text-gray-400"><i className="fa-solid fa-vault text-2xl"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
+                                {/* LEADERBOARD CABANG (DENGAN LABA) */}
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
+                                        <i className="fa-solid fa-trophy text-[#FF3B30]"></i> Performa Cabang (Hari Ini)
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {data.leaderboard && data.leaderboard.map((cabang, idx) => (
+                                            <div key={cabang.id} className="bg-black p-5 rounded-2xl border border-white/5">
+                                                <div className="flex justify-between items-start mb-4 border-b border-white/10 pb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${idx === 0 ? 'bg-[#FF3B30] text-white' : 'bg-[#1C1C1E] text-gray-400'}`}>{idx + 1}</div>
+                                                        <h4 className="font-black text-lg tracking-tight uppercase text-white leading-none">{cabang.id}</h4>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-1">Laba Bersih</p>
+                                                        <p className="text-lg font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni !== undefined ? cabang.labaHariIni : (cabang.omsetHariIni - (cabang.expenseHariIni || 0)))}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                                    <div>Omset: <span className="text-gray-200">{formatIDR(cabang.omsetHariIni)}</span></div>
+                                                    <div className="text-right">Expense: <span className="text-gray-200">{formatIDR(cabang.expenseHariIni)}</span></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* GRAFIK TREN */}
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-8 flex items-center gap-3">
+                                        <i className="fa-solid fa-chart-column text-[#FF3B30]"></i> Tren Keramaian Mingguan
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {data.trenHari && data.trenHari.map((item, idx) => {
+                                            const persentase = (item.pasien / maxPasien) * 100;
+                                            const isTertinggi = item.pasien === maxPasien && item.pasien > 0;
+                                            return (
+                                                <div key={idx} className="flex items-center gap-4">
+                                                    <div className="w-16 text-xs font-black uppercase text-gray-400 tracking-wider">{item.hari}</div>
+                                                    <div className="flex-1 h-8 bg-black rounded-full overflow-hidden relative border border-white/5">
+                                                        <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isTertinggi ? 'bg-[#FF3B30]' : 'bg-white/20'}`} style={{ width: `${persentase}%` }}></div>
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white mix-blend-difference">{item.pasien} Pax</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                
+                                <button onClick={handleShareWA} className="w-full bg-white/10 text-white p-5 rounded-2xl font-black uppercase tracking-widest text-sm flex justify-center items-center gap-3 hover:bg-white/20 active:scale-95 transition-all">
+                                    <i className="fa-brands fa-whatsapp text-xl text-[#25D366]"></i> Bagikan ke WA
+                                </button>
+                            </main>
+                        </div>
+                    )}
+
+                    {/* TAB 2: LAPORAN & GAJI */}
+                    {activeTab === 'report' && (
+                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-6">
+                            <div className="mb-8">
+                                <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Laporan & Gaji</h2>
+                                <p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-1">Pusat Administrasi Cabang</p>
+                            </div>
+
+                            {/* SEGMEN CETAK SLIP GAJI */}
+                            <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
+                                    <i className="fa-solid fa-file-invoice-dollar text-[#FF3B30]"></i> Cetak Slip Terapis
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Filter Tanggal (15 Hari Mundur)</label>
+                                        <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs" value={filterGaji.preset} onChange={handlePresetChange}>
+                                            {filterOptions.map((opt, i) => (
+                                                <option key={i} value={opt.label} disabled={opt.disabled}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[9px] text-gray-600 uppercase font-black tracking-widest mb-1 block">Dari</label>
+                                            <input type="date" disabled className="w-full p-3 bg-black/50 rounded-xl text-gray-400 outline-none font-bold text-xs" value={filterGaji.startDate} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] text-gray-600 uppercase font-black tracking-widest mb-1 block">Sampai</label>
+                                            <input type="date" disabled className="w-full p-3 bg-black/50 rounded-xl text-gray-400 outline-none font-bold text-xs" value={filterGaji.endDate} />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block mt-2">Pilih Cabang</label>
+                                        <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs" value={filterGaji.cabang} onChange={e => setFilterGaji({...filterGaji, cabang: e.target.value})}>
+                                            <option value="">-- Pilih Cabang --</option>
+                                            {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                                        </select>
+                                    </div>
+                                    
+                                    <button onClick={fetchSlipGaji} disabled={loadingSlip || !filterGaji.startDate || !filterGaji.endDate || !filterGaji.cabang} className="w-full bg-[#FF3B30] text-white font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest mt-4 disabled:opacity-50 shadow-[0_10px_20px_rgba(255,59,48,0.3)]">
+                                        {loadingSlip ? <i className="fa-solid fa-spinner fa-spin"></i> : "CARI DATA KOMISI"}
+                                    </button>
+                                </div>
+
+                                {/* Hasil Terapis & Tombol Download */}
+                                {slipData.length > 0 && (
+                                    <div className="mt-6 space-y-3 pt-6 border-t border-white/10">
+                                        {slipData.map((terapis, idx) => (
+                                            <div key={idx} className="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                                                <div>
+                                                    <p className="font-black text-sm uppercase text-white mb-1">{terapis.nama}</p>
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{terapis.totalPasien} Pasien • <span className="text-[#FF3B30]">{formatIDR(terapis.totalKomisi)}</span></p>
+                                                </div>
+                                                <button onClick={() => downloadSlipTerapis(terapis)} className="bg-white/10 hover:bg-white/20 text-white w-12 h-12 rounded-xl active:scale-90 transition-all flex justify-center items-center">
+                                                    <i className="fa-solid fa-file-pdf"></i>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* TOP TERAPIS */}
+                            {data.topTerapis && data.topTerapis.length > 0 && (
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
+                                        <i className="fa-solid fa-medal text-[#FF3B30]"></i> Bintang Terapis (Bulan Ini)
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {data.topTerapis.map((terapis, idx) => (
+                                            <div key={idx} className="flex justify-between items-center bg-black p-4 rounded-2xl border border-white/5">
+                                                <div className="flex items-center gap-3"><span className="text-[#FF3B30] font-black opacity-50">#{idx + 1}</span><span className="font-black text-sm uppercase text-gray-200">{terapis.nama}</span></div>
+                                                <span className="font-black text-sm text-gray-400">{formatIDR(terapis.omset)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
+                    )}
 
-                        {/* GRAFIK TREN */}
-                        <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
-                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-8 flex items-center gap-3">
-                                <i className="fa-solid fa-chart-column text-[#FF3B30]"></i> Tren Keramaian
-                            </h3>
-                            <div className="space-y-4">
-                                {data.trenHari && data.trenHari.map((item, idx) => {
-                                    const persentase = (item.pasien / maxPasien) * 100;
-                                    const isTertinggi = item.pasien === maxPasien && item.pasien > 0;
-                                    return (
-                                        <div key={idx} className="flex items-center gap-4">
-                                            <div className="w-16 text-xs font-black uppercase text-gray-400 tracking-wider">{item.hari}</div>
-                                            <div className="flex-1 h-8 bg-black rounded-full overflow-hidden relative border border-white/5">
-                                                <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isTertinggi ? 'bg-[#FF3B30]' : 'bg-white/20'}`} style={{ width: `${persentase}%` }}></div>
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white mix-blend-difference">{item.pasien} Pax</div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                    {/* BOTTOM NAVIGATION BAR */}
+                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#1C1C1E]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6 rounded-t-3xl">
+                        <div className="flex justify-between items-center mb-2">
+                            <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-3 flex flex-col items-center gap-1 transition-all ${activeTab === 'dashboard' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}>
+                                <i className="fa-solid fa-house text-xl"></i>
+                                <span className="text-[9px] font-black uppercase tracking-widest">Dasbor</span>
+                            </button>
+                            <button onClick={() => setActiveTab('report')} className={`flex-1 py-3 flex flex-col items-center gap-1 transition-all ${activeTab === 'report' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}>
+                                <i className="fa-solid fa-file-signature text-xl"></i>
+                                <span className="text-[9px] font-black uppercase tracking-widest">Laporan</span>
+                            </button>
+                            <button onClick={onLogout} className="flex-1 py-3 flex flex-col items-center gap-1 transition-all text-gray-600 hover:text-white">
+                                <i className="fa-solid fa-power-off text-xl"></i>
+                                <span className="text-[9px] font-black uppercase tracking-widest">Keluar</span>
+                            </button>
                         </div>
-
-                    </main>
+                    </div>
                 </div>
             );
         };
 
         // ==========================================
-        // 2. KOMPONEN DASHBOARD KASIR (+ EXPENSE)
+        // 2. KOMPONEN DASHBOARD KASIR
         // ==========================================
         const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
-            const [mode, setMode] = useState('pemasukan'); // Tab Toggle
+            const [mode, setMode] = useState('pemasukan'); 
             const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0 });
             const [history, setHistory] = useState([]);
             
@@ -292,7 +436,6 @@
 
             useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
 
-            // Auto Fill Harga
             const handlePaketChange = (e) => {
                 const selectedPaket = e.target.value;
                 let autoHarga = formData.TAGIHAN;
@@ -332,7 +475,7 @@
             };
 
             return (
-                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-slide-up font-sans">
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
                     <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40">
                         <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm">
                             <div className="flex items-center gap-2 text-[#1C1C1E]">
@@ -343,7 +486,6 @@
                     </nav>
 
                     <main className="max-w-xl mx-auto p-4 space-y-5">
-                        {/* TOGGLE TAB */}
                         <div className="flex bg-white p-1.5 rounded-full shadow-sm border border-gray-100">
                             <button onClick={() => setMode('pemasukan')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pemasukan' ? 'bg-[#1C1C1E] text-white shadow-md' : 'text-gray-400 hover:text-black'}`}>Pemasukan</button>
                             <button onClick={() => setMode('pengeluaran')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pengeluaran' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-400 hover:text-red-500'}`}>Pengeluaran</button>
@@ -502,7 +644,7 @@
                             <div className="text-center mb-10">
                                 <img src={LOGO_URL} alt="Bugar Logo" className="h-16 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,59,48,0.6)]" />
                                 <h1 className="text-3xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1>
-                                <p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V5.0</p>
+                                <p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V5.1</p>
                             </div>
                             <form onSubmit={handleLogin} className="space-y-4">
                                 <input type="text" placeholder="ID AKSES" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
@@ -520,7 +662,7 @@
             return (
                 <div>
                     {userRole === 'OWNER' ? <OwnerView onLogout={handleLogout} /> : <CashierView activeCabang={activeCabang} onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
-                    {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-bounce shadow-2xl ${toast.type === 'success' ? 'bg-[#1C1C1E]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                    {toast.show && <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-bounce shadow-2xl ${toast.type === 'success' ? 'bg-[#1C1C1E]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
                 </div>
             );
         };
