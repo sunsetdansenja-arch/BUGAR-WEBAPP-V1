@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bugar Connect V5.5 - Audit Edition</title>
+    <title>Bugar Connect V5.5 - Full Audit Edition</title>
     
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     
@@ -19,6 +19,9 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         body { -webkit-tap-highlight-color: transparent; }
         .paper-slip { background-color: #fff; color: #1a1a1a; background-image: radial-gradient(#e5e5e5 1px, transparent 1px); background-size: 20px 20px; }
+        
+        /* Modifikasi tampilan icon kalender pada input date */
+        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -32,7 +35,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useCallback, useEffect, useMemo } = React;
+        const { useState, useCallback, useEffect } = React;
 
         const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
         const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
@@ -50,32 +53,15 @@
         
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 
-        // Generator Tanggal
-        const get30DaysOptions = () => {
-            const options = [];
+        // Setup Batas Tanggal (Hanya 30 Hari Ke Belakang)
+        const getLimits = () => {
             const today = new Date();
+            const minDate = new Date(today);
+            minDate.setDate(today.getDate() - 30);
             const getIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-            for(let i = 0; i <= 30; i++) {
-                const d = new Date(today); d.setDate(today.getDate() - i);
-                const iso = getIso(d);
-                const label = i === 0 ? "Hari Ini" : i === 1 ? "Kemarin" : d.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
-                options.push({ label: label, value: iso });
-            }
-            return options;
+            return { today: getIso(today), minDate: getIso(minDate) };
         };
-
-        const getFilterBulanOptions = () => {
-            const options = [];
-            const today = new Date();
-            const getIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-            for(let i=0; i<6; i++){
-                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                const start = getIso(d);
-                const end = getIso(new Date(today.getFullYear(), today.getMonth() - i + 1, 0));
-                options.push({ label: d.toLocaleDateString('id-ID', {month:'long', year:'numeric'}), start, end });
-            }
-            return options;
-        }
+        const limits = getLimits();
 
         // ==========================================
         // 1. KOMPONEN SUPERVISOR (AUDIT CENTER)
@@ -83,14 +69,13 @@
         const SupervisorView = ({ onLogout, sendToN8N, showToast }) => {
             const [logs, setLogs] = useState([]);
             const [loading, setLoading] = useState(true);
-            const opt30Days = get30DaysOptions();
-            const [filterDate, setFilterDate] = useState({ start: opt30Days[0].value, end: opt30Days[0].value, search: '' });
+            const [filterDate, setFilterDate] = useState({ start: limits.today, end: limits.today, search: '' });
             const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
             const [isDeleting, setIsDeleting] = useState(null);
 
             const fetchLogs = useCallback(async () => {
                 setLoading(true);
-                const res = await sendToN8N('supervisor_load'); // Action baru untuk N8N
+                const res = await sendToN8N('supervisor_load');
                 if (res && res.data) setLogs(res.data);
                 setLoading(false);
             }, []);
@@ -100,15 +85,11 @@
             const executeCancel = async () => {
                 const item = confirmModal.item;
                 const targetId = item.db_id || item.id || item.ID;
-                setConfirmModal({ show: false, item: null }); 
-                setIsDeleting(targetId);
+                setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
                 await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
-                showToast('Order Berhasil Dibatalkan (Soft Delete)'); 
-                await fetchLogs(); 
-                setIsDeleting(null);
+                showToast('Order Berhasil Dibatalkan (Soft Delete)'); await fetchLogs(); setIsDeleting(null);
             };
 
-            // Filter Engine di Frontend (Sangat Cepat)
             const filteredLogs = logs.filter(log => {
                 const matchDate = log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end;
                 const matchSearch = filterDate.search === '' || log.NAMA_PASIEN?.toLowerCase().includes(filterDate.search.toLowerCase()) || log.CABANG_ID?.toLowerCase().includes(filterDate.search.toLowerCase());
@@ -121,10 +102,7 @@
                         <div className="max-w-xl mx-auto flex justify-between items-center text-white">
                             <div className="flex items-center gap-3">
                                 <i className="fa-solid fa-shield-halved text-[#FF3B30] text-xl"></i>
-                                <div>
-                                    <p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p>
-                                    <h1 className="text-sm font-black uppercase tracking-tight">Supervisor Portal</h1>
-                                </div>
+                                <div><p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p><h1 className="text-sm font-black uppercase tracking-tight">Supervisor Portal</h1></div>
                             </div>
                             <button onClick={onLogout} className="text-white bg-white/10 px-4 py-2 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button>
                         </div>
@@ -132,19 +110,15 @@
 
                     <main className="max-w-xl mx-auto p-4 space-y-4 mt-2">
                         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-200">
-                            <h4 className="font-black text-[10px] text-gray-400 mb-4 tracking-widest uppercase"><i className="fa-solid fa-filter"></i> Filter Data (Maks 15 Hari)</h4>
+                            <h4 className="font-black text-[10px] text-gray-400 mb-4 tracking-widest uppercase"><i className="fa-solid fa-filter"></i> Filter Data (Maks 30 Hari)</h4>
                             <div className="grid grid-cols-2 gap-3 mb-3">
                                 <div>
                                     <label className="text-[9px] font-bold text-gray-400 mb-1 block uppercase">Dari Tgl</label>
-                                    <select className="w-full p-3 bg-[#F2F2F7] rounded-xl outline-none font-bold text-xs" value={filterDate.start} onChange={e => setFilterDate({...filterDate, start: e.target.value})}>
-                                        {opt30Days.slice(0, 16).map((opt, i) => <option key={i} value={opt.value}>{opt.label}</option>)}
-                                    </select>
+                                    <input type="date" min={limits.minDate} max={filterDate.end} className="w-full p-3 bg-[#F2F2F7] rounded-xl outline-none font-bold text-xs" value={filterDate.start} onChange={e => setFilterDate({...filterDate, start: e.target.value})} />
                                 </div>
                                 <div>
                                     <label className="text-[9px] font-bold text-gray-400 mb-1 block uppercase">Sampai Tgl</label>
-                                    <select className="w-full p-3 bg-[#F2F2F7] rounded-xl outline-none font-bold text-xs" value={filterDate.end} onChange={e => setFilterDate({...filterDate, end: e.target.value})}>
-                                        {opt30Days.slice(0, 16).map((opt, i) => <option key={i} value={opt.value}>{opt.label}</option>)}
-                                    </select>
+                                    <input type="date" min={filterDate.start} max={limits.today} className="w-full p-3 bg-[#F2F2F7] rounded-xl outline-none font-bold text-xs" value={filterDate.end} onChange={e => setFilterDate({...filterDate, end: e.target.value})} />
                                 </div>
                             </div>
                             <input type="text" placeholder="Cari Nama Pasien / Cabang..." className="w-full p-4 bg-[#F2F2F7] rounded-xl outline-none font-bold text-sm focus:border-[#FF3B30] transition-all" value={filterDate.search} onChange={e => setFilterDate({...filterDate, search: e.target.value})} />
@@ -155,9 +129,7 @@
                                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p>
                                 <button onClick={fetchLogs} className="text-[#FF3B30] text-[10px] font-black uppercase tracking-widest"><i className="fa-solid fa-rotate-right"></i> Refresh</button>
                             </div>
-                            
                             {loading ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
-                            
                             {filteredLogs.map((item, idx) => {
                                 const currentId = item.db_id || item.id || item.ID;
                                 const isBatal = Number(item.TAGIHAN) === 0;
@@ -212,24 +184,23 @@
         };
 
         // ==========================================
-        // 2. KOMPONEN DASHBOARD OWNER (Dengan Fraud Card)
+        // 2. KOMPONEN DASHBOARD OWNER (FULL VERSION)
         // ==========================================
         const OwnerView = ({ onLogout }) => {
             const [activeTab, setActiveTab] = useState('dashboard');
             const [reportSubTab, setReportSubTab] = useState('keuangan'); 
-            const [data, setData] = useState({ 
-                grandTotalHariIni: 0, grandTotalBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0,
-                leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [] // Menampung order batal
-            });
+            
+            const [data, setData] = useState({ grandTotalHariIni: 0, grandTotalBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [] });
             const [loading, setLoading] = useState(true);
             const [refreshing, setRefreshing] = useState(false);
 
-            const opt30Days = get30DaysOptions();
-            const optBulan = getFilterBulanOptions();
-            const [filterReport, setFilterReport] = useState({ preset: optBulan[0].label, startDate: optBulan[0].start, endDate: optBulan[0].end, cabang: 'ALL' });
+            // State Laporan Keuangan
+            const [filterReport, setFilterReport] = useState({ startDate: limits.today, endDate: limits.today, cabang: 'ALL' });
             const [reportData, setReportData] = useState(null);
             const [loadingReport, setLoadingReport] = useState(false);
-            const [filterGaji, setFilterGaji] = useState({ startDate: opt30Days[15] ? opt30Days[15].value : opt30Days[0].value, endDate: opt30Days[0].value, cabang: '' });
+
+            // State Slip Gaji Terapis
+            const [filterGaji, setFilterGaji] = useState({ startDate: limits.today, endDate: limits.today, cabang: '' });
             const [slipData, setSlipData] = useState([]);
             const [loadingSlip, setLoadingSlip] = useState(false);
 
@@ -237,17 +208,15 @@
                 if (isRefresh) setRefreshing(true); else setLoading(true);
                 try {
                     const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'owner_load' }) });
-                    const result = await res.json();
-                    let finalData = Array.isArray(result) ? result[0] : result;
+                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
                     if (finalData && finalData.json) finalData = finalData.json;
                     setData(finalData || {});
-                } catch (e) { console.error("Gagal memuat data owner"); }
-                setLoading(false); setRefreshing(false);
+                } catch (e) {} setLoading(false); setRefreshing(false);
             };
 
             useEffect(() => { loadOwnerData(); }, []);
 
-            const fetchReportData = async () => { /* ... (Tetap sama seperti V5.4) ... */
+            const fetchReportData = async () => {
                 setLoadingReport(true);
                 try {
                     const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterReport.startDate, endDate: filterReport.endDate, cabang: filterReport.cabang }) });
@@ -256,7 +225,7 @@
                 } catch (e) {} setLoadingReport(false);
             };
 
-            const fetchSlipGaji = async () => { /* ... (Tetap sama seperti V5.4) ... */
+            const fetchSlipGaji = async () => {
                 setLoadingSlip(true);
                 try {
                     const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterGaji.startDate, endDate: filterGaji.endDate, cabang: filterGaji.cabang }) });
@@ -265,45 +234,78 @@
                 } catch (e) {} setLoadingSlip(false);
             };
 
-            // (Fungsi Cetak PDF Dihilangkan Sementara dari snippet agar tidak terlalu panjang, TAPI DI KODE ASLI TETAP ADA, SAYA BIKIN SIMPEL)
-            const downloadSlipTerapis = (terapis) => { alert("Generate PDF untuk: " + terapis.nama); };
-            const downloadSlipLaporan = () => { alert("Generate Laporan Keuangan"); };
+            // Fungsi Cetak PDF KEUANGAN
+            const downloadSlipLaporan = () => {
+                if(!reportData) return;
+                const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a5' });
+                doc.setFontSize(16); doc.setTextColor(255, 59, 48); doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
+                doc.setFontSize(12); doc.setTextColor(28, 28, 30); doc.text("REKAP LAPORAN KEUANGAN", 74, 28, { align: "center" });
+                doc.setLineWidth(0.5); doc.line(10, 35, 138, 35);
+                doc.setFontSize(10); doc.setTextColor(100, 100, 100);
+                doc.text(`Cabang     : ${filterReport.cabang === 'ALL' ? 'SEMUA CABANG' : filterReport.cabang}`, 15, 45);
+                doc.text(`Periode    : ${filterReport.startDate} s/d ${filterReport.endDate}`, 15, 53);
+                doc.line(10, 60, 138, 60);
+                doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+                doc.text(`Total Omset`, 15, 75); doc.text(`${formatIDR(reportData.omset)}`, 133, 75, {align: 'right'});
+                doc.text(`Total Pengeluaran`, 15, 85); doc.text(`- ${formatIDR(reportData.expense)}`, 133, 85, {align: 'right'});
+                doc.setLineWidth(0.5); doc.line(15, 95, 133, 95);
+                doc.setFont(undefined, 'bold'); doc.setFontSize(14);
+                if(reportData.laba < 0) doc.setTextColor(255, 59, 48);
+                doc.text(`LABA BERSIH`, 15, 110); doc.text(`${formatIDR(reportData.laba)}`, 133, 110, {align: 'right'});
+                doc.save(`Laporan_${filterReport.cabang}_${filterReport.startDate}.pdf`);
+            };
+
+            // Fungsi Cetak PDF TERAPIS
+            const downloadSlipTerapis = (terapis) => {
+                const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a5' });
+                doc.setFontSize(18); doc.setTextColor(255, 59, 48); doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
+                doc.setFontSize(12); doc.setTextColor(28, 28, 30); doc.text("SLIP KOMISI TERAPIS", 74, 28, { align: "center" });
+                doc.setLineWidth(0.5); doc.line(10, 35, 138, 35);
+                doc.setFontSize(10); doc.setTextColor(100, 100, 100);
+                doc.text(`Cabang     : ${filterGaji.cabang}`, 15, 45);
+                doc.text(`Nama       : ${terapis.nama}`, 15, 53);
+                doc.text(`Periode    : ${filterGaji.startDate} s/d ${filterGaji.endDate}`, 15, 61);
+                doc.line(10, 70, 138, 70);
+                doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+                doc.text(`Total Pasien Diselesaikan: ${terapis.totalPasien} Orang`, 15, 85);
+                doc.setFont(undefined, 'bold'); doc.setFontSize(14);
+                doc.text(`TOTAL KOMISI : ${formatIDR(terapis.totalKomisi)}`, 15, 100);
+                doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(150, 150, 150);
+                doc.text("Terima kasih atas kerja keras Anda!", 74, 130, { align: "center" });
+                doc.save(`SlipGaji_${filterGaji.cabang}_${terapis.nama.replace(/\s+/g, '_')}.pdf`);
+            };
 
             if (loading) return <div className="min-h-screen bg-[#000000] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl"></i></div>;
             const maxPasien = data.trenHari?.length > 0 ? Math.max(...data.trenHari.map(d => d.pasien), 1) : 1;
 
             return (
                 <div className="min-h-screen bg-[#000000] text-white font-sans animate-fade-in pb-28">
+                    
+                    {/* --- TAB 1: DASHBOARD EKSEKUTIF --- */}
                     {activeTab === 'dashboard' && (
                         <div className="animate-slide-up">
                             <div className="bg-[#1C1C1E] px-6 py-10 rounded-b-[3rem] shadow-2xl border-b-2 border-[#FF3B30]/30">
                                 <div className="max-w-xl mx-auto">
-                                    {/* Header */}
                                     <div className="flex justify-between items-start mb-8">
                                         <div className="flex items-center gap-3"><img src={LOGO_URL} alt="Logo" className="h-12 w-12 object-contain" /><div><p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-2xl font-black tracking-tighter uppercase leading-none">Bugar Analytics</h1></div></div>
                                         <button onClick={() => loadOwnerData(true)} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10"><i className={`fa-solid fa-rotate-right text-lg ${refreshing ? 'fa-spin text-[#FF3B30]' : ''}`}></i></button>
                                     </div>
-                                    {/* Kartu Laba */}
                                     <div className="bg-[#FF3B30] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.3)] relative overflow-hidden">
                                         <div className="absolute top-0 right-0 p-6 opacity-20"><i className="fa-solid fa-wallet text-[80px]"></i></div>
                                         <p className="text-white/80 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Bersih Hari Ini</p>
                                         <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
                                         <div className="flex justify-between items-center mt-5 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4">
-                                            <div><span className="opacity-70 block mb-1">Omset</span> {formatIDR(data.grandTotalHariIni)}</div>
-                                            <div className="text-right"><span className="opacity-70 block mb-1">Pengeluaran</span> {formatIDR(data.expenseHariIni)}</div>
+                                            <div><span className="opacity-70 block mb-1">Omset</span> {formatIDR(data.grandTotalHariIni)}</div><div className="text-right"><span className="opacity-70 block mb-1">Pengeluaran</span> {formatIDR(data.expenseHariIni)}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
-                                
-                                {/* SEGMEN BARU: OVERSIGHT PEMBATALAN */}
+                                {/* SEGMEN OVERSIGHT PEMBATALAN */}
                                 {data.cancelledOrders && data.cancelledOrders.length > 0 && (
                                     <div className="bg-[#2A0808] p-8 rounded-[2.5rem] border border-[#FF3B30]/30 shadow-[0_0_30px_rgba(255,59,48,0.1)]">
-                                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#FF3B30] mb-6 flex items-center gap-3">
-                                            <i className="fa-solid fa-triangle-exclamation"></i> Log Pembatalan (Audit)
-                                        </h3>
+                                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#FF3B30] mb-6 flex items-center gap-3"><i className="fa-solid fa-triangle-exclamation"></i> Log Pembatalan (Audit)</h3>
                                         <div className="space-y-3">
                                             {data.cancelledOrders.map((batal, idx) => (
                                                 <div key={idx} className="bg-black/50 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center">
@@ -338,8 +340,111 @@
                         </div>
                     )}
 
-                    {/* TAB LAPORAN TETAP SAMA */}
-                    {activeTab === 'report' && ( <div className="p-6 pt-10 text-center"><p className="text-gray-500 font-black tracking-widest text-xs uppercase mt-20">Mode Laporan & Gaji <br/>Tersedia seperti V5.4</p></div> )}
+                    {/* --- TAB 2: LAPORAN & GAJI (FULL RESTORED) --- */}
+                    {activeTab === 'report' && (
+                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-6">
+                            <div className="mb-6">
+                                <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Administrasi</h2>
+                                <p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-1">Pusat Pembukuan & Penggajian</p>
+                            </div>
+
+                            <div className="flex bg-[#1C1C1E] p-1.5 rounded-full border border-white/10 mb-6">
+                                <button onClick={() => setReportSubTab('keuangan')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${reportSubTab === 'keuangan' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-500 hover:text-white'}`}>Lap Keuangan</button>
+                                <button onClick={() => setReportSubTab('gaji')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${reportSubTab === 'gaji' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-500 hover:text-white'}`}>Gaji Terapis</button>
+                            </div>
+
+                            {/* SEGMEN LAPORAN KEUANGAN */}
+                            {reportSubTab === 'keuangan' && (
+                                <div className="bg-[#111111] p-8 rounded-[2.5rem] border border-white/10 shadow-2xl animate-fade-in">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-chart-pie text-[#FF3B30]"></i> Cetak Laporan</h3>
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="text-[9px] font-bold text-gray-500 mb-1 block uppercase tracking-widest">Dari Tgl</label>
+                                                <input type="date" min={limits.minDate} max={filterReport.endDate} className="w-full p-4 bg-[#1C1C1E] rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30] transition-all" value={filterReport.startDate} onChange={e => setFilterReport({...filterReport, startDate: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] font-bold text-gray-500 mb-1 block uppercase tracking-widest">Sampai Tgl</label>
+                                                <input type="date" min={filterReport.startDate} max={limits.today} className="w-full p-4 bg-[#1C1C1E] rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30] transition-all" value={filterReport.endDate} onChange={e => setFilterReport({...filterReport, endDate: e.target.value})} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block mt-2">Filter Cabang</label>
+                                            <select className="w-full p-4 bg-[#1C1C1E] rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" value={filterReport.cabang} onChange={e => setFilterReport({...filterReport, cabang: e.target.value})}>
+                                                <option value="ALL">Semua Cabang (Global)</option>
+                                                {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                                            </select>
+                                        </div>
+                                        <button onClick={fetchReportData} disabled={loadingReport} className="w-full bg-white text-black font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest mt-4 shadow-[0_10px_20px_rgba(255,255,255,0.1)]">
+                                            {loadingReport ? <i className="fa-solid fa-spinner fa-spin"></i> : "TARIK DATA"}
+                                        </button>
+                                    </div>
+
+                                    {reportData && (
+                                        <div className="mt-8 pt-8 border-t border-white/10 animate-fade-in">
+                                            <div className="paper-slip p-6 rounded-2xl shadow-inner mb-4 border border-gray-300">
+                                                <h4 className="text-center font-black text-xl text-[#FF3B30] mb-1 tracking-tighter">BUGAR REFLEKSI</h4>
+                                                <p className="text-center font-bold text-xs uppercase border-b-2 border-dashed border-gray-400 pb-3 mb-4 tracking-widest">Laporan Keuangan</p>
+                                                <div className="space-y-1 mb-4 text-[10px] font-bold text-gray-600"><div className="flex justify-between"><span>CABANG</span> <span>{filterReport.cabang}</span></div><div className="flex justify-between"><span>PERIODE</span> <span>{filterReport.startDate} - {filterReport.endDate}</span></div></div>
+                                                <div className="border-t border-b border-gray-300 py-3 mb-4 space-y-2"><div className="flex justify-between font-bold text-sm"><span>TOTAL OMSET</span> <span>{formatIDR(reportData.omset)}</span></div><div className="flex justify-between font-bold text-sm text-red-600"><span>PENGELUARAN</span> <span>- {formatIDR(reportData.expense)}</span></div></div>
+                                                <div className="flex justify-between font-black text-lg"><span>LABA BERSIH</span> <span className={reportData.laba < 0 ? "text-red-600" : ""}>{formatIDR(reportData.laba)}</span></div>
+                                            </div>
+                                            <button onClick={downloadSlipLaporan} className="w-full bg-[#FF3B30] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex justify-center items-center gap-2 hover:bg-red-600 transition-all shadow-[0_10px_20px_rgba(255,59,48,0.3)]"><i className="fa-solid fa-file-pdf"></i> Download PDF</button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* SEGMEN GAJI TERAPIS */}
+                            {reportSubTab === 'gaji' && (
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl animate-fade-in">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-file-invoice-dollar text-[#FF3B30]"></i> Slip Gaji Terapis</h3>
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="text-[9px] font-bold text-gray-500 mb-1 block uppercase tracking-widest">Dari Tgl</label>
+                                                <input type="date" min={limits.minDate} max={filterGaji.endDate} className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30] transition-all" value={filterGaji.startDate} onChange={e => setFilterGaji({...filterGaji, startDate: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="text-[9px] font-bold text-gray-500 mb-1 block uppercase tracking-widest">Sampai Tgl</label>
+                                                <input type="date" min={filterGaji.startDate} max={limits.today} className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30] transition-all" value={filterGaji.endDate} onChange={e => setFilterGaji({...filterGaji, endDate: e.target.value})} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block mt-2">Pilih Cabang (Wajib)</label>
+                                            <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" value={filterGaji.cabang} onChange={e => setFilterGaji({...filterGaji, cabang: e.target.value})}>
+                                                <option value="">-- Pilih Cabang --</option>
+                                                {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                                            </select>
+                                        </div>
+                                        <button onClick={fetchSlipGaji} disabled={loadingSlip || !filterGaji.cabang} className="w-full bg-[#111111] border border-white/10 text-white font-black py-4 rounded-2xl hover:bg-[#FF3B30] active:scale-95 transition-all text-xs uppercase tracking-widest mt-4 disabled:opacity-50">
+                                            {loadingSlip ? <i className="fa-solid fa-spinner fa-spin"></i> : "CARI DAFTAR TERAPIS"}
+                                        </button>
+                                    </div>
+
+                                    {slipData.length > 0 && (
+                                        <div className="mt-6 space-y-4 pt-6 border-t border-white/10 animate-fade-in">
+                                            <p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest text-center mb-2">Klik Untuk Cetak Slip PDF</p>
+                                            {slipData.map((terapis, idx) => (
+                                                <div key={idx} className="bg-black p-5 rounded-2xl border border-white/5 relative overflow-hidden">
+                                                    <div className="flex justify-between items-center relative z-10">
+                                                        <div>
+                                                            <p className="font-black text-lg uppercase text-white mb-1 tracking-tight">{terapis.nama}</p>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{terapis.totalPasien} Pasien Diselesaikan</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-black text-[#FF3B30]">{formatIDR(terapis.totalKomisi)}</p>
+                                                            <button onClick={() => downloadSlipTerapis(terapis)} className="mt-2 bg-white/10 hover:bg-white text-gray-400 hover:text-black px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">Cetak PDF</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* BOTTOM NAV */}
                     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
@@ -354,17 +459,16 @@
         };
 
         // ==========================================
-        // 3. KOMPONEN KASIR (Delete Dicabut, Tambah Log Expense)
+        // 3. KOMPONEN KASIR
         // ==========================================
         const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
             const [mode, setMode] = useState('pemasukan'); 
             const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0 });
             const [history, setHistory] = useState([]);
-            const [expenseHistory, setExpenseHistory] = useState([]); // State Baru untuk Expense Log
+            const [expenseHistory, setExpenseHistory] = useState([]);
             
             const [formData, setFormData] = useState({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '' });
             const [expenseData, setExpenseData] = useState({ NAMA_PENGELUARAN: '', NOMINAL: '', KETERANGAN: '' });
-            
             const [loading, setLoading] = useState(false);
             const [fetching, setFetching] = useState(false);
 
@@ -374,7 +478,7 @@
                 if (res && (res.status === 'success' || res.history)) {
                     setStats(res.stats || { hariIni: 0, bulanIni: 0 });
                     setHistory(res.history || []);
-                    setExpenseHistory(res.expenseHistory || []); // Menarik data Expense
+                    setExpenseHistory(res.expenseHistory || []); 
                 }
                 if (isInitial) setFetching(false);
             }, [activeCabang]);
@@ -382,12 +486,8 @@
             useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
 
             const handlePaketChange = (e) => {
-                const selectedPaket = e.target.value;
-                let autoHarga = formData.TAGIHAN;
-                if (selectedPaket) {
-                    const match = selectedPaket.match(/Rp\s*([\d.]+)/);
-                    if (match && match[1]) autoHarga = match[1].replace(/\./g, '');
-                }
+                const selectedPaket = e.target.value; let autoHarga = formData.TAGIHAN;
+                if (selectedPaket) { const match = selectedPaket.match(/Rp\s*([\d.]+)/); if (match && match[1]) autoHarga = match[1].replace(/\./g, ''); }
                 setFormData({ ...formData, PAKET: selectedPaket, TAGIHAN: autoHarga });
             };
 
@@ -406,8 +506,7 @@
                 const res = await sendToN8N('insert_expense', { ...expenseData, CABANG_ID: activeCabang });
                 if (res && res.status === 'success') {
                     setExpenseData({ NAMA_PENGELUARAN: '', NOMINAL: '', KETERANGAN: '' });
-                    showToast('Pengeluaran Berhasil Dicatat'); 
-                    await loadDashboardData(); // Refresh list expense
+                    showToast('Pengeluaran Berhasil Dicatat'); await loadDashboardData();
                 } else { showToast('Gagal Mencatat', 'error'); }
                 setLoading(false);
             };
@@ -415,53 +514,27 @@
             return (
                 <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
                     <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40">
-                        <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm">
-                            <div className="flex items-center gap-2 text-[#1C1C1E]"><img src={LOGO_URL} alt="Logo" className="h-6 w-6 object-contain" /> CABANG {activeCabang}</div>
-                            <button onClick={onLogout} className="text-[#FF3B30] bg-[#FF3B30]/10 px-4 py-2 rounded-full text-[10px] flex items-center gap-2 hover:bg-[#FF3B30]/20 active:scale-95 transition-all tracking-widest"><i className="fa-solid fa-right-from-bracket"></i> KELUAR</button>
-                        </div>
+                        <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm"><div className="flex items-center gap-2 text-[#1C1C1E]"><img src={LOGO_URL} alt="Logo" className="h-6 w-6 object-contain" /> CABANG {activeCabang}</div><button onClick={onLogout} className="text-[#FF3B30] bg-[#FF3B30]/10 px-4 py-2 rounded-full text-[10px] flex items-center gap-2 hover:bg-[#FF3B30]/20 active:scale-95 transition-all tracking-widest"><i className="fa-solid fa-right-from-bracket"></i> KELUAR</button></div>
                     </nav>
 
                     <main className="max-w-xl mx-auto p-4 space-y-5">
-                        <div className="flex bg-white p-1.5 rounded-full shadow-sm border border-gray-100">
-                            <button onClick={() => setMode('pemasukan')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pemasukan' ? 'bg-[#1C1C1E] text-white shadow-md' : 'text-gray-400 hover:text-black'}`}>Pemasukan</button>
-                            <button onClick={() => setMode('pengeluaran')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pengeluaran' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-400 hover:text-red-500'}`}>Pengeluaran</button>
-                        </div>
+                        <div className="flex bg-white p-1.5 rounded-full shadow-sm border border-gray-100"><button onClick={() => setMode('pemasukan')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pemasukan' ? 'bg-[#1C1C1E] text-white shadow-md' : 'text-gray-400 hover:text-black'}`}>Pemasukan</button><button onClick={() => setMode('pengeluaran')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pengeluaran' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-400 hover:text-red-500'}`}>Pengeluaran</button></div>
 
                         {mode === 'pemasukan' ? (
                             <div className="animate-slide-up space-y-5">
-                                {/* KARTU OMSET */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-[#FF3B30] p-5 rounded-3xl text-white shadow-lg">
-                                        <p className="text-[9px] uppercase font-black opacity-70 tracking-widest mb-1">Hari Ini</p>
-                                        <h3 className="text-xl font-black">{formatIDR(stats.hariIni)}</h3>
-                                    </div>
-                                    <div className="bg-[#1C1C1E] p-5 rounded-3xl text-white shadow-lg">
-                                        <p className="text-[9px] uppercase font-black opacity-40 tracking-widest mb-1">Bulan Ini</p>
-                                        <h3 className="text-xl font-black">{formatIDR(stats.bulanIni)}</h3>
-                                    </div>
-                                </div>
+                                <div className="grid grid-cols-2 gap-3"><div className="bg-[#FF3B30] p-5 rounded-3xl text-white shadow-lg"><p className="text-[9px] uppercase font-black opacity-70 tracking-widest mb-1">Hari Ini</p><h3 className="text-xl font-black">{formatIDR(stats.hariIni)}</h3></div><div className="bg-[#1C1C1E] p-5 rounded-3xl text-white shadow-lg"><p className="text-[9px] uppercase font-black opacity-40 tracking-widest mb-1">Bulan Ini</p><h3 className="text-xl font-black">{formatIDR(stats.bulanIni)}</h3></div></div>
 
-                                {/* FORM PASIEN */}
                                 <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
                                     <h4 className="font-black text-[10px] text-gray-400 mb-5 tracking-widest uppercase">Input Pasien</h4>
                                     <form onSubmit={handleOrderSubmit} className="space-y-4">
                                         <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
                                         <input type="tel" placeholder="WhatsApp (08...)" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            <select required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold text-[11px] focus:border-[#FF3B30] transition-all appearance-none" value={formData.PAKET} onChange={handlePaketChange}>
-                                                <option value="">Pilih Paket...</option>
-                                                {DAFTAR_PAKET.map(p => <option key={p} value={p}>{p}</option>)}
-                                            </select>
-                                            <input type="number" placeholder="Total Tagihan (Rp)" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
-                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><select required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold text-[11px] focus:border-[#FF3B30] transition-all appearance-none" value={formData.PAKET} onChange={handlePaketChange}><option value="">Pilih Paket...</option>{DAFTAR_PAKET.map(p => <option key={p} value={p}>{p}</option>)}</select><input type="number" placeholder="Total Tagihan (Rp)" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} /></div>
                                         <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value})} />
-                                        <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#FF3B30] active:scale-[0.98] transition-all mt-2 tracking-widest uppercase text-sm">
-                                            {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN DATA"}
-                                        </button>
+                                        <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#FF3B30] active:scale-[0.98] transition-all mt-2 tracking-widest uppercase text-sm">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN DATA"}</button>
                                     </form>
                                 </div>
 
-                                {/* LOG PASIEN (TANPA TOMBOL HAPUS) */}
                                 <div className="space-y-3">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Log Transaksi Hari Ini</p>
                                     {fetching && history.length === 0 && <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-300 text-2xl"></i></div>}
@@ -469,13 +542,7 @@
                                         const isBatal = Number(item.TAGIHAN) === 0;
                                         return (
                                             <div key={idx} className={`p-4 rounded-2xl border flex justify-between items-center transition-all ${isBatal ? 'bg-red-50 border-red-100 opacity-60' : 'bg-white border-gray-100'}`}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isBatal ? 'bg-red-100 text-[#FF3B30]' : 'bg-[#F2F2F7] text-[#1C1C1E]'}`}>{item.NAMA_PASIEN?.charAt(0)}</div>
-                                                    <div>
-                                                        <h5 className={`font-black text-sm leading-none mb-1 text-[#1C1C1E] ${isBatal ? 'line-through opacity-70' : ''}`}>{item.NAMA_PASIEN}</h5>
-                                                        <p className="text-[9px] text-gray-400 font-bold uppercase truncate max-w-[150px]">{item.PAKET} • {item.TERAPIS}</p>
-                                                    </div>
-                                                </div>
+                                                <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isBatal ? 'bg-red-100 text-[#FF3B30]' : 'bg-[#F2F2F7] text-[#1C1C1E]'}`}>{item.NAMA_PASIEN?.charAt(0)}</div><div><h5 className={`font-black text-sm leading-none mb-1 text-[#1C1C1E] ${isBatal ? 'line-through opacity-70' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[9px] text-gray-400 font-bold uppercase truncate max-w-[150px]">{item.PAKET} • {item.TERAPIS}</p></div></div>
                                                 <p className={`text-sm font-black pr-2 ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p>
                                             </div>
                                         );
@@ -484,36 +551,21 @@
                             </div>
                         ) : (
                             <div className="space-y-5 animate-slide-up">
-                                {/* FORM EXPENSE */}
                                 <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
-                                    <div className="text-center mb-6">
-                                        <i className="fa-solid fa-receipt text-[#FF3B30] text-3xl mb-2"></i>
-                                        <h4 className="font-black text-lg text-[#1C1C1E] tracking-tight uppercase">Catat Pengeluaran</h4>
-                                        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">Gunakan dana laci cabang</p>
-                                    </div>
+                                    <div className="text-center mb-6"><i className="fa-solid fa-receipt text-[#FF3B30] text-3xl mb-2"></i><h4 className="font-black text-lg text-[#1C1C1E] tracking-tight uppercase">Catat Pengeluaran</h4><p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">Gunakan dana laci cabang</p></div>
                                     <form onSubmit={handleExpenseSubmit} className="space-y-4">
                                         <input type="text" placeholder="Nama Item (Cth: Beli Tisu, Galon)" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={expenseData.NAMA_PENGELUARAN} onChange={e => setExpenseData({...expenseData, NAMA_PENGELUARAN: e.target.value})} />
                                         <input type="number" placeholder="Nominal Rp (Cth: 20000)" required className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={expenseData.NOMINAL} onChange={e => setExpenseData({...expenseData, NOMINAL: e.target.value})} />
                                         <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all resize-none" value={expenseData.KETERANGAN} onChange={e => setExpenseData({...expenseData, KETERANGAN: e.target.value})}></textarea>
-                                        <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 rounded-2xl hover:bg-red-600 active:scale-[0.98] transition-all mt-2 tracking-widest uppercase text-sm shadow-[0_10px_20px_rgba(255,59,48,0.3)]">
-                                            {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "CATAT PENGELUARAN"}
-                                        </button>
+                                        <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 rounded-2xl hover:bg-red-600 active:scale-[0.98] transition-all mt-2 tracking-widest uppercase text-sm shadow-[0_10px_20px_rgba(255,59,48,0.3)]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "CATAT PENGELUARAN"}</button>
                                     </form>
                                 </div>
-
-                                {/* LOG EXPENSE (FITUR BARU UNTUK KASIR) */}
                                 <div className="space-y-3">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Log Pengeluaran Hari Ini</p>
                                     {expenseHistory.length === 0 && <div className="text-center py-6 text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada pengeluaran</div>}
                                     {expenseHistory.map((exp, idx) => (
                                         <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-red-50 text-[#FF3B30] flex items-center justify-center"><i className="fa-solid fa-arrow-down"></i></div>
-                                                <div>
-                                                    <h5 className="font-black text-sm text-[#1C1C1E] uppercase">{exp.NAMA_PENGELUARAN}</h5>
-                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 truncate max-w-[150px]">{exp.KETERANGAN || '-'}</p>
-                                                </div>
-                                            </div>
+                                            <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-red-50 text-[#FF3B30] flex items-center justify-center"><i className="fa-solid fa-arrow-down"></i></div><div><h5 className="font-black text-sm text-[#1C1C1E] uppercase">{exp.NAMA_PENGELUARAN}</h5><p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 truncate max-w-[150px]">{exp.KETERANGAN || '-'}</p></div></div>
                                             <p className="text-sm font-black text-[#FF3B30]">- {formatIDR(exp.NOMINAL)}</p>
                                         </div>
                                     ))}
@@ -554,7 +606,6 @@
                 const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
                 
                 if (res && res.status === 'success') {
-                    // Deteksi Role Baru: Supervisor
                     let detectedRole = 'CABANG';
                     if (cleanId.includes('OWNER')) detectedRole = 'OWNER';
                     if (cleanId.includes('SUPERVISOR')) detectedRole = 'SUPERVISOR';
