@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bugar Connect V5.5 - Full Audit Edition</title>
+    <title>Bugar Connect V5.6 - Masterpiece Edition</title>
     
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     
@@ -19,9 +19,6 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         body { -webkit-tap-highlight-color: transparent; }
         .paper-slip { background-color: #fff; color: #1a1a1a; background-image: radial-gradient(#e5e5e5 1px, transparent 1px); background-size: 20px 20px; }
-        
-        /* Modifikasi tampilan icon kalender pada input date */
-        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -31,37 +28,198 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-[#1C1C1E]">
+<body class="bg-[#1C1C1E] text-white">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useCallback, useEffect } = React;
+        const { useState, useCallback, useEffect, useMemo } = React;
 
         const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
         const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
         
         const DAFTAR_PAKET = [
-            "Paket 1 (70 Menit) - Rp 100.000: Refleksi, Body Massage, Pijat Kepala",
-            "Paket 2 (90 Menit) - Rp 120.000: Refleksi, Body Massage, Pijat Kepala, Totok Wajah",
+            "Paket 1 (70 Menit) - Rp 100.000: Refleksi, Body Massage",
+            "Paket 2 (90 Menit) - Rp 120.000: Refleksi, Body Massage, Totok Wajah",
             "Paket 3 (120 Menit) - Rp 140.000: Refleksi, Body Massage, Pijat Kepala",
-            "Paket 4 (120 Menit) - Rp 150.000: Refleksi, Body Massage, Pijat Kepala, Body Scrub",
-            "Paket 5 (120 Menit) - Rp 150.000: Refleksi, Body Massage, Pijat Kepala, Bekam Kering",
-            "Paket 6 (120 Menit) - Rp 170.000: Refleksi, Body Massage, Pijat Kepala, Bekam Basah",
-            "Paket 7 (120 Menit) - Rp 200.000: Refleksi, Body Massage, Pijat Kepala, Totok Wajah, Lulur",
+            "Paket 4 (120 Menit) - Rp 150.000: Refleksi, Body Scrub",
+            "Paket 5 (120 Menit) - Rp 150.000: Refleksi, Bekam Kering",
+            "Paket 6 (120 Menit) - Rp 170.000: Refleksi, Bekam Basah",
+            "Paket 7 (120 Menit) - Rp 200.000: Refleksi, Totok Wajah, Lulur",
             "Paket 8 - Rp 300.000: Chiropractic (Kretek) 17 Gerakan"
         ];
         
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 
-        // Setup Batas Tanggal (Hanya 30 Hari Ke Belakang)
-        const getLimits = () => {
-            const today = new Date();
-            const minDate = new Date(today);
-            minDate.setDate(today.getDate() - 30);
-            const getIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-            return { today: getIso(today), minDate: getIso(minDate) };
+        // ==========================================
+        // UI COMPONENT: HOTEL BOOKING DATE RANGE
+        // ==========================================
+        const HotelDateRangePicker = ({ value, onChange, title }) => {
+            const [step, setStep] = useState(0); 
+            const [showModal, setShowModal] = useState(false);
+
+            // Generate 35 days (5 weeks) backwards
+            const days = useMemo(() => {
+                const arr = [];
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                for(let i=34; i>=0; i--) {
+                    const d = new Date(today); d.setDate(d.getDate() - i);
+                    arr.push({ date: d, iso: d.toISOString().split('T')[0], dayStr: d.getDate(), isToday: i===0 });
+                }
+                return arr;
+            }, []);
+
+            const handleDayClick = (iso) => {
+                if (step === 0 || iso < value.start) {
+                    onChange({ start: iso, end: iso }); setStep(1);
+                } else {
+                    onChange({ ...value, end: iso }); setStep(0); setShowModal(false);
+                }
+            };
+
+            const formatDateStr = (iso) => {
+                if(!iso) return "-";
+                const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+            };
+
+            return (
+                <div className="w-full">
+                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">{title || "Pilih Rentang Waktu"}</label>
+                    <div onClick={() => {setShowModal(true); setStep(0);}} className="bg-black border border-white/10 rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all">
+                        <div className="flex gap-4 items-center">
+                            <i className="fa-regular fa-calendar text-[#FF3B30] text-lg"></i>
+                            <div>
+                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Mulai</p>
+                                <p className="text-sm font-black text-white">{formatDateStr(value.start)}</p>
+                            </div>
+                        </div>
+                        <div className="h-8 w-[1px] bg-white/10"></div>
+                        <div className="text-right">
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Selesai</p>
+                            <p className="text-sm font-black text-white">{formatDateStr(value.end)}</p>
+                        </div>
+                    </div>
+
+                    {showModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                            <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/10 animate-slide-up relative overflow-hidden">
+                                <div className="text-center mb-6">
+                                    <h3 className="text-lg font-black uppercase tracking-tight text-white">{step === 0 ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai"}</h3>
+                                    <p className="text-[10px] text-[#FF3B30] font-bold uppercase tracking-widest mt-1">Maksimal 35 Hari Ke Belakang</p>
+                                </div>
+                                
+                                <div className="grid grid-cols-7 gap-2 mb-2">
+                                    {['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d=><div key={d} className="text-center text-[9px] font-black text-gray-500 uppercase">{d}</div>)}
+                                </div>
+                                <div className="grid grid-cols-7 gap-y-2 gap-x-0 relative">
+                                    {/* Offset blanks */}
+                                    {Array.from({length: days[0].date.getDay()}).map((_,i) => <div key={`blank-${i}`} />)}
+                                    
+                                    {days.map((d, i) => {
+                                        const isStart = d.iso === value.start;
+                                        const isEnd = d.iso === value.end;
+                                        const inRange = d.iso > value.start && d.iso < value.end;
+                                        
+                                        let bgClass = "bg-transparent text-gray-300";
+                                        if (isStart || isEnd) bgClass = "bg-[#FF3B30] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)] z-10 scale-110 rounded-full";
+                                        else if (inRange) bgClass = "bg-[#FF3B30]/20 text-[#FF3B30] rounded-none";
+                                        else if (d.isToday) bgClass = "bg-white/10 text-white border border-white/20 rounded-full";
+
+                                        // Edge rounding for range
+                                        let wrapperClass = "flex justify-center items-center h-10 w-full relative cursor-pointer";
+                                        if(isStart && value.start !== value.end) wrapperClass += " rounded-l-full bg-[#FF3B30]/20";
+                                        if(isEnd && value.start !== value.end) wrapperClass += " rounded-r-full bg-[#FF3B30]/20";
+
+                                        return (
+                                            <div key={i} className={wrapperClass} onClick={() => handleDayClick(d.iso)}>
+                                                <div className={`w-8 h-8 flex items-center justify-center font-bold text-sm transition-all ${bgClass}`}>
+                                                    {d.dayStr}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                                <button onClick={()=>setShowModal(false)} className="mt-8 w-full py-4 bg-white/10 text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 text-xs">Batalkan</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )
         };
-        const limits = getLimits();
+
+        // ==========================================
+        // UI COMPONENT: EXPANDABLE BRANCH CARD
+        // ==========================================
+        const BranchCard = ({ cabang, idx }) => {
+            const [expanded, setExpanded] = useState(false);
+            return (
+                <div className="bg-black rounded-3xl border border-white/10 overflow-hidden transition-all duration-300 shadow-lg">
+                    {/* Header Card (Mirip Referensi Gambar) */}
+                    <div className="p-5 cursor-pointer active:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-[#FF3B30] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/10'}`}>{idx + 1}</div>
+                                <h4 className="font-black text-xl tracking-tight uppercase text-white leading-none">{cabang.id}</h4>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Laba Bersih</p>
+                                <p className="text-xl font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p>
+                            </div>
+                        </div>
+                        <div className="border-t border-white/10 pt-3 flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                            <div>Omset: <span className="text-gray-200">{formatIDR(cabang.omsetHariIni)}</span></div>
+                            <div>Expense: <span className="text-gray-200">{formatIDR(cabang.expenseHariIni)}</span></div>
+                        </div>
+                    </div>
+
+                    {/* Expandable Area */}
+                    <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
+                        {/* 4 Metrics Panel */}
+                        <div className="grid grid-cols-2 gap-px bg-white/5 border-b border-white/5">
+                            <div className="p-3 text-center bg-[#111111]">
+                                <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Total Pasien</p>
+                                <p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni} Pax</p>
+                            </div>
+                            <div className="p-3 text-center bg-[#111111]">
+                                <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Profit Margin</p>
+                                <p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p>
+                            </div>
+                            <div className="p-3 text-center bg-[#111111]">
+                                <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Terapis MVP</p>
+                                <p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p>
+                            </div>
+                            <div className="p-3 text-center bg-[#111111]">
+                                <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Last Transact</p>
+                                <p className="text-sm font-black text-white mt-0.5">{cabang.lastTx}</p>
+                            </div>
+                        </div>
+
+                        {/* Logs List */}
+                        <div className="p-4 space-y-2">
+                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-3 px-1">Rincian Log Hari Ini</p>
+                            {cabang.logsHariIni && cabang.logsHariIni.length === 0 && <p className="text-center text-xs font-bold text-gray-600 py-4">Belum ada aktivitas</p>}
+                            {cabang.logsHariIni && cabang.logsHariIni.map((log, i) => (
+                                <div key={i} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
+                                    <div className="flex gap-3 items-center">
+                                        <span className="text-[9px] font-black text-gray-500">{log.jam}</span>
+                                        <div>
+                                            <p className={`text-xs font-bold uppercase truncate max-w-[140px] ${log.type==='expense' ? 'text-gray-400' : 'text-gray-200'}`}>{log.nama}</p>
+                                            {log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}
+                                        </div>
+                                    </div>
+                                    <p className={`text-xs font-black ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Toggle Button Footer */}
+                    <div onClick={() => setExpanded(!expanded)} className="bg-black text-center py-2 border-t border-white/5 cursor-pointer hover:bg-white/5 transition-all text-gray-500 hover:text-white">
+                        <span className="text-[9px] font-black uppercase tracking-widest">{expanded ? 'Tutup Rincian ▲' : 'Lihat Rincian Hari Ini ▾'}</span>
+                    </div>
+                </div>
+            )
+        }
 
         // ==========================================
         // 1. KOMPONEN SUPERVISOR (AUDIT CENTER)
@@ -69,7 +227,8 @@
         const SupervisorView = ({ onLogout, sendToN8N, showToast }) => {
             const [logs, setLogs] = useState([]);
             const [loading, setLoading] = useState(true);
-            const [filterDate, setFilterDate] = useState({ start: limits.today, end: limits.today, search: '' });
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday, search: '' });
             const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
             const [isDeleting, setIsDeleting] = useState(null);
 
@@ -87,7 +246,7 @@
                 const targetId = item.db_id || item.id || item.ID;
                 setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
                 await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
-                showToast('Order Berhasil Dibatalkan (Soft Delete)'); await fetchLogs(); setIsDeleting(null);
+                showToast('Order Berhasil Dibatalkan'); await fetchLogs(); setIsDeleting(null);
             };
 
             const filteredLogs = logs.filter(log => {
@@ -100,35 +259,19 @@
                 <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
                     <nav className="bg-[#1C1C1E] p-4 sticky top-0 z-40 shadow-lg border-b-2 border-[#FF3B30]">
                         <div className="max-w-xl mx-auto flex justify-between items-center text-white">
-                            <div className="flex items-center gap-3">
-                                <i className="fa-solid fa-shield-halved text-[#FF3B30] text-xl"></i>
-                                <div><p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p><h1 className="text-sm font-black uppercase tracking-tight">Supervisor Portal</h1></div>
-                            </div>
+                            <div className="flex items-center gap-3"><i className="fa-solid fa-shield-halved text-[#FF3B30] text-xl"></i><div><p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p><h1 className="text-sm font-black uppercase tracking-tight">Supervisor Portal</h1></div></div>
                             <button onClick={onLogout} className="text-white bg-white/10 px-4 py-2 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button>
                         </div>
                     </nav>
 
                     <main className="max-w-xl mx-auto p-4 space-y-4 mt-2">
                         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-200">
-                            <h4 className="font-black text-[10px] text-gray-400 mb-4 tracking-widest uppercase"><i className="fa-solid fa-filter"></i> Filter Data (Maks 30 Hari)</h4>
-                            <div className="grid grid-cols-2 gap-3 mb-3">
-                                <div>
-                                    <label className="text-[9px] font-bold text-gray-400 mb-1 block uppercase">Dari Tgl</label>
-                                    <input type="date" min={limits.minDate} max={filterDate.end} className="w-full p-3 bg-[#F2F2F7] rounded-xl outline-none font-bold text-xs" value={filterDate.start} onChange={e => setFilterDate({...filterDate, start: e.target.value})} />
-                                </div>
-                                <div>
-                                    <label className="text-[9px] font-bold text-gray-400 mb-1 block uppercase">Sampai Tgl</label>
-                                    <input type="date" min={filterDate.start} max={limits.today} className="w-full p-3 bg-[#F2F2F7] rounded-xl outline-none font-bold text-xs" value={filterDate.end} onChange={e => setFilterDate({...filterDate, end: e.target.value})} />
-                                </div>
-                            </div>
-                            <input type="text" placeholder="Cari Nama Pasien / Cabang..." className="w-full p-4 bg-[#F2F2F7] rounded-xl outline-none font-bold text-sm focus:border-[#FF3B30] transition-all" value={filterDate.search} onChange={e => setFilterDate({...filterDate, search: e.target.value})} />
+                            <HotelDateRangePicker value={filterDate} onChange={(val)=>setFilterDate({...filterDate, start:val.start, end:val.end})} title="Filter Rentang Waktu (Maks 35 Hari)" />
+                            <input type="text" placeholder="Cari Nama Pasien / Cabang..." className="w-full p-4 bg-[#F2F2F7] rounded-xl outline-none font-bold text-sm focus:border-[#FF3B30] transition-all mt-4" value={filterDate.search} onChange={e => setFilterDate({...filterDate, search: e.target.value})} />
                         </div>
 
                         <div className="space-y-3">
-                            <div className="flex justify-between items-end px-1">
-                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p>
-                                <button onClick={fetchLogs} className="text-[#FF3B30] text-[10px] font-black uppercase tracking-widest"><i className="fa-solid fa-rotate-right"></i> Refresh</button>
-                            </div>
+                            <div className="flex justify-between items-end px-1"><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p><button onClick={fetchLogs} className="text-[#FF3B30] text-[10px] font-black uppercase tracking-widest"><i className="fa-solid fa-rotate-right"></i> Refresh</button></div>
                             {loading ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
                             {filteredLogs.map((item, idx) => {
                                 const currentId = item.db_id || item.id || item.ID;
@@ -136,25 +279,14 @@
                                 return (
                                     <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
                                         <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
-                                            <div>
-                                                <span className="bg-[#1C1C1E] text-white text-[8px] px-2 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span>
-                                                <span className="text-[9px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span>
-                                            </div>
+                                            <div><span className="bg-[#1C1C1E] text-white text-[8px] px-2 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span><span className="text-[9px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span></div>
                                             {isBatal && <span className="text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}
                                         </div>
                                         <div className="flex justify-between items-center">
-                                            <div>
-                                                <h5 className={`font-black text-sm text-[#1C1C1E] uppercase ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5>
-                                                <p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1">{item.NOMOR_CUSTOMER || '-'}</p>
-                                            </div>
+                                            <div><h5 className={`font-black text-sm text-[#1C1C1E] uppercase ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1">{item.NOMOR_CUSTOMER || '-'}</p></div>
                                             <div className="flex items-center gap-4">
-                                                <div className="text-right">
-                                                    <p className={`text-sm font-black ${isBatal ? 'text-[#FF3B30]' : 'text-gray-800'}`}>{formatIDR(item.TAGIHAN)}</p>
-                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Trp: {item.TERAPIS}</p>
-                                                </div>
-                                                <button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isBatal ? 'opacity-0' : 'bg-gray-100 text-gray-400 hover:bg-[#FF3B30] hover:text-white active:scale-90'}`}>
-                                                    {isDeleting === currentId ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-ban"></i>}
-                                                </button>
+                                                <div className="text-right"><p className={`text-sm font-black ${isBatal ? 'text-[#FF3B30]' : 'text-gray-800'}`}>{formatIDR(item.TAGIHAN)}</p><p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Trp: {item.TERAPIS}</p></div>
+                                                <button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isBatal ? 'opacity-0' : 'bg-gray-100 text-gray-400 hover:bg-[#FF3B30] hover:text-white active:scale-90'}`}>{isDeleting === currentId ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-ban"></i>}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -164,20 +296,7 @@
                     </main>
 
                     {confirmModal.show && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-                            <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up">
-                                <i className="fa-solid fa-triangle-exclamation text-[#FF3B30] text-[48px] mb-5"></i>
-                                <h3 className="text-xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batalkan Order?</h3>
-                                <p className="text-[10px] text-gray-500 font-bold mb-6 uppercase tracking-widest leading-relaxed">Tindakan ini akan meng-Nol-kan nominal tagihan untuk kepentingan audit.</p>
-                                <div className="bg-gray-100 p-4 rounded-xl mb-6 text-left">
-                                    <p className="text-xs font-black uppercase text-gray-800">{confirmModal.item.NAMA_PASIEN}</p>
-                                    <p className="text-[9px] font-bold uppercase text-gray-500 mt-1">{confirmModal.item.CABANG_ID} • {formatIDR(confirmModal.item.TAGIHAN)}</p>
-                                </div>
-                                <button onClick={executeCancel} className="w-full py-4 bg-[#FF3B30] text-white font-black rounded-xl mb-3 active:scale-95 transition-all tracking-widest uppercase text-xs">YA, EKSEKUSI</button>
-                                <button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-4 bg-gray-200 text-gray-800 font-black rounded-xl active:scale-95 transition-all tracking-widest uppercase text-xs">KEMBALI</button>
-                            </div>
-                        </div>
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"><div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div><div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up"><i className="fa-solid fa-triangle-exclamation text-[#FF3B30] text-[48px] mb-5"></i><h3 className="text-xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batalkan Order?</h3><p className="text-[10px] text-gray-500 font-bold mb-6 uppercase tracking-widest leading-relaxed">Tindakan ini akan meng-Nol-kan nominal tagihan untuk kepentingan audit.</p><div className="bg-gray-100 p-4 rounded-xl mb-6 text-left"><p className="text-xs font-black uppercase text-gray-800">{confirmModal.item.NAMA_PASIEN}</p><p className="text-[9px] font-bold uppercase text-gray-500 mt-1">{confirmModal.item.CABANG_ID} • {formatIDR(confirmModal.item.TAGIHAN)}</p></div><button onClick={executeCancel} className="w-full py-4 bg-[#FF3B30] text-white font-black rounded-xl mb-3 active:scale-95 transition-all tracking-widest uppercase text-xs">YA, EKSEKUSI</button><button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-4 bg-gray-200 text-gray-800 font-black rounded-xl active:scale-95 transition-all tracking-widest uppercase text-xs">KEMBALI</button></div></div>
                     )}
                 </div>
             );
@@ -187,6 +306,7 @@
         // 2. KOMPONEN DASHBOARD OWNER (FULL VERSION)
         // ==========================================
         const OwnerView = ({ onLogout }) => {
+            const isoToday = new Date().toISOString().split('T')[0];
             const [activeTab, setActiveTab] = useState('dashboard');
             const [reportSubTab, setReportSubTab] = useState('keuangan'); 
             
@@ -194,13 +314,12 @@
             const [loading, setLoading] = useState(true);
             const [refreshing, setRefreshing] = useState(false);
 
-            // State Laporan Keuangan
-            const [filterReport, setFilterReport] = useState({ startDate: limits.today, endDate: limits.today, cabang: 'ALL' });
+            // State Filters using RangePicker structure
+            const [filterReport, setFilterReport] = useState({ start: isoToday, end: isoToday, cabang: 'ALL' });
             const [reportData, setReportData] = useState(null);
             const [loadingReport, setLoadingReport] = useState(false);
 
-            // State Slip Gaji Terapis
-            const [filterGaji, setFilterGaji] = useState({ startDate: limits.today, endDate: limits.today, cabang: '' });
+            const [filterGaji, setFilterGaji] = useState({ start: isoToday, end: isoToday, cabang: '' });
             const [slipData, setSlipData] = useState([]);
             const [loadingSlip, setLoadingSlip] = useState(false);
 
@@ -219,7 +338,7 @@
             const fetchReportData = async () => {
                 setLoadingReport(true);
                 try {
-                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterReport.startDate, endDate: filterReport.endDate, cabang: filterReport.cabang }) });
+                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterReport.start, endDate: filterReport.end, cabang: filterReport.cabang }) });
                     const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
                     setReportData(finalData?.data || finalData?.json?.data || null);
                 } catch (e) {} setLoadingReport(false);
@@ -228,13 +347,12 @@
             const fetchSlipGaji = async () => {
                 setLoadingSlip(true);
                 try {
-                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterGaji.startDate, endDate: filterGaji.endDate, cabang: filterGaji.cabang }) });
+                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterGaji.start, endDate: filterGaji.end, cabang: filterGaji.cabang }) });
                     const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
                     const targetData = finalData?.data || finalData?.json?.data; setSlipData(targetData?.daftarTerapis || []);
                 } catch (e) {} setLoadingSlip(false);
             };
 
-            // Fungsi Cetak PDF KEUANGAN
             const downloadSlipLaporan = () => {
                 if(!reportData) return;
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a5' });
@@ -243,7 +361,7 @@
                 doc.setLineWidth(0.5); doc.line(10, 35, 138, 35);
                 doc.setFontSize(10); doc.setTextColor(100, 100, 100);
                 doc.text(`Cabang     : ${filterReport.cabang === 'ALL' ? 'SEMUA CABANG' : filterReport.cabang}`, 15, 45);
-                doc.text(`Periode    : ${filterReport.startDate} s/d ${filterReport.endDate}`, 15, 53);
+                doc.text(`Periode    : ${filterReport.start} s/d ${filterReport.end}`, 15, 53);
                 doc.line(10, 60, 138, 60);
                 doc.setFontSize(12); doc.setTextColor(0, 0, 0);
                 doc.text(`Total Omset`, 15, 75); doc.text(`${formatIDR(reportData.omset)}`, 133, 75, {align: 'right'});
@@ -252,10 +370,9 @@
                 doc.setFont(undefined, 'bold'); doc.setFontSize(14);
                 if(reportData.laba < 0) doc.setTextColor(255, 59, 48);
                 doc.text(`LABA BERSIH`, 15, 110); doc.text(`${formatIDR(reportData.laba)}`, 133, 110, {align: 'right'});
-                doc.save(`Laporan_${filterReport.cabang}_${filterReport.startDate}.pdf`);
+                doc.save(`Laporan_${filterReport.cabang}_${filterReport.start}.pdf`);
             };
 
-            // Fungsi Cetak PDF TERAPIS
             const downloadSlipTerapis = (terapis) => {
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a5' });
                 doc.setFontSize(18); doc.setTextColor(255, 59, 48); doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
@@ -264,7 +381,7 @@
                 doc.setFontSize(10); doc.setTextColor(100, 100, 100);
                 doc.text(`Cabang     : ${filterGaji.cabang}`, 15, 45);
                 doc.text(`Nama       : ${terapis.nama}`, 15, 53);
-                doc.text(`Periode    : ${filterGaji.startDate} s/d ${filterGaji.endDate}`, 15, 61);
+                doc.text(`Periode    : ${filterGaji.start} s/d ${filterGaji.end}`, 15, 61);
                 doc.line(10, 70, 138, 70);
                 doc.setFontSize(12); doc.setTextColor(0, 0, 0);
                 doc.text(`Total Pasien Diselesaikan: ${terapis.totalPasien} Orang`, 15, 85);
@@ -276,12 +393,10 @@
             };
 
             if (loading) return <div className="min-h-screen bg-[#000000] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl"></i></div>;
-            const maxPasien = data.trenHari?.length > 0 ? Math.max(...data.trenHari.map(d => d.pasien), 1) : 1;
-
+            
             return (
                 <div className="min-h-screen bg-[#000000] text-white font-sans animate-fade-in pb-28">
-                    
-                    {/* --- TAB 1: DASHBOARD EKSEKUTIF --- */}
+                    {/* TAB DASHBOARD EKSEKUTIF */}
                     {activeTab === 'dashboard' && (
                         <div className="animate-slide-up">
                             <div className="bg-[#1C1C1E] px-6 py-10 rounded-b-[3rem] shadow-2xl border-b-2 border-[#FF3B30]/30">
@@ -302,7 +417,7 @@
                             </div>
 
                             <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
-                                {/* SEGMEN OVERSIGHT PEMBATALAN */}
+                                {/* OVERSIGHT PEMBATALAN */}
                                 {data.cancelledOrders && data.cancelledOrders.length > 0 && (
                                     <div className="bg-[#2A0808] p-8 rounded-[2.5rem] border border-[#FF3B30]/30 shadow-[0_0_30px_rgba(255,59,48,0.1)]">
                                         <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#FF3B30] mb-6 flex items-center gap-3"><i className="fa-solid fa-triangle-exclamation"></i> Log Pembatalan (Audit)</h3>
@@ -321,18 +436,12 @@
                                     </div>
                                 )}
 
-                                {/* Performa Cabang */}
+                                {/* Performa Cabang DENGAN ACCORDION & 4 METRIK */}
                                 <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
                                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30]"></i> Performa Cabang (Hari Ini)</h3>
                                     <div className="space-y-4">
                                         {data.leaderboard && data.leaderboard.map((cabang, idx) => (
-                                            <div key={cabang.id} className="bg-black p-5 rounded-2xl border border-white/5">
-                                                <div className="flex justify-between items-start mb-4 border-b border-white/10 pb-4">
-                                                    <div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${idx === 0 ? 'bg-[#FF3B30] text-white' : 'bg-[#1C1C1E] text-gray-400'}`}>{idx + 1}</div><h4 className="font-black text-lg tracking-tight uppercase text-white leading-none">{cabang.id}</h4></div>
-                                                    <div className="text-right"><p className="text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-1">Laba Bersih</p><p className="text-lg font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p></div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-4 text-[10px] font-bold uppercase tracking-wider text-gray-400"><div>Omset: <span className="text-gray-200">{formatIDR(cabang.omsetHariIni)}</span></div><div className="text-right">Expense: <span className="text-gray-200">{formatIDR(cabang.expenseHariIni)}</span></div></div>
-                                            </div>
+                                            <BranchCard key={cabang.id} cabang={cabang} idx={idx} />
                                         ))}
                                     </div>
                                 </div>
@@ -340,7 +449,7 @@
                         </div>
                     )}
 
-                    {/* --- TAB 2: LAPORAN & GAJI (FULL RESTORED) --- */}
+                    {/* TAB LAPORAN & GAJI */}
                     {activeTab === 'report' && (
                         <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-6">
                             <div className="mb-6">
@@ -358,16 +467,9 @@
                                 <div className="bg-[#111111] p-8 rounded-[2.5rem] border border-white/10 shadow-2xl animate-fade-in">
                                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-chart-pie text-[#FF3B30]"></i> Cetak Laporan</h3>
                                     <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="text-[9px] font-bold text-gray-500 mb-1 block uppercase tracking-widest">Dari Tgl</label>
-                                                <input type="date" min={limits.minDate} max={filterReport.endDate} className="w-full p-4 bg-[#1C1C1E] rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30] transition-all" value={filterReport.startDate} onChange={e => setFilterReport({...filterReport, startDate: e.target.value})} />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] font-bold text-gray-500 mb-1 block uppercase tracking-widest">Sampai Tgl</label>
-                                                <input type="date" min={filterReport.startDate} max={limits.today} className="w-full p-4 bg-[#1C1C1E] rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30] transition-all" value={filterReport.endDate} onChange={e => setFilterReport({...filterReport, endDate: e.target.value})} />
-                                            </div>
-                                        </div>
+                                        
+                                        <HotelDateRangePicker value={filterReport} onChange={setFilterReport} title="Periode Laporan" />
+                                        
                                         <div>
                                             <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block mt-2">Filter Cabang</label>
                                             <select className="w-full p-4 bg-[#1C1C1E] rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" value={filterReport.cabang} onChange={e => setFilterReport({...filterReport, cabang: e.target.value})}>
@@ -385,7 +487,7 @@
                                             <div className="paper-slip p-6 rounded-2xl shadow-inner mb-4 border border-gray-300">
                                                 <h4 className="text-center font-black text-xl text-[#FF3B30] mb-1 tracking-tighter">BUGAR REFLEKSI</h4>
                                                 <p className="text-center font-bold text-xs uppercase border-b-2 border-dashed border-gray-400 pb-3 mb-4 tracking-widest">Laporan Keuangan</p>
-                                                <div className="space-y-1 mb-4 text-[10px] font-bold text-gray-600"><div className="flex justify-between"><span>CABANG</span> <span>{filterReport.cabang}</span></div><div className="flex justify-between"><span>PERIODE</span> <span>{filterReport.startDate} - {filterReport.endDate}</span></div></div>
+                                                <div className="space-y-1 mb-4 text-[10px] font-bold text-gray-600"><div className="flex justify-between"><span>CABANG</span> <span>{filterReport.cabang}</span></div><div className="flex justify-between"><span>PERIODE</span> <span>{filterReport.start} / {filterReport.end}</span></div></div>
                                                 <div className="border-t border-b border-gray-300 py-3 mb-4 space-y-2"><div className="flex justify-between font-bold text-sm"><span>TOTAL OMSET</span> <span>{formatIDR(reportData.omset)}</span></div><div className="flex justify-between font-bold text-sm text-red-600"><span>PENGELUARAN</span> <span>- {formatIDR(reportData.expense)}</span></div></div>
                                                 <div className="flex justify-between font-black text-lg"><span>LABA BERSIH</span> <span className={reportData.laba < 0 ? "text-red-600" : ""}>{formatIDR(reportData.laba)}</span></div>
                                             </div>
@@ -400,16 +502,9 @@
                                 <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl animate-fade-in">
                                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-file-invoice-dollar text-[#FF3B30]"></i> Slip Gaji Terapis</h3>
                                     <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="text-[9px] font-bold text-gray-500 mb-1 block uppercase tracking-widest">Dari Tgl</label>
-                                                <input type="date" min={limits.minDate} max={filterGaji.endDate} className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30] transition-all" value={filterGaji.startDate} onChange={e => setFilterGaji({...filterGaji, startDate: e.target.value})} />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] font-bold text-gray-500 mb-1 block uppercase tracking-widest">Sampai Tgl</label>
-                                                <input type="date" min={filterGaji.startDate} max={limits.today} className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30] transition-all" value={filterGaji.endDate} onChange={e => setFilterGaji({...filterGaji, endDate: e.target.value})} />
-                                            </div>
-                                        </div>
+                                        
+                                        <HotelDateRangePicker value={filterGaji} onChange={setFilterGaji} title="Periode Gaji Terapis" />
+
                                         <div>
                                             <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block mt-2">Pilih Cabang (Wajib)</label>
                                             <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" value={filterGaji.cabang} onChange={e => setFilterGaji({...filterGaji, cabang: e.target.value})}>
@@ -428,14 +523,8 @@
                                             {slipData.map((terapis, idx) => (
                                                 <div key={idx} className="bg-black p-5 rounded-2xl border border-white/5 relative overflow-hidden">
                                                     <div className="flex justify-between items-center relative z-10">
-                                                        <div>
-                                                            <p className="font-black text-lg uppercase text-white mb-1 tracking-tight">{terapis.nama}</p>
-                                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{terapis.totalPasien} Pasien Diselesaikan</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-sm font-black text-[#FF3B30]">{formatIDR(terapis.totalKomisi)}</p>
-                                                            <button onClick={() => downloadSlipTerapis(terapis)} className="mt-2 bg-white/10 hover:bg-white text-gray-400 hover:text-black px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">Cetak PDF</button>
-                                                        </div>
+                                                        <div><p className="font-black text-lg uppercase text-white mb-1 tracking-tight">{terapis.nama}</p><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{terapis.totalPasien} Pasien Diselesaikan</p></div>
+                                                        <div className="text-right"><p className="text-sm font-black text-[#FF3B30]">{formatIDR(terapis.totalKomisi)}</p><button onClick={() => downloadSlipTerapis(terapis)} className="mt-2 bg-white/10 hover:bg-white text-gray-400 hover:text-black px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">Cetak PDF</button></div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -622,7 +711,7 @@
                 return (
                     <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center p-6">
                         <div className={`bg-white/10 backdrop-blur-md p-10 rounded-[2.5rem] w-full max-w-md border border-white/5 shadow-2xl ${shakeLogin ? 'animate-shake' : ''}`}>
-                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-16 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,59,48,0.6)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1><p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V5.5</p></div>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-16 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,59,48,0.6)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1><p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V5.6</p></div>
                             <form onSubmit={handleLogin} className="space-y-4">
                                 <input type="text" placeholder="ID AKSES" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
                                 <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
