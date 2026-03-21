@@ -2,594 +2,692 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ARENA SYSTEM V4.8 - Bulletproof Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bugar Connect V5.6.1</title>
     
-    <link rel="icon" href="https://raw.githubusercontent.com/sunsetdansenja-arch/bot-arrena-assets/main/logo%20arena%20gaming.png" type="image/png">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: { extend: { animation: { 'slide-up': 'slideUp 0.4s ease-out', 'fade-in': 'fadeIn 0.3s ease-out' }, keyframes: { slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }, fadeIn: { 'from': { opacity: '0' }, 'to': { opacity: '1' } } } } }
+        }
+    </script>
     
     <style>
-        :root { --mario-orange: #FF6B00; --mario-black: #000000; --mario-yellow: #FFD700; }
-        body { font-family: 'Fredoka', sans-serif; background-color: var(--mario-orange); color: var(--mario-black); -webkit-font-smoothing: antialiased; background-image: radial-gradient(rgba(0,0,0,0.05) 2px, transparent 2px); background-size: 20px 20px; }
-        .mario-card { background-color: white; border: 4px solid var(--mario-black); border-radius: 16px; box-shadow: 6px 6px 0px 0px var(--mario-black); }
-        .mario-btn { background-color: white; border: 4px solid var(--mario-black); border-radius: 12px; box-shadow: 4px 4px 0px 0px var(--mario-black); transition: all 0.1s ease-in-out; font-weight: 700; text-align: center; cursor: pointer; text-decoration: none; }
-        .mario-btn:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0px 0px var(--mario-black); }
-        .mario-input { width: 100%; background-color: #F3F4F6; border: 3px solid var(--mario-black); border-radius: 8px; padding: 10px; font-weight: 600; outline: none; }
-        .mario-input:focus { border-color: var(--mario-orange); background-color: white; }
-        .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 448px; background: white; border-top: 4px solid var(--mario-black); display: flex; justify-content: space-around; padding: 10px 0; z-index: 50; }
-        .nav-item { flex: 1; text-align: center; font-size: 10px; font-weight: bold; color: gray; cursor: pointer; }
-        .nav-item.active { color: var(--mario-orange); text-shadow: 1px 1px 0px black; }
-        .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
-        #loader { position: fixed; inset: 0; background: rgba(255,107,0,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .spinner { width: 50px; height: 50px; border: 6px solid var(--mario-black); border-top-color: var(--mario-yellow); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .hidden { display: none !important; }
-        .animate-pop { animation: popIn 0.3s forwards; }
-        @keyframes popIn { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        @media print { body * { visibility: hidden; } #print-area, #print-area * { visibility: visible; } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { -webkit-tap-highlight-color: transparent; }
+        .paper-slip { background-color: #fff; color: #1a1a1a; background-image: radial-gradient(#e5e5e5 1px, transparent 1px); background-size: 20px 20px; }
+        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     </style>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="pb-24">
+<body class="bg-[#1C1C1E] text-white">
+    <div id="root"></div>
 
-    <div id="loader" class="hidden">
-        <div class="spinner mb-4"></div>
-        <h2 id="loader-text" class="text-xl font-black text-white">SINKRONISASI...</h2>
-    </div>
+    <script type="text/babel">
+        const { useState, useCallback, useEffect, useMemo } = React;
 
-    <header class="max-w-md mx-auto flex justify-between items-center bg-black p-4 sticky top-0 z-40 border-b-4 border-yellow-400">
-        <div>
-            <h1 class="text-lg font-black text-white">ARENA SYSTEM</h1>
-            <p id="user-info-text" class="text-[10px] font-bold text-yellow-400">V4.8 | Silakan Login</p>
-        </div>
-        <div id="header-actions" class="hidden flex gap-2">
-            <button onclick="APP.loadDashboard()" class="bg-blue-500 text-white p-2 rounded-lg border-2 border-white">🔄</button>
-            <button onclick="APP.logout()" class="bg-red-500 text-white p-2 rounded-lg border-2 border-white">🚪 Keluar</button>
-        </div>
-    </header>
-
-    <main id="app" class="max-w-md mx-auto p-4 mt-2 animate-pop">
+        const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
+        const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
         
-        <section id="view-login" class="mario-card p-6">
-            <h2 class="text-xl font-black mb-6 text-center border-b-4 border-black pb-2 uppercase">Akses Sistem</h2>
-            <form id="form-login" class="space-y-4">
-                <div><label class="text-xs font-bold">USERNAME</label><input type="text" id="login-user" required class="mario-input"></div>
-                <div><label class="text-xs font-bold">PASSWORD</label><input type="password" id="login-pass" required class="mario-input"></div>
-                <button type="submit" class="w-full mario-btn bg-[#FFD700] p-4 text-lg mt-4">MASUK 🚀</button>
-            </form>
-        </section>
+        const DAFTAR_PAKET = [
+            "Paket 1 (70 Menit) - Rp 100.000: Refleksi, Body Massage",
+            "Paket 2 (90 Menit) - Rp 120.000: Refleksi, Body Massage, Totok Wajah",
+            "Paket 3 (120 Menit) - Rp 140.000: Refleksi, Body Massage, Pijat Kepala",
+            "Paket 4 (120 Menit) - Rp 150.000: Refleksi, Body Scrub",
+            "Paket 5 (120 Menit) - Rp 150.000: Refleksi, Bekam Kering",
+            "Paket 6 (120 Menit) - Rp 170.000: Refleksi, Bekam Basah",
+            "Paket 7 (120 Menit) - Rp 200.000: Refleksi, Totok Wajah, Lulur",
+            "Paket 8 - Rp 300.000: Chiropractic (Kretek) 17 Gerakan"
+        ];
+        
+        const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 
-        <section id="view-main" class="hidden">
-            <div id="main-content" class="pb-10 space-y-4"></div>
-        </section>
-
-        <section id="view-owner" class="hidden space-y-4">
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="mario-card p-4 bg-black text-center text-white">
-                    <p class="text-[9px] font-bold text-gray-400">OMSET BULAN INI</p>
-                    <p id="owner-omset-month" class="text-xl font-black text-yellow-400">Rp 0</p>
-                </div>
-                <div class="mario-card p-4 bg-[#FFE8B3] text-center">
-                    <p class="text-[9px] font-bold text-gray-600">OMSET HARI INI</p>
-                    <p id="owner-omset-today" class="text-xl font-black text-[#FF6B00]">Rp 0</p>
-                </div>
-            </div>
-            <div class="bg-black text-white p-2 rounded-lg text-center border-2 border-white mb-2">
-                <p class="text-xs font-bold uppercase">RIWAYAT TRANSAKSI BULAN INI</p>
-            </div>
-            <div id="owner-logs" class="space-y-3 pb-6"></div>
-        </section>
-
-    </main>
-
-    <nav id="bottom-nav" class="bottom-nav hidden">
-        <div class="nav-item active" onclick="APP.switchTab('logs')" id="tab-logs"><span class="nav-icon">🎮</span>LOGS</div>
-        <div class="nav-item" onclick="APP.switchTab('input')" id="tab-input"><span class="nav-icon">📝</span>INPUT</div>
-        <div class="nav-item hidden" onclick="APP.switchTab('omset')" id="tab-omset"><span class="nav-icon">📈</span>OMSET</div>
-        <div class="nav-item hidden" onclick="APP.switchTab('expense')" id="tab-expense"><span class="nav-icon">💸</span>BIAYA</div>
-        <div class="nav-item hidden" onclick="APP.switchTab('report')" id="tab-report"><span class="nav-icon">📊</span>CETAK</div>
-    </nav>
-
-    <div id="print-area" class="hidden"></div>
-
-    <script>
-        const CONFIG = {
-            WEBHOOK_URL: "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/86cee1b8-b00d-4aa6-8ff4-23735dc9afe1", 
-            PRICING: {
-                Paket: [
-                    { name: "Malam", price: 50000 }, { name: "Pagi", price: 45000 }, 
-                    { name: "Sore", price: 45000 }, { name: "Sultan 24H", price: 115000 }
-                ],
-                Regular: [
-                    { name: "3 Jam", price: 30000 }, { name: "4 Jam", price: 40000 }, { name: "5 Jam", price: 50000 }
-                ]
-            }
+        const getLimits = () => {
+            const today = new Date();
+            const minDate = new Date(today); minDate.setDate(today.getDate() - 30);
+            const getIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            return { today: getIso(today), minDate: getIso(minDate) };
         };
+        const limits = getLimits();
 
-        const STATE = { user: null, logs: [], expenses: [], activeTab: 'logs', lastFinalPrice: 0 };
+        // ==========================================
+        // UI COMPONENT: HOTEL BOOKING DATE RANGE
+        // ==========================================
+        const HotelDateRangePicker = ({ value, onChange, title }) => {
+            const [step, setStep] = useState(0); 
+            const [showModal, setShowModal] = useState(false);
 
-        const APP = {
-            init: () => {
-                document.getElementById('form-login').addEventListener('submit', APP.handleLogin);
-                const saved = localStorage.getItem('arena_user_v48');
-                if (saved) { STATE.user = JSON.parse(saved); APP.loadDashboard(); }
-            },
-            showLoader: (t) => { document.getElementById('loader-text').innerText = t; document.getElementById('loader').classList.remove('hidden'); },
-            hideLoader: () => document.getElementById('loader').classList.add('hidden'),
-            formatRp: (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0),
-            
-            getTodayStr: () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; },
-            getYesterdayStr: () => { const d = new Date(); d.setDate(d.getDate()-1); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; },
-            getTomorrowStr: () => { const d = new Date(); d.setDate(d.getDate()+1); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; },
-            getMonthStr: () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().substring(0,7); },
-            
-            generateMonthOptions: () => {
-                const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-                let opts = '';
-                for(let i=0; i<12; i++) {
-                    let d = new Date(); d.setMonth(d.getMonth() - i);
-                    let val = d.toISOString().substring(0,7);
-                    let label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
-                    opts += `<option value="${val}">${label}</option>`;
+            const days = useMemo(() => {
+                const arr = [];
+                const today = new Date(); today.setHours(0,0,0,0);
+                for(let i=34; i>=0; i--) {
+                    const d = new Date(today); d.setDate(d.getDate() - i);
+                    arr.push({ date: d, iso: d.toISOString().split('T')[0], dayStr: d.getDate(), isToday: i===0 });
                 }
-                return opts;
-            },
+                return arr;
+            }, []);
 
-            api: async (p) => {
-                try {
-                    const payloadBody = { action: p.action, data: p };
-                    const r = await fetch(CONFIG.WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadBody) });
-                    if (!r.ok) return [];
-                    const txt = await r.text(); return txt ? JSON.parse(txt) : [];
-                } catch (e) { return null; }
-            },
-
-            handleLogin: async (e) => {
-                e.preventDefault();
-                APP.showLoader('VERIFIKASI...');
-                const data = await APP.api({ action: 'login', username: document.getElementById('login-user').value, password: document.getElementById('login-pass').value });
-                APP.hideLoader();
-                
-                if (data === null) { alert("❌ Gagal Terhubung! Cek koneksi / seting CORS di n8n."); return; }
-                let rawUser = Array.isArray(data) ? (data[0]?.json || data[0]) : (data?.json || data);
-                
-                if (rawUser && rawUser.role) {
-                    let roleStr = String(rawUser.role).toLowerCase().trim();
-                    let uType = roleStr; let uBranch = "Semua Cabang"; 
-                    if(roleStr.startsWith('sh')) {
-                        uType = 'owner';
-                        if(roleStr.includes('sabang')) uBranch = 'Sabang';
-                        else if(roleStr.includes('banda')) uBranch = 'Banda'; 
-                        else if(roleStr.includes('atim') || roleStr.includes('aceh timur')) uBranch = 'Aceh Timur';
-                    } else {
-                        if(rawUser.cabang_arena || rawUser.cabang) uBranch = rawUser.cabang_arena || rawUser.cabang;
-                    }
-                    STATE.user = { username: rawUser.id_user_arena || rawUser.Users || 'User', userType: uType, branch: uBranch };
-                    localStorage.setItem('arena_user_v48', JSON.stringify(STATE.user));
-                    APP.loadDashboard();
-                } else { alert("❌ Gagal Login. Periksa Username/Password."); }
-            },
-            logout: () => { localStorage.removeItem('arena_user_v48'); location.reload(); },
-
-            loadDashboard: async () => {
-                APP.showLoader('SINKRONISASI...');
-                const reqBranch = (STATE.user.userType === 'admin' || STATE.user.userType === 'manager') ? 'ALL' : STATE.user.branch;
-                const res = await APP.api({ action: 'get_dashboard', role: STATE.user.userType, branch: reqBranch });
-                APP.hideLoader();
-
-                document.getElementById('view-login').classList.add('hidden');
-                document.getElementById('header-actions').classList.remove('hidden');
-                
-                const roleDisplay = STATE.user.userType === 'owner' ? 'SHARE HOLDER' : STATE.user.userType;
-                document.getElementById('user-info-text').innerText = `${STATE.user.username.toUpperCase()} | ${roleDisplay.toUpperCase()}`;
-
-                let raw = Array.isArray(res) ? res.map(i => i.json !== undefined ? i.json : i) : [];
-                STATE.logs = raw.filter(i => i.tagihan_arena !== undefined);
-                STATE.expenses = raw.filter(i => i.pengeluaran_arena !== undefined);
-
-                if (STATE.user.userType === 'owner') {
-                    APP.renderOwner();
+            const handleDayClick = (iso) => {
+                if (step === 0 || iso < value.start) {
+                    onChange({ start: iso, end: iso }); setStep(1);
                 } else {
-                    document.getElementById('bottom-nav').classList.remove('hidden');
-                    document.getElementById('view-main').classList.remove('hidden');
-                    if (STATE.user.userType === 'manager') {
-                        document.getElementById('tab-omset').classList.remove('hidden');
-                        document.getElementById('tab-expense').classList.remove('hidden');
-                        document.getElementById('tab-report').classList.remove('hidden');
-                    }
-                    APP.switchTab(STATE.activeTab);
+                    onChange({ ...value, end: iso }); setStep(0); setShowModal(false);
                 }
-            },
+            };
 
-            switchTab: (tab) => {
-                STATE.activeTab = tab;
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                document.getElementById(`tab-${tab}`).classList.add('active');
-                
-                const container = document.getElementById('main-content');
-                if (tab === 'logs') { container.innerHTML = APP.renderLogsUI(); }
-                else if (tab === 'input') { container.innerHTML = APP.renderInputForm(); APP.updateUnitOptions(); APP.updatePrice(); }
-                else if (tab === 'omset') { container.innerHTML = APP.renderOmsetTab(); }
-                else if (tab === 'expense') { container.innerHTML = APP.renderExpenseForm(); }
-                else if (tab === 'report') { container.innerHTML = APP.renderReportTab(); }
-            },
+            const formatDateStr = (iso) => {
+                if(!iso) return "-";
+                const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+            };
 
-            renderOmsetTab: () => {
-                const todayStr = APP.getTodayStr(); const yestStr = APP.getYesterdayStr(); const monthStr = APP.getMonthStr();
-                let data = { ALL: { t: 0, y: 0, m: 0 }, 'Sabang': { t: 0, y: 0, m: 0 }, 'Banda': { t: 0, y: 0, m: 0 }, 'Aceh Timur': { t: 0, y: 0, m: 0 } };
+            return (
+                <div className="w-full">
+                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">{title || "Pilih Rentang Waktu"}</label>
+                    <div onClick={() => {setShowModal(true); setStep(0);}} className="bg-black border border-white/10 rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all">
+                        <div className="flex gap-4 items-center">
+                            <i className="fa-regular fa-calendar text-[#FF3B30] text-lg"></i>
+                            <div><p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Mulai</p><p className="text-sm font-black text-white">{formatDateStr(value.start)}</p></div>
+                        </div>
+                        <div className="h-8 w-[1px] bg-white/10"></div>
+                        <div className="text-right">
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Selesai</p><p className="text-sm font-black text-white">{formatDateStr(value.end)}</p>
+                        </div>
+                    </div>
 
-                STATE.logs.forEach(l => {
-                    if (String(l.status_unit_arena).toLowerCase() === 'batal') return; 
-                    const dateStr = (l.jam_mulai_sewa || '').substring(0,10);
-                    const mStr = (l.jam_mulai_sewa || '').substring(0,7);
-                    const val = Number(l.tagihan_arena) || 0;
-                    const branch = l.cabang_arena === 'Banda Aceh' ? 'Banda' : l.cabang_arena;
+                    {showModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                            <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/10 animate-slide-up relative overflow-hidden">
+                                <div className="text-center mb-6">
+                                    <h3 className="text-lg font-black uppercase tracking-tight text-white">{step === 0 ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai"}</h3>
+                                    <p className="text-[10px] text-[#FF3B30] font-bold uppercase tracking-widest mt-1">Maksimal 35 Hari Ke Belakang</p>
+                                </div>
+                                <div className="grid grid-cols-7 gap-2 mb-2">{['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d=><div key={d} className="text-center text-[9px] font-black text-gray-500 uppercase">{d}</div>)}</div>
+                                <div className="grid grid-cols-7 gap-y-2 gap-x-0 relative">
+                                    {Array.from({length: days[0].date.getDay()}).map((_,i) => <div key={`blank-${i}`} />)}
+                                    {days.map((d, i) => {
+                                        const isStart = d.iso === value.start; const isEnd = d.iso === value.end; const inRange = d.iso > value.start && d.iso < value.end;
+                                        let bgClass = "bg-transparent text-gray-300";
+                                        if (isStart || isEnd) bgClass = "bg-[#FF3B30] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)] z-10 scale-110 rounded-full";
+                                        else if (inRange) bgClass = "bg-[#FF3B30]/20 text-[#FF3B30] rounded-none";
+                                        else if (d.isToday) bgClass = "bg-white/10 text-white border border-white/20 rounded-full";
 
-                    if (mStr === monthStr) { data.ALL.m += val; if (data[branch]) data[branch].m += val; }
-                    if (dateStr === todayStr) { data.ALL.t += val; if (data[branch]) data[branch].t += val; }
-                    if (dateStr === yestStr) { data.ALL.y += val; if (data[branch]) data[branch].y += val; }
-                });
+                                        let wrapperClass = "flex justify-center items-center h-10 w-full relative cursor-pointer";
+                                        if(isStart && value.start !== value.end) wrapperClass += " rounded-l-full bg-[#FF3B30]/20";
+                                        if(isEnd && value.start !== value.end) wrapperClass += " rounded-r-full bg-[#FF3B30]/20";
 
-                return `
-                    <div class="mario-card p-4 animate-pop">
-                        <h2 class="font-black text-center border-b-2 border-black pb-2 mb-4 uppercase">Monitoring Omset</h2>
-                        <div class="bg-black text-white p-4 rounded-xl border-4 border-yellow-400 mb-4 shadow-[4px_4px_0px_#000]">
-                            <p class="text-[10px] font-bold text-gray-300 text-center">TOTAL KESELURUHAN (BULAN INI)</p>
-                            <p class="text-3xl font-black text-yellow-400 text-center">${APP.formatRp(data.ALL.m)}</p>
-                            <div class="flex justify-between mt-3 pt-3 border-t-2 border-gray-700">
-                                <div class="text-left"><p class="text-[9px] text-gray-400 font-bold">HARI INI</p><p class="font-black text-green-400 text-sm">${APP.formatRp(data.ALL.t)}</p></div>
-                                <div class="text-right"><p class="text-[9px] text-gray-400 font-bold">KEMARIN</p><p class="font-black text-[#FF6B00] text-sm">${APP.formatRp(data.ALL.y)}</p></div>
+                                        return (<div key={i} className={wrapperClass} onClick={() => handleDayClick(d.iso)}><div className={`w-8 h-8 flex items-center justify-center font-bold text-sm transition-all ${bgClass}`}>{d.dayStr}</div></div>)
+                                    })}
+                                </div>
+                                <button onClick={()=>setShowModal(false)} className="mt-8 w-full py-4 bg-white/10 text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 text-xs">Batalkan</button>
                             </div>
                         </div>
-                        <h3 class="font-black text-[11px] mb-2 uppercase text-gray-700">Rincian Per Cabang:</h3>
-                        <div class="space-y-3">
-                            ${['Banda', 'Sabang', 'Aceh Timur'].map(b => `
-                                <div class="border-2 border-black p-3 rounded-lg shadow-[2px_2px_0px_#000] bg-white">
-                                    <p class="font-black text-sm mb-2 border-b-2 border-dashed border-gray-300 pb-1">${b === 'Banda' ? 'BANDA ACEH' : b.toUpperCase()}</p>
-                                    <div class="grid grid-cols-3 gap-1 text-center">
-                                        <div><p class="text-[9px] font-bold text-gray-500">HARI INI</p><p class="text-xs font-black text-green-600">${APP.formatRp(data[b].t)}</p></div>
-                                        <div><p class="text-[9px] font-bold text-gray-500">KEMARIN</p><p class="text-xs font-black text-gray-700">${APP.formatRp(data[b].y)}</p></div>
-                                        <div><p class="text-[9px] font-bold text-gray-500">BULAN INI</p><p class="text-xs font-black text-[#FF6B00]">${APP.formatRp(data[b].m)}</p></div>
+                    )}
+                </div>
+            )
+        };
+
+        // ==========================================
+        // UI COMPONENT: EXPANDABLE BRANCH CARD
+        // ==========================================
+        const BranchCard = ({ cabang, idx }) => {
+            const [expanded, setExpanded] = useState(false);
+            return (
+                <div className="bg-black rounded-3xl border border-white/10 overflow-hidden transition-all duration-300 shadow-lg">
+                    <div className="p-5 cursor-pointer active:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-[#FF3B30] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/10'}`}>{idx + 1}</div>
+                                <h4 className="font-black text-xl tracking-tight uppercase text-white leading-none">{cabang.id}</h4>
+                            </div>
+                            <div className="text-right"><p className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Laba Bersih</p><p className="text-xl font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p></div>
+                        </div>
+                        <div className="border-t border-white/10 pt-3 flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-gray-400"><div>Omset: <span className="text-gray-200">{formatIDR(cabang.omsetHariIni)}</span></div><div>Expense: <span className="text-gray-200">{formatIDR(cabang.expenseHariIni)}</span></div></div>
+                    </div>
+
+                    <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
+                        <div className="grid grid-cols-2 gap-px bg-white/5 border-b border-white/5">
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Total Pasien</p><p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni} Pax</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Profit Margin</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Terapis MVP</p><p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Last Transact</p><p className="text-sm font-black text-white mt-0.5">{cabang.lastTx}</p></div>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-3 px-1">Rincian Log Hari Ini</p>
+                            {cabang.logsHariIni && cabang.logsHariIni.length === 0 && <p className="text-center text-xs font-bold text-gray-600 py-4">Belum ada aktivitas</p>}
+                            {cabang.logsHariIni && cabang.logsHariIni.map((log, i) => (
+                                <div key={i} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
+                                    <div className="flex gap-3 items-center"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div><p className={`text-xs font-bold uppercase truncate max-w-[140px] ${log.type==='expense' ? 'text-gray-400' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
+                                    <p className={`text-xs font-black ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div onClick={() => setExpanded(!expanded)} className="bg-black text-center py-2 border-t border-white/5 cursor-pointer hover:bg-white/5 transition-all text-gray-500 hover:text-white"><span className="text-[9px] font-black uppercase tracking-widest">{expanded ? 'Tutup Rincian ▲' : 'Lihat Rincian Hari Ini ▾'}</span></div>
+                </div>
+            )
+        }
+
+        // ==========================================
+        // 1. KOMPONEN SUPERVISOR (AUDIT CENTER)
+        // ==========================================
+        const SupervisorView = ({ onLogout, sendToN8N, showToast }) => {
+            const [logs, setLogs] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday, search: '' });
+            const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
+            const [isDeleting, setIsDeleting] = useState(null);
+
+            const fetchLogs = useCallback(async () => {
+                setLoading(true);
+                const res = await sendToN8N('supervisor_load');
+                if (res && res.data) setLogs(res.data);
+                setLoading(false);
+            }, []);
+
+            useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+            const executeCancel = async () => {
+                const item = confirmModal.item;
+                const targetId = item.db_id || item.id || item.ID;
+                setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
+                await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
+                showToast('Order Berhasil Dibatalkan'); await fetchLogs(); setIsDeleting(null);
+            };
+
+            const filteredLogs = logs.filter(log => {
+                const matchDate = log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end;
+                const matchSearch = filterDate.search === '' || log.NAMA_PASIEN?.toLowerCase().includes(filterDate.search.toLowerCase()) || log.CABANG_ID?.toLowerCase().includes(filterDate.search.toLowerCase());
+                return matchDate && matchSearch;
+            });
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-[#1C1C1E] p-4 sticky top-0 z-40 shadow-lg border-b-2 border-[#FF3B30]">
+                        <div className="max-w-xl mx-auto flex justify-between items-center text-white"><div className="flex items-center gap-3"><i className="fa-solid fa-shield-halved text-[#FF3B30] text-xl"></i><div><p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p><h1 className="text-sm font-black uppercase tracking-tight">Supervisor Portal</h1></div></div><button onClick={onLogout} className="text-white bg-white/10 px-4 py-2 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button></div>
+                    </nav>
+
+                    <main className="max-w-xl mx-auto p-4 space-y-4 mt-2">
+                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-200">
+                            <HotelDateRangePicker value={filterDate} onChange={(val)=>setFilterDate({...filterDate, start:val.start, end:val.end})} title="Filter Rentang Waktu (Maks 35 Hari)" />
+                            {/* FIX: text-[#1C1C1E] untuk input di tema terang */}
+                            <input type="text" placeholder="Cari Nama Pasien / Cabang..." className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-xl outline-none font-bold text-sm focus:border-[#FF3B30] transition-all mt-4" value={filterDate.search} onChange={e => setFilterDate({...filterDate, search: e.target.value})} />
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-end px-1"><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p><button onClick={fetchLogs} className="text-[#FF3B30] text-[10px] font-black uppercase tracking-widest"><i className="fa-solid fa-rotate-right"></i> Refresh</button></div>
+                            {loading ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
+                            {filteredLogs.map((item, idx) => {
+                                const currentId = item.db_id || item.id || item.ID;
+                                const isBatal = Number(item.TAGIHAN) === 0;
+                                return (
+                                    <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
+                                        <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
+                                            <div><span className="bg-[#1C1C1E] text-white text-[8px] px-2 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span><span className="text-[9px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span></div>
+                                            {isBatal && <span className="text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <div><h5 className={`font-black text-sm text-[#1C1C1E] uppercase ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1">{item.NOMOR_CUSTOMER || '-'}</p></div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right"><p className={`text-sm font-black ${isBatal ? 'text-[#FF3B30]' : 'text-gray-800'}`}>{formatIDR(item.TAGIHAN)}</p><p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Trp: {item.TERAPIS}</p></div>
+                                                <button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isBatal ? 'opacity-0' : 'bg-gray-100 text-gray-400 hover:bg-[#FF3B30] hover:text-white active:scale-90'}`}>{isDeleting === currentId ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-ban"></i>}</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </main>
+
+                    {confirmModal.show && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"><div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div><div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up"><i className="fa-solid fa-triangle-exclamation text-[#FF3B30] text-[48px] mb-5"></i><h3 className="text-xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batalkan Order?</h3><p className="text-[10px] text-gray-500 font-bold mb-6 uppercase tracking-widest leading-relaxed">Tindakan ini akan meng-Nol-kan nominal tagihan untuk kepentingan audit.</p><div className="bg-gray-100 p-4 rounded-xl mb-6 text-left"><p className="text-xs font-black uppercase text-gray-800">{confirmModal.item.NAMA_PASIEN}</p><p className="text-[9px] font-bold uppercase text-gray-500 mt-1">{confirmModal.item.CABANG_ID} • {formatIDR(confirmModal.item.TAGIHAN)}</p></div><button onClick={executeCancel} className="w-full py-4 bg-[#FF3B30] text-white font-black rounded-xl mb-3 active:scale-95 transition-all tracking-widest uppercase text-xs">YA, EKSEKUSI</button><button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-4 bg-gray-200 text-gray-800 font-black rounded-xl active:scale-95 transition-all tracking-widest uppercase text-xs">KEMBALI</button></div></div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // 2. KOMPONEN DASHBOARD OWNER (FULL VERSION)
+        // ==========================================
+        const OwnerView = ({ onLogout }) => {
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [reportSubTab, setReportSubTab] = useState('keuangan'); 
+            
+            const [data, setData] = useState({ grandTotalHariIni: 0, grandTotalBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [] });
+            const [loading, setLoading] = useState(true);
+            const [refreshing, setRefreshing] = useState(false);
+
+            const [filterReport, setFilterReport] = useState({ start: isoToday, end: isoToday, cabang: 'ALL' });
+            const [reportData, setReportData] = useState(null);
+            const [loadingReport, setLoadingReport] = useState(false);
+
+            const [filterGaji, setFilterGaji] = useState({ start: isoToday, end: isoToday, cabang: '' });
+            const [slipData, setSlipData] = useState([]);
+            const [loadingSlip, setLoadingSlip] = useState(false);
+
+            const loadOwnerData = async (isRefresh = false) => {
+                if (isRefresh) setRefreshing(true); else setLoading(true);
+                try {
+                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'owner_load' }) });
+                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
+                    if (finalData && finalData.json) finalData = finalData.json;
+                    setData(finalData || {});
+                } catch (e) {} setLoading(false); setRefreshing(false);
+            };
+
+            useEffect(() => { loadOwnerData(); }, []);
+
+            const fetchReportData = async () => {
+                setLoadingReport(true);
+                try {
+                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterReport.start, endDate: filterReport.end, cabang: filterReport.cabang }) });
+                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
+                    setReportData(finalData?.data || finalData?.json?.data || null);
+                } catch (e) {} setLoadingReport(false);
+            };
+
+            const fetchSlipGaji = async () => {
+                setLoadingSlip(true);
+                try {
+                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterGaji.start, endDate: filterGaji.end, cabang: filterGaji.cabang }) });
+                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
+                    const targetData = finalData?.data || finalData?.json?.data; setSlipData(targetData?.daftarTerapis || []);
+                } catch (e) {} setLoadingSlip(false);
+            };
+
+            const downloadSlipLaporan = () => {
+                if(!reportData) return;
+                const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a5' });
+                doc.setFontSize(16); doc.setTextColor(255, 59, 48); doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
+                doc.setFontSize(12); doc.setTextColor(28, 28, 30); doc.text("REKAP LAPORAN KEUANGAN", 74, 28, { align: "center" });
+                doc.setLineWidth(0.5); doc.line(10, 35, 138, 35);
+                doc.setFontSize(10); doc.setTextColor(100, 100, 100);
+                doc.text(`Cabang     : ${filterReport.cabang === 'ALL' ? 'SEMUA CABANG' : filterReport.cabang}`, 15, 45);
+                doc.text(`Periode    : ${filterReport.start} s/d ${filterReport.end}`, 15, 53);
+                doc.line(10, 60, 138, 60);
+                doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+                doc.text(`Total Omset`, 15, 75); doc.text(`${formatIDR(reportData.omset)}`, 133, 75, {align: 'right'});
+                doc.text(`Total Pengeluaran`, 15, 85); doc.text(`- ${formatIDR(reportData.expense)}`, 133, 85, {align: 'right'});
+                doc.setLineWidth(0.5); doc.line(15, 95, 133, 95);
+                doc.setFont(undefined, 'bold'); doc.setFontSize(14);
+                if(reportData.laba < 0) doc.setTextColor(255, 59, 48);
+                doc.text(`LABA BERSIH`, 15, 110); doc.text(`${formatIDR(reportData.laba)}`, 133, 110, {align: 'right'});
+                doc.save(`Laporan_${filterReport.cabang}_${filterReport.start}.pdf`);
+            };
+
+            const downloadSlipTerapis = (terapis) => {
+                const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a5' });
+                doc.setFontSize(18); doc.setTextColor(255, 59, 48); doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
+                doc.setFontSize(12); doc.setTextColor(28, 28, 30); doc.text("SLIP KOMISI TERAPIS", 74, 28, { align: "center" });
+                doc.setLineWidth(0.5); doc.line(10, 35, 138, 35);
+                doc.setFontSize(10); doc.setTextColor(100, 100, 100);
+                doc.text(`Cabang     : ${filterGaji.cabang}`, 15, 45);
+                doc.text(`Nama       : ${terapis.nama}`, 15, 53);
+                doc.text(`Periode    : ${filterGaji.start} s/d ${filterGaji.end}`, 15, 61);
+                doc.line(10, 70, 138, 70);
+                doc.setFontSize(12); doc.setTextColor(0, 0, 0);
+                doc.text(`Total Pasien Diselesaikan: ${terapis.totalPasien} Orang`, 15, 85);
+                doc.setFont(undefined, 'bold'); doc.setFontSize(14);
+                doc.text(`TOTAL KOMISI : ${formatIDR(terapis.totalKomisi)}`, 15, 100);
+                doc.setFont(undefined, 'normal'); doc.setFontSize(9); doc.setTextColor(150, 150, 150);
+                doc.text("Terima kasih atas kerja keras Anda!", 74, 130, { align: "center" });
+                doc.save(`SlipGaji_${filterGaji.cabang}_${terapis.nama.replace(/\s+/g, '_')}.pdf`);
+            };
+
+            if (loading) return <div className="min-h-screen bg-[#000000] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl"></i></div>;
+            
+            return (
+                <div className="min-h-screen bg-[#000000] text-white font-sans animate-fade-in pb-28">
+                    {/* TAB DASHBOARD EKSEKUTIF */}
+                    {activeTab === 'dashboard' && (
+                        <div className="animate-slide-up">
+                            <div className="bg-[#1C1C1E] px-6 py-10 rounded-b-[3rem] shadow-2xl border-b-2 border-[#FF3B30]/30">
+                                <div className="max-w-xl mx-auto">
+                                    <div className="flex justify-between items-start mb-8">
+                                        <div className="flex items-center gap-3"><img src={LOGO_URL} alt="Logo" className="h-12 w-12 object-contain" /><div><p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-2xl font-black tracking-tighter uppercase leading-none">Bugar Analytics</h1></div></div>
+                                        <button onClick={() => loadOwnerData(true)} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10"><i className={`fa-solid fa-rotate-right text-lg ${refreshing ? 'fa-spin text-[#FF3B30]' : ''}`}></i></button>
+                                    </div>
+                                    <div className="bg-[#FF3B30] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.3)] relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-6 opacity-20"><i className="fa-solid fa-wallet text-[80px]"></i></div>
+                                        <p className="text-white/80 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Bersih Hari Ini</p>
+                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
+                                        <div className="flex justify-between items-center mt-5 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4">
+                                            <div><span className="opacity-70 block mb-1">Omset</span> {formatIDR(data.grandTotalHariIni)}</div><div className="text-right"><span className="opacity-70 block mb-1">Pengeluaran</span> {formatIDR(data.expenseHariIni)}</div>
+                                        </div>
                                     </div>
                                 </div>
-                            `).join('')}
-                        </div>
-                    </div>`;
-            },
-
-            // --- DASHBOARD KOTAK UNIT WATERMARK ---
-            renderUnitBoxes: () => {
-                const todayStr = APP.getTodayStr(); 
-                const tomorrowStr = APP.getTomorrowStr(); 
-                const yestStr = APP.getYesterdayStr();
-                let html = '<div class="grid grid-cols-3 gap-2 mb-4">';
-
-                for(let i=1; i<=9; i++) {
-                    // Murni menarik semua log untuk unit ini dalam 3 hari terakhir
-                    const unitLogs = STATE.logs.filter(l => {
-                        const uNum = String(l.unit_arena).replace(/\D/g, ''); 
-                        const dStr = (l.jam_mulai_sewa||'').substring(0,10);
-                        return uNum === String(i) && (dStr === todayStr || dStr === tomorrowStr || dStr === yestStr);
-                    });
-
-                    // Cek berdasarkan prioritas (Playing > Booked) tanpa peduli urutan database
-                    let status = 'kosong';
-                    const isPlaying = unitLogs.some(l => ['playing', 'main'].includes(String(l.status_unit_arena).toLowerCase()));
-                    const isBooked = unitLogs.some(l => ['booked', 'book'].includes(String(l.status_unit_arena).toLowerCase()));
-
-                    if (isPlaying) status = 'main';
-                    else if (isBooked) status = 'book';
-
-                    let bgClass = 'bg-black text-white'; let statusText = 'KOSONG';
-                    if (status === 'book') { bgClass = 'bg-yellow-400 text-black border-yellow-500'; statusText = 'BOOKED'; }
-                    else if (status === 'main') { bgClass = 'bg-green-500 text-white border-green-600'; statusText = 'MAIN'; }
-
-                    let branchShadow = 'BANDA';
-                    if (i <= 2) branchShadow = 'SABANG';
-                    else if (i >= 8) branchShadow = 'ATIM';
-
-                    html += `
-                        <div class="border-2 rounded-lg pt-1 pb-2 px-2 text-center shadow-[2px_2px_0px_#000] ${bgClass} flex flex-col justify-center items-center relative">
-                            <p class="text-[7px] font-black opacity-50 tracking-widest mb-0.5">${branchShadow}</p>
-                            <p class="font-black text-lg leading-none">U${i}</p>
-                            <p class="text-[9px] font-bold uppercase mt-1">${statusText}</p>
-                        </div>`;
-                }
-                return html + '</div>';
-            },
-
-            renderLogsUI: () => {
-                return `
-                    <div class="mario-card p-4 animate-pop">
-                        <h2 class="font-black text-center border-b-2 border-black pb-2 mb-4 uppercase">Status 9 Unit</h2>
-                        <div id="dashboard-unit-boxes">${APP.renderUnitBoxes()}</div>
-                        <div class="flex justify-between items-center mb-3 mt-4 border-t-2 border-dashed border-gray-400 pt-4">
-                            <h3 class="font-black text-[11px]">LOGS (KEMARIN, HARI INI & BESOK)</h3>
-                            <select id="log-filter-cabang" onchange="APP.updateLogList()" class="mario-input w-auto p-1 text-xs">
-                                <option value="ALL">Semua Cabang</option><option value="Sabang">Sabang</option><option value="Banda">Banda Aceh</option><option value="Aceh Timur">Aceh Timur</option>
-                            </select>
-                        </div>
-                        <div id="filtered-logs-container" class="space-y-3">${APP.getLogListHTML('ALL')}</div>
-                    </div>
-                `;
-            },
-            updateLogList: () => {
-                const selCabang = document.getElementById('log-filter-cabang').value;
-                document.getElementById('filtered-logs-container').innerHTML = APP.getLogListHTML(selCabang);
-            },
-            getLogListHTML: (cabangFilter) => {
-                const todayStr = APP.getTodayStr(); const yestStr = APP.getYesterdayStr(); const tomorrowStr = APP.getTomorrowStr();
-                const recentLogs = STATE.logs.filter(l => { const d = (l.jam_mulai_sewa||'').substring(0,10); return d === todayStr || d === yestStr || d === tomorrowStr; });
-                const filtered = recentLogs.filter(l => cabangFilter === 'ALL' || l.cabang_arena === cabangFilter || l.cabang_arena === (cabangFilter === 'Banda Aceh' ? 'Banda' : cabangFilter));
-                
-                const daysName = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
-
-                return filtered.reverse().map(l => {
-                    const rowId = l.id || l.row_number || l._rowIndex;
-                    const unitLabel = String(l.unit_arena).toLowerCase().includes('unit') ? l.unit_arena : 'Unit ' + l.unit_arena;
-                    const cabLabel = l.cabang_arena === 'Banda' ? 'Banda Aceh' : l.cabang_arena;
-
-                    let dayStr = '';
-                    if (l.jam_mulai_sewa) {
-                        const dObj = new Date(l.jam_mulai_sewa.replace(' ', 'T'));
-                        if (!isNaN(dObj)) dayStr = daysName[dObj.getDay()];
-                    }
-                    
-                    const waLink = l.link_wa_pelanggan_arena || 'https://wa.me/' + String(l.nomor_pelanggan_arena).replace(/^0/, '62');
-
-                    // SMART UI LOGIC
-                    const stat = String(l.status_unit_arena).toLowerCase();
-                    const pay = l.pembayaran;
-
-                    let cardClass = "border-2 border-black p-3 rounded-xl bg-white shadow-[2px_2px_0px_#000] relative";
-                    let textClass = "";
-                    let badgeHtml = "";
-
-                    if (stat === 'batal') {
-                        cardClass = "border-2 border-gray-400 p-3 rounded-xl bg-gray-200 opacity-60 relative";
-                        textClass = "line-through text-gray-500";
-                    } else if (stat === 'booked' || stat === 'book') {
-                        cardClass = "border-2 border-yellow-500 p-3 rounded-xl bg-yellow-50 shadow-[2px_2px_0px_#eab308] relative";
-                    } else if (stat === 'playing' || stat === 'main') {
-                        cardClass = "border-2 border-green-500 p-3 rounded-xl bg-green-50 shadow-[2px_2px_0px_#22c55e] relative";
-                        badgeHtml = `<span class="absolute top-3 right-3 flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>`;
-                    } else if (stat === 'finished' || stat === 'selesai') {
-                        if (pay !== 'Lunas') {
-                            cardClass = "border-4 border-red-600 p-3 rounded-xl bg-red-50 shadow-[2px_2px_0px_#dc2626] relative";
-                            badgeHtml = `<div class="bg-red-600 text-white text-[9px] font-black px-2 py-1 absolute top-0 right-0 rounded-bl-lg rounded-tr-lg animate-pulse shadow-md">⚠️ BELUM BAYAR</div>`;
-                        } else {
-                            cardClass = "border-2 border-gray-400 p-3 rounded-xl bg-gray-100 shadow-[2px_2px_0px_gray] relative";
-                        }
-                    }
-
-                    return `
-                    <div class="${cardClass}">
-                        ${badgeHtml}
-                        <div class="flex justify-between items-start mb-2 border-b-2 border-dashed border-gray-300 pb-2">
-                            <div class="flex flex-col">
-                                <span class="font-black text-xl text-[#FF6B00] leading-none mb-1 ${textClass}">${dayStr}</span>
-                                <span class="font-bold text-[10px] text-gray-500">${l.jam_mulai_sewa || ''}</span>
                             </div>
-                            <span class="font-black text-[10px] bg-black text-white px-2 py-1 rounded-md h-fit mt-1">${unitLabel} (${cabLabel})</span>
-                        </div>
-                        <p class="font-bold text-sm uppercase ${textClass}">${l.nama_pelanggan_arena} <span class="text-[10px] text-gray-500 normal-case ml-1">${l.nomor_pelanggan_arena || ''}</span></p>
-                        <div class="flex justify-between items-end mt-1">
-                            <span class="text-xs font-semibold text-gray-700 ${textClass}">${l.paket_arena}</span><span class="text-sm font-black text-orange-600 ${textClass}">${APP.formatRp(l.tagihan_arena)}</span>
-                        </div>
-                        <div class="flex gap-1 mt-3 pt-2 border-t border-gray-200">
-                            <select onchange="APP.changeStatus('${rowId}', this.value, '${l.pembayaran}')" class="mario-input p-1 text-[9px] w-1/3 font-bold">
-                                <option value="booked" ${stat==='booked'?'selected':''}>BOOKED</option>
-                                <option value="playing" ${stat==='playing'?'selected':''}>PLAYING</option>
-                                <option value="finished" ${stat==='finished'?'selected':''}>FINISHED</option>
-                                <option value="batal" ${stat==='batal'?'selected':''}>BATAL ❌</option>
-                            </select>
-                            <button onclick="APP.togglePayment('${rowId}', '${l.status_unit_arena}', '${l.pembayaran}')" class="mario-btn p-1 text-[9px] w-1/3 ${l.pembayaran==='Lunas'?'bg-green-400':'bg-red-400 text-white'}">
-                                ${l.pembayaran==='Lunas'?'✅ LUNAS':'❌ BELUM'}
-                            </button>
-                            <a href="${waLink}" target="_blank" class="mario-btn p-1 text-[10px] w-1/3 bg-[#25D366] text-white flex items-center justify-center font-black">
-                                💬 WA
-                            </a>
-                        </div>
-                    </div>`;
-                }).join('') || '<p class="text-center font-bold text-gray-500">Tidak ada log.</p>';
-            },
 
-            changeStatus: async (id, newStat, currentPay) => {
-                APP.showLoader('UPDATE STATUS...');
-                await APP.api({ action: 'update_status', row_id: id, status_unit: newStat, pembayaran: currentPay });
-                await APP.loadDashboard();
-            },
-            togglePayment: async (id, currentStat, currentPay) => {
-                const newPay = currentPay === 'Lunas' ? 'Belum' : 'Lunas';
-                APP.showLoader('UPDATE BAYAR...');
-                await APP.api({ action: 'update_status', row_id: id, status_unit: currentStat, pembayaran: newPay });
-                await APP.loadDashboard();
-            },
+                            <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
+                                {/* OVERSIGHT PEMBATALAN */}
+                                {data.cancelledOrders && data.cancelledOrders.length > 0 && (
+                                    <div className="bg-[#2A0808] p-8 rounded-[2.5rem] border border-[#FF3B30]/30 shadow-[0_0_30px_rgba(255,59,48,0.1)]">
+                                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#FF3B30] mb-6 flex items-center gap-3"><i className="fa-solid fa-triangle-exclamation"></i> Log Pembatalan (Audit)</h3>
+                                        <div className="space-y-3">
+                                            {data.cancelledOrders.map((batal, idx) => (
+                                                <div key={idx} className="bg-black/50 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center">
+                                                    <div>
+                                                        <span className="text-[#FF3B30] font-black text-[8px] bg-red-950 px-2 py-1 rounded uppercase tracking-widest mr-2">{batal.CABANG_ID}</span>
+                                                        <span className="text-xs font-black uppercase text-gray-300 line-through">{batal.NAMA_PASIEN}</span>
+                                                        <p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1.5">{batal.TANGGAL}</p>
+                                                    </div>
+                                                    <i className="fa-solid fa-ban text-red-900 text-xl"></i>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
-            renderInputForm: () => {
-                const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                const b = STATE.user.branch || ''; 
-                return `
-                <div class="mario-card p-5 animate-pop">
-                    <h2 class="font-black text-center border-b-2 border-black pb-2 mb-4">INPUT TRANSAKSI</h2>
-                    <form onsubmit="APP.saveRental(event)" class="space-y-3">
-                        <div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] font-bold">PELANGGAN</label><input type="text" id="r-name" placeholder="Nama" required class="mario-input p-2 text-sm"></div><div><label class="text-[10px] font-bold">NO WA</label><input type="number" id="r-wa" placeholder="08xx" required class="mario-input p-2 text-sm"></div></div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div><label class="text-[10px] font-bold">CABANG</label>
-                                <select id="r-branch" onchange="APP.updateUnitOptions()" class="mario-input p-2 text-sm">
-                                    <option value="Banda" ${b.includes('Banda')?'selected':''}>Banda Aceh</option>
-                                    <option value="Sabang" ${b.includes('Sabang')?'selected':''}>Sabang</option>
-                                    <option value="Aceh Timur" ${b.includes('Timur')?'selected':''}>Aceh Timur</option>
-                                </select>
+                                {/* Performa Cabang DENGAN ACCORDION & 4 METRIK */}
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30]"></i> Performa Cabang (Hari Ini)</h3>
+                                    <div className="space-y-4">
+                                        {data.leaderboard && data.leaderboard.map((cabang, idx) => (
+                                            <BranchCard key={cabang.id} cabang={cabang} idx={idx} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </main>
+                        </div>
+                    )}
+
+                    {/* TAB LAPORAN & GAJI */}
+                    {activeTab === 'report' && (
+                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-6">
+                            <div className="mb-6">
+                                <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Administrasi</h2>
+                                <p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-1">Pusat Pembukuan & Penggajian</p>
                             </div>
-                            <div><label class="text-[10px] font-bold">UNIT</label><select id="r-unit" class="mario-input p-2 text-sm" required></select></div>
+
+                            <div className="flex bg-[#1C1C1E] p-1.5 rounded-full border border-white/10 mb-6">
+                                <button onClick={() => setReportSubTab('keuangan')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${reportSubTab === 'keuangan' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-500 hover:text-white'}`}>Lap Keuangan</button>
+                                <button onClick={() => setReportSubTab('gaji')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${reportSubTab === 'gaji' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-500 hover:text-white'}`}>Gaji Terapis</button>
+                            </div>
+
+                            {/* SEGMEN LAPORAN KEUANGAN */}
+                            {reportSubTab === 'keuangan' && (
+                                <div className="bg-[#111111] p-8 rounded-[2.5rem] border border-white/10 shadow-2xl animate-fade-in">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-chart-pie text-[#FF3B30]"></i> Cetak Laporan</h3>
+                                    <div className="space-y-4">
+                                        
+                                        <HotelDateRangePicker value={filterReport} onChange={setFilterReport} title="Periode Laporan" />
+                                        
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block mt-2">Filter Cabang</label>
+                                            <select className="w-full p-4 bg-[#1C1C1E] rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" value={filterReport.cabang} onChange={e => setFilterReport({...filterReport, cabang: e.target.value})}>
+                                                <option value="ALL">Semua Cabang (Global)</option>
+                                                {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                                            </select>
+                                        </div>
+                                        <button onClick={fetchReportData} disabled={loadingReport} className="w-full bg-white text-black font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest mt-4 shadow-[0_10px_20px_rgba(255,255,255,0.1)]">
+                                            {loadingReport ? <i className="fa-solid fa-spinner fa-spin"></i> : "TARIK DATA"}
+                                        </button>
+                                    </div>
+
+                                    {reportData && (
+                                        <div className="mt-8 pt-8 border-t border-white/10 animate-fade-in">
+                                            <div className="paper-slip p-6 rounded-2xl shadow-inner mb-4 border border-gray-300">
+                                                <h4 className="text-center font-black text-xl text-[#FF3B30] mb-1 tracking-tighter">BUGAR REFLEKSI</h4>
+                                                <p className="text-center font-bold text-xs uppercase border-b-2 border-dashed border-gray-400 pb-3 mb-4 tracking-widest">Laporan Keuangan</p>
+                                                <div className="space-y-1 mb-4 text-[10px] font-bold text-gray-600"><div className="flex justify-between"><span>CABANG</span> <span>{filterReport.cabang}</span></div><div className="flex justify-between"><span>PERIODE</span> <span>{filterReport.start} / {filterReport.end}</span></div></div>
+                                                <div className="border-t border-b border-gray-300 py-3 mb-4 space-y-2"><div className="flex justify-between font-bold text-sm"><span>TOTAL OMSET</span> <span>{formatIDR(reportData.omset)}</span></div><div className="flex justify-between font-bold text-sm text-red-600"><span>PENGELUARAN</span> <span>- {formatIDR(reportData.expense)}</span></div></div>
+                                                <div className="flex justify-between font-black text-lg"><span>LABA BERSIH</span> <span className={reportData.laba < 0 ? "text-red-600" : ""}>{formatIDR(reportData.laba)}</span></div>
+                                            </div>
+                                            <button onClick={downloadSlipLaporan} className="w-full bg-[#FF3B30] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex justify-center items-center gap-2 hover:bg-red-600 transition-all shadow-[0_10px_20px_rgba(255,59,48,0.3)]"><i className="fa-solid fa-file-pdf"></i> Download PDF</button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* SEGMEN GAJI TERAPIS */}
+                            {reportSubTab === 'gaji' && (
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl animate-fade-in">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-file-invoice-dollar text-[#FF3B30]"></i> Slip Gaji Terapis</h3>
+                                    <div className="space-y-4">
+                                        
+                                        <HotelDateRangePicker value={filterGaji} onChange={setFilterGaji} title="Periode Gaji Terapis" />
+
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block mt-2">Pilih Cabang (Wajib)</label>
+                                            <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-xs border border-white/5 focus:border-[#FF3B30]" value={filterGaji.cabang} onChange={e => setFilterGaji({...filterGaji, cabang: e.target.value})}>
+                                                <option value="">-- Pilih Cabang --</option>
+                                                {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                                            </select>
+                                        </div>
+                                        <button onClick={fetchSlipGaji} disabled={loadingSlip || !filterGaji.cabang} className="w-full bg-[#111111] border border-white/10 text-white font-black py-4 rounded-2xl hover:bg-[#FF3B30] active:scale-95 transition-all text-xs uppercase tracking-widest mt-4 disabled:opacity-50">
+                                            {loadingSlip ? <i className="fa-solid fa-spinner fa-spin"></i> : "CARI DAFTAR TERAPIS"}
+                                        </button>
+                                    </div>
+
+                                    {slipData.length > 0 && (
+                                        <div className="mt-6 space-y-4 pt-6 border-t border-white/10 animate-fade-in">
+                                            <p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest text-center mb-2">Klik Untuk Cetak Slip PDF</p>
+                                            {slipData.map((terapis, idx) => (
+                                                <div key={idx} className="bg-black p-5 rounded-2xl border border-white/5 relative overflow-hidden">
+                                                    <div className="flex justify-between items-center relative z-10">
+                                                        <div><p className="font-black text-lg uppercase text-white mb-1 tracking-tight">{terapis.nama}</p><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{terapis.totalPasien} Pasien Diselesaikan</p></div>
+                                                        <div className="text-right"><p className="text-sm font-black text-[#FF3B30]">{formatIDR(terapis.totalKomisi)}</p><button onClick={() => downloadSlipTerapis(terapis)} className="mt-2 bg-white/10 hover:bg-white text-gray-400 hover:text-black px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">Cetak PDF</button></div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                        <div class="grid grid-cols-2 gap-2"><div><label class="text-[10px] font-bold">TIPE SEWA</label><select id="r-type" onchange="APP.updatePrice()" class="mario-input p-2 text-sm"><option value="Paket">Paket</option><option value="Regular">Regular</option></select></div><div><label class="text-[10px] font-bold">AMUNISI</label><select id="r-prod" onchange="APP.updatePrice()" class="mario-input p-2 text-sm"></select></div></div>
-                        
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <div><label class="text-[10px] font-bold">WAKTU MULAI SEWA</label><input type="datetime-local" id="r-datetime" value="${now.toISOString().slice(0,16)}" required class="mario-input p-2 text-sm"></div>
-                            <div><label class="text-[10px] font-bold text-red-600">DISKON (Rp)</label><input type="number" id="r-diskon" placeholder="0" min="0" onkeyup="APP.updatePrice()" onchange="APP.updatePrice()" class="mario-input p-2 text-sm border-red-500 focus:border-red-600"></div>
+                    )}
+
+                    {/* BOTTOM NAV */}
+                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+                        <div className="flex justify-between items-center mb-3 mt-1">
+                            <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-3 flex flex-col items-center gap-1 transition-all ${activeTab === 'dashboard' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-house text-xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Dasbor</span></button>
+                            <button onClick={() => setActiveTab('report')} className={`flex-1 py-3 flex flex-col items-center gap-1 transition-all ${activeTab === 'report' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-file-signature text-xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Administrasi</span></button>
+                            <button onClick={onLogout} className="flex-1 py-3 flex flex-col items-center gap-1 transition-all text-gray-600 hover:text-white"><i className="fa-solid fa-power-off text-xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Keluar</span></button>
                         </div>
-
-                        <div class="bg-black text-yellow-400 p-3 rounded-lg text-center mt-2"><p class="text-[10px] font-bold text-gray-300">TOTAL TAGIHAN</p><p id="price-tag" class="text-2xl font-black">Rp 0</p></div>
-                        <button type="submit" class="w-full mario-btn bg-yellow-400 p-3 mt-4">SIMPAN 💾</button>
-                    </form>
-                </div>`;
-            },
-            updateUnitOptions: () => {
-                const branch = document.getElementById('r-branch').value;
-                const unitSel = document.getElementById('r-unit');
-                if(!unitSel) return;
-                
-                let opts = '';
-                if(branch === 'Sabang') opts = '<option value="1">Unit 1</option><option value="2">Unit 2</option>';
-                else if(branch === 'Banda') opts = '<option value="3">Unit 3</option><option value="4">Unit 4</option><option value="5">Unit 5</option><option value="6">Unit 6</option><option value="7">Unit 7</option>';
-                else if(branch === 'Aceh Timur') opts = '<option value="8">Unit 8</option><option value="9">Unit 9</option>';
-                else opts = '<option value="1">Unit 1</option>';
-                unitSel.innerHTML = opts;
-            },
-            updatePrice: () => {
-                const type = document.getElementById('r-type').value;
-                const prodSel = document.getElementById('r-prod');
-                const diskonInput = document.getElementById('r-diskon');
-                
-                if(prodSel.options.length === 0 || document.getElementById('r-type').dataset.last !== type) {
-                    prodSel.innerHTML = CONFIG.PRICING[type].map((p,i) => `<option value="${i}">${p.name} ${p.time!=='Bebas'?'('+p.time+')':''}</option>`).join('');
-                    document.getElementById('r-type').dataset.last = type;
-                }
-                
-                const basePrice = CONFIG.PRICING[type][prodSel.value].price;
-                const diskonVal = Number(diskonInput ? diskonInput.value : 0) || 0;
-                
-                let finalCalc = basePrice - diskonVal;
-                if (finalCalc < 0) finalCalc = 0; 
-                
-                STATE.lastFinalPrice = finalCalc;
-                document.getElementById('price-tag').innerText = APP.formatRp(finalCalc);
-            },
-            saveRental: async (e) => {
-                e.preventDefault();
-                APP.showLoader('MENYIMPAN...');
-                try {
-                    const type = document.getElementById('r-type').value;
-                    const prodSel = document.getElementById('r-prod');
-                    const rawDate = document.getElementById('r-datetime').value || ''; 
-                    const formattedDate = rawDate ? rawDate.replace('T', ' ') + (rawDate.length === 16 ? ':00' : '') : '';
-                    
-                    const finalName = CONFIG.PRICING[type][prodSel.value].name;
-                    const diskonVal = Number(document.getElementById('r-diskon').value) || 0;
-                    
-                    let finalPaket = `${finalName} (${type})`;
-                    if (diskonVal > 0) { finalPaket += ` [Diskon ${APP.formatRp(diskonVal)}]`; }
-
-                    await APP.api({
-                        action: 'input_rental',
-                        name: document.getElementById('r-name').value, wa: document.getElementById('r-wa').value, 
-                        branch: document.getElementById('r-branch').value, unit: document.getElementById('r-unit').value,
-                        price: STATE.lastFinalPrice, admin_name: STATE.user.username, status_unit: 'booked', pembayaran: 'Belum',
-                        paket: finalPaket, jam_mulai_sewa: formattedDate
-                    });
-                    await APP.loadDashboard();
-                    APP.switchTab('logs'); 
-                } catch (error) {
-                    alert("Gagal memproses input. Mohon coba lagi.");
-                    APP.hideLoader();
-                }
-            },
-
-            renderExpenseForm: () => `
-                <div class="mario-card p-5 animate-pop">
-                    <h2 class="font-black text-center border-b-2 border-black pb-2 mb-4">INPUT PENGELUARAN</h2>
-                    <form onsubmit="APP.saveExpense(event)" class="space-y-3">
-                        <div><label class="text-xs font-bold">CABANG</label><select id="exp-branch" class="mario-input p-2 text-sm"><option value="Banda">Banda Aceh</option><option value="Sabang">Sabang</option><option value="Aceh Timur">Aceh Timur</option></select></div>
-                        <div><label class="text-xs font-bold">NAMA ITEM</label><input type="text" id="exp-name" required class="mario-input p-2"></div>
-                        <div><label class="text-xs font-bold">NOMINAL (Rp)</label><input type="number" id="exp-amount" required class="mario-input p-2"></div>
-                        <div><label class="text-xs font-bold">TANGGAL</label><input type="date" id="exp-date" required class="mario-input p-2" value="${APP.getTodayStr()}"></div>
-                        <button type="submit" class="w-full mario-btn bg-red-500 text-white p-3 mt-4">SIMPAN PENGELUARAN 💸</button>
-                    </form>
-                </div>`,
-            saveExpense: async (e) => {
-                e.preventDefault();
-                APP.showLoader('MENYIMPAN...');
-                await APP.api({ action: 'add_expense', expense_name: document.getElementById('exp-name').value, expense_amount: document.getElementById('exp-amount').value, expense_date: document.getElementById('exp-date').value, branch: document.getElementById('exp-branch').value });
-                await APP.loadDashboard();
-            },
-
-            renderReportTab: () => `
-                <div class="mario-card p-6 text-center animate-pop">
-                    <h2 class="text-xl font-black mb-4 border-b-4 border-black pb-2">MESIN CETAK LAPORAN</h2>
-                    <div class="space-y-3 text-left mb-6">
-                        <div><label class="text-xs font-bold">PILIH CABANG</label><select id="report-branch" class="mario-input p-2 text-sm"><option value="ALL">Semua Cabang</option><option value="Sabang">Sabang</option><option value="Banda">Banda Aceh</option><option value="Aceh Timur">Aceh Timur</option></select></div>
-                        <div><label class="text-xs font-bold">PILIH BULAN</label><select id="report-month" class="mario-input p-2 text-sm">${APP.generateMonthOptions()}</select></div>
                     </div>
-                    <button onclick="APP.printReport()" class="w-full mario-btn bg-black text-white p-4">🖨️ CETAK LAPORAN A4</button>
                 </div>
-            `,
-            printReport: () => {
-                const branch = document.getElementById('report-branch').value;
-                const month = document.getElementById('report-month').value; 
-                const monthLabel = document.getElementById('report-month').options[document.getElementById('report-month').selectedIndex].text;
-
-                let rowHTML = ''; let totalOmset = 0;
-                STATE.logs.forEach(l => {
-                    const dateStr = (l.jam_mulai_sewa||'').substring(0,7); 
-                    const matchBranch = branch === 'ALL' || l.cabang_arena === branch || (branch === 'Banda' && l.cabang_arena === 'Banda');
-                    if (matchBranch && dateStr === month && String(l.status_unit_arena).toLowerCase() !== 'batal') {
-                        totalOmset += Number(l.tagihan_arena);
-                        rowHTML += `<tr><td style="border:1px solid #000; padding:8px;">${(l.jam_mulai_sewa||'').substring(0,10)}</td><td style="border:1px solid #000; padding:8px;">${l.cabang_arena} / U${l.unit_arena}</td><td style="border:1px solid #000; padding:8px;">${l.nama_pelanggan_arena}</td><td style="border:1px solid #000; padding:8px;">${l.paket_arena}</td><td style="border:1px solid #000; padding:8px; text-align:right;">${APP.formatRp(l.tagihan_arena)}</td></tr>`;
-                    }
-                });
-
-                document.getElementById('print-area').innerHTML = `
-                    <h1 style="text-align:center; font-size:24px; margin-bottom:5px;">LAPORAN OMSET ARENA PLAYBOX</h1>
-                    <h2 style="text-align:center; font-size:18px; margin-bottom:20px;">Periode: ${monthLabel} | Cabang: ${branch === 'Banda' ? 'Banda Aceh' : branch}</h2>
-                    <p style="margin-bottom:10px; font-weight:bold;">Dicetak Oleh: ${STATE.user.username.toUpperCase()}</p>
-                    <table style="width:100%; border-collapse: collapse; text-align:left; font-size:12px;">
-                        <tr style="background:#eee;"><th style="border:1px solid #000; padding:8px;">Tanggal</th><th style="border:1px solid #000; padding:8px;">Unit</th><th style="border:1px solid #000; padding:8px;">Pelanggan</th><th style="border:1px solid #000; padding:8px;">Sewa</th><th style="border:1px solid #000; padding:8px; text-align:right;">Tagihan</th></tr>
-                        ${rowHTML || '<tr><td colspan="5" style="text-align:center; padding:10px;">Tidak ada data.</td></tr>'}
-                        <tr><td colspan="4" style="border:1px solid #000; padding:10px; text-align:right; font-weight:bold; font-size:14px;">TOTAL OMSET (KOTOR)</td><td style="border:1px solid #000; padding:10px; text-align:right; font-weight:bold; font-size:14px;">${APP.formatRp(totalOmset)}</td></tr>
-                    </table>
-                `;
-                document.getElementById('print-area').classList.remove('hidden'); window.print(); document.getElementById('print-area').classList.add('hidden');
-            },
-
-            renderOwner: () => {
-                document.getElementById('view-owner').classList.remove('hidden');
-                const branchStr = STATE.user.branch; const todayStr = APP.getTodayStr(); const monthStr = APP.getMonthStr(); 
-                let omsetToday = 0; let omsetMonth = 0;
-                
-                const ownerLogs = STATE.logs.filter(l => {
-                    const dateStr = (l.jam_mulai_sewa || '').substring(0,10);
-                    return (l.cabang_arena === branchStr || (branchStr==='Banda Aceh' && l.cabang_arena==='Banda')) && dateStr.startsWith(monthStr) && String(l.status_unit_arena).toLowerCase() !== 'batal';
-                });
-
-                ownerLogs.forEach(l => {
-                    if ((l.jam_mulai_sewa||'').substring(0,10) === todayStr) omsetToday += Number(l.tagihan_arena);
-                    omsetMonth += Number(l.tagihan_arena);
-                });
-
-                document.getElementById('owner-omset-today').innerText = APP.formatRp(omsetToday); document.getElementById('owner-omset-month').innerText = APP.formatRp(omsetMonth);
-                
-                const daysName = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
-                document.getElementById('owner-logs').innerHTML = ownerLogs.reverse().map(l => {
-                    let dayStr = '';
-                    if (l.jam_mulai_sewa) {
-                        const dObj = new Date(l.jam_mulai_sewa.replace(' ', 'T'));
-                        if (!isNaN(dObj)) dayStr = daysName[dObj.getDay()];
-                    }
-                    return `
-                    <div class="mario-card p-3 bg-white flex justify-between items-center text-xs">
-                        <div>
-                            <p class="font-black text-sm text-[#FF6B00] leading-none mb-1">${dayStr}</p>
-                            <p class="font-black">${l.nama_pelanggan_arena} <span class="bg-gray-200 px-1 rounded text-[10px]">U${l.unit_arena}</span></p>
-                            <p class="text-[10px] text-gray-500 font-bold">${(l.jam_mulai_sewa||'').substring(0,16)}</p>
-                        </div>
-                        <div class="text-right"><p class="font-black text-green-600">${APP.formatRp(l.tagihan_arena)}</p><p class="text-[10px] font-bold text-gray-400">${l.paket_arena}</p></div>
-                    </div>`
-                }).join('') || '<p class="text-center text-white font-bold">Tidak ada riwayat.</p>';
-            }
+            );
         };
-        APP.init();
+
+        // ==========================================
+        // 3. KOMPONEN KASIR
+        // ==========================================
+        const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
+            const [mode, setMode] = useState('pemasukan'); 
+            const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0 });
+            const [history, setHistory] = useState([]);
+            const [expenseHistory, setExpenseHistory] = useState([]);
+            
+            const [formData, setFormData] = useState({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '' });
+            const [expenseData, setExpenseData] = useState({ NAMA_PENGELUARAN: '', NOMINAL: '', KETERANGAN: '' });
+            const [loading, setLoading] = useState(false);
+            const [fetching, setFetching] = useState(false);
+
+            const loadDashboardData = useCallback(async (isInitial = false) => {
+                if (isInitial) setFetching(true);
+                const res = await sendToN8N('load_data', { CABANG_ID: activeCabang });
+                if (res && (res.status === 'success' || res.history)) {
+                    setStats(res.stats || { hariIni: 0, bulanIni: 0 });
+                    setHistory(res.history || []);
+                    setExpenseHistory(res.expenseHistory || []); 
+                }
+                if (isInitial) setFetching(false);
+            }, [activeCabang]);
+
+            useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
+
+            const handlePaketChange = (e) => {
+                const selectedPaket = e.target.value; let autoHarga = formData.TAGIHAN;
+                if (selectedPaket) { const match = selectedPaket.match(/Rp\s*([\d.]+)/); if (match && match[1]) autoHarga = match[1].replace(/\./g, ''); }
+                setFormData({ ...formData, PAKET: selectedPaket, TAGIHAN: autoHarga });
+            };
+
+            const handleOrderSubmit = async (e) => {
+                e.preventDefault(); setLoading(true);
+                const res = await sendToN8N('insert', { ...formData, CABANG_ID: activeCabang });
+                if (res && (res.id || res.status === 'success')) {
+                    setFormData({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '' });
+                    showToast('Pasien Berhasil Disimpan'); await loadDashboardData();
+                } else { showToast('Gagal Menyimpan', 'error'); }
+                setLoading(false);
+            };
+
+            const handleExpenseSubmit = async (e) => {
+                e.preventDefault(); setLoading(true);
+                const res = await sendToN8N('insert_expense', { ...expenseData, CABANG_ID: activeCabang });
+                if (res && res.status === 'success') {
+                    setExpenseData({ NAMA_PENGELUARAN: '', NOMINAL: '', KETERANGAN: '' });
+                    showToast('Pengeluaran Berhasil Dicatat'); await loadDashboardData();
+                } else { showToast('Gagal Mencatat', 'error'); }
+                setLoading(false);
+            };
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40">
+                        <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm"><div className="flex items-center gap-2 text-[#1C1C1E]"><img src={LOGO_URL} alt="Logo" className="h-6 w-6 object-contain" /> CABANG {activeCabang}</div><button onClick={onLogout} className="text-[#FF3B30] bg-[#FF3B30]/10 px-4 py-2 rounded-full text-[10px] flex items-center gap-2 hover:bg-[#FF3B30]/20 active:scale-95 transition-all tracking-widest"><i className="fa-solid fa-right-from-bracket"></i> KELUAR</button></div>
+                    </nav>
+
+                    <main className="max-w-xl mx-auto p-4 space-y-5">
+                        <div className="flex bg-white p-1.5 rounded-full shadow-sm border border-gray-100"><button onClick={() => setMode('pemasukan')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pemasukan' ? 'bg-[#1C1C1E] text-white shadow-md' : 'text-gray-400 hover:text-black'}`}>Pemasukan</button><button onClick={() => setMode('pengeluaran')} className={`flex-1 py-3 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pengeluaran' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-400 hover:text-red-500'}`}>Pengeluaran</button></div>
+
+                        {mode === 'pemasukan' ? (
+                            <div className="animate-slide-up space-y-5">
+                                <div className="grid grid-cols-2 gap-3"><div className="bg-[#FF3B30] p-5 rounded-3xl text-white shadow-lg"><p className="text-[9px] uppercase font-black opacity-70 tracking-widest mb-1">Hari Ini</p><h3 className="text-xl font-black">{formatIDR(stats.hariIni)}</h3></div><div className="bg-[#1C1C1E] p-5 rounded-3xl text-white shadow-lg"><p className="text-[9px] uppercase font-black opacity-40 tracking-widest mb-1">Bulan Ini</p><h3 className="text-xl font-black">{formatIDR(stats.bulanIni)}</h3></div></div>
+
+                                <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
+                                    <h4 className="font-black text-[10px] text-gray-400 mb-5 tracking-widest uppercase">Input Pasien</h4>
+                                    <form onSubmit={handleOrderSubmit} className="space-y-4">
+                                        <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
+                                        <input type="tel" placeholder="WhatsApp (08...)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><select required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-[11px] focus:border-[#FF3B30] transition-all appearance-none" value={formData.PAKET} onChange={handlePaketChange}><option value="">Pilih Paket...</option>{DAFTAR_PAKET.map(p => <option key={p} value={p}>{p}</option>)}</select><input type="number" placeholder="Total Tagihan (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} /></div>
+                                        <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value})} />
+                                        <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#FF3B30] active:scale-[0.98] transition-all mt-2 tracking-widest uppercase text-sm">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN DATA"}</button>
+                                    </form>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Log Transaksi Hari Ini</p>
+                                    {fetching && history.length === 0 && <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-300 text-2xl"></i></div>}
+                                    {history.map((item, idx) => {
+                                        const isBatal = Number(item.TAGIHAN) === 0;
+                                        return (
+                                            <div key={idx} className={`p-4 rounded-2xl border flex justify-between items-center transition-all ${isBatal ? 'bg-red-50 border-red-100 opacity-60' : 'bg-white border-gray-100'}`}>
+                                                <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isBatal ? 'bg-red-100 text-[#FF3B30]' : 'bg-[#F2F2F7] text-[#1C1C1E]'}`}>{item.NAMA_PASIEN?.charAt(0)}</div><div><h5 className={`font-black text-sm leading-none mb-1 text-[#1C1C1E] ${isBatal ? 'line-through opacity-70' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[9px] text-gray-400 font-bold uppercase truncate max-w-[150px]">{item.PAKET} • {item.TERAPIS}</p></div></div>
+                                                <p className={`text-sm font-black pr-2 ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-5 animate-slide-up">
+                                <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
+                                    <div className="text-center mb-6"><i className="fa-solid fa-receipt text-[#FF3B30] text-3xl mb-2"></i><h4 className="font-black text-lg text-[#1C1C1E] tracking-tight uppercase">Catat Pengeluaran</h4><p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">Gunakan dana laci cabang</p></div>
+                                    <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                                        <input type="text" placeholder="Nama Item (Cth: Beli Tisu, Galon)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={expenseData.NAMA_PENGELUARAN} onChange={e => setExpenseData({...expenseData, NAMA_PENGELUARAN: e.target.value})} />
+                                        <input type="number" placeholder="Nominal Rp (Cth: 20000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all" value={expenseData.NOMINAL} onChange={e => setExpenseData({...expenseData, NOMINAL: e.target.value})} />
+                                        <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold focus:border-[#FF3B30] transition-all resize-none" value={expenseData.KETERANGAN} onChange={e => setExpenseData({...expenseData, KETERANGAN: e.target.value})}></textarea>
+                                        <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 rounded-2xl hover:bg-red-600 active:scale-[0.98] transition-all mt-2 tracking-widest uppercase text-sm shadow-[0_10px_20px_rgba(255,59,48,0.3)]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "CATAT PENGELUARAN"}</button>
+                                    </form>
+                                </div>
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Log Pengeluaran Hari Ini</p>
+                                    {expenseHistory.length === 0 && <div className="text-center py-6 text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada pengeluaran</div>}
+                                    {expenseHistory.map((exp, idx) => (
+                                        <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
+                                            <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-red-50 text-[#FF3B30] flex items-center justify-center"><i className="fa-solid fa-arrow-down"></i></div><div><h5 className="font-black text-sm text-[#1C1C1E] uppercase">{exp.NAMA_PENGELUARAN}</h5><p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5 truncate max-w-[150px]">{exp.KETERANGAN || '-'}</p></div></div>
+                                            <p className="text-sm font-black text-[#FF3B30]">- {formatIDR(exp.NOMINAL)}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // MAIN APP (ROUTER)
+        // ==========================================
+        const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
+            const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || ''); 
+            const [activeCabang, setActiveCabang] = useState(localStorage.getItem('activeCabang') || '');
+            
+            const [loginData, setLoginData] = useState({ id: '', password: '' });
+            const [loading, setLoading] = useState(false);
+            const [shakeLogin, setShakeLogin] = useState(false);
+            const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+            const showToast = (message, type = 'success') => { setToast({ show: true, message, type }); setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000); };
+
+            const sendToN8N = async (action, payload = {}) => {
+                try {
+                    const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...payload }) });
+                    const text = await response.text(); if (!text) return {}; const rawData = JSON.parse(text);
+                    let unwrapped = Array.isArray(rawData) ? rawData[0] : rawData; return (unwrapped && unwrapped.json) ? unwrapped.json : unwrapped;
+                } catch (error) { showToast("Koneksi Error", 'error'); return { status: 'error' }; }
+            };
+
+            const handleLogin = async (e) => {
+                e.preventDefault(); setLoading(true); setShakeLogin(false);
+                const cleanId = loginData.id.trim().toUpperCase(); const cleanPass = loginData.password.trim();
+                const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
+                
+                if (res && res.status === 'success') {
+                    let detectedRole = 'CABANG';
+                    if (cleanId.includes('OWNER')) detectedRole = 'OWNER';
+                    if (cleanId.includes('SUPERVISOR')) detectedRole = 'SUPERVISOR';
+                    
+                    localStorage.setItem('isLoggedIn', 'true'); localStorage.setItem('userRole', detectedRole); localStorage.setItem('activeCabang', cleanId);
+                    setUserRole(detectedRole); setActiveCabang(cleanId); setIsLoggedIn(true);
+                } else { setShakeLogin(true); showToast(res.message || 'ID atau Password Salah', 'error'); }
+                setLoading(false);
+            };
+
+            const handleLogout = () => { localStorage.clear(); setIsLoggedIn(false); setUserRole(''); setActiveCabang(''); };
+
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center p-6">
+                        <div className={`bg-white/10 backdrop-blur-md p-10 rounded-[2.5rem] w-full max-w-md border border-white/5 shadow-2xl ${shakeLogin ? 'animate-shake' : ''}`}>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-16 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,59,48,0.6)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1><p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V5.6.1</p></div>
+                            <form onSubmit={handleLogin} className="space-y-4">
+                                <input type="text" placeholder="ID AKSES" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
+                                <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
+                                <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "MASUK SEKARANG"}</button>
+                            </form>
+                        </div>
+                        {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-bounce shadow-2xl ${toast.type === 'success' ? 'bg-[#1C1C1E]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                    </div>
+                );
+            }
+
+            return (
+                <div>
+                    {userRole === 'OWNER' && <OwnerView onLogout={handleLogout} />}
+                    {userRole === 'SUPERVISOR' && <SupervisorView onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
+                    {userRole === 'CABANG' && <CashierView activeCabang={activeCabang} onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
+                    
+                    {toast.show && <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-bounce shadow-2xl ${toast.type === 'success' ? 'bg-[#1C1C1E]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
