@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ARENA SYSTEM V4.7 - Night Owl Edition</title>
+    <title>ARENA SYSTEM V4.8 - Bulletproof Edition</title>
     
     <link rel="icon" href="https://raw.githubusercontent.com/sunsetdansenja-arch/bot-arrena-assets/main/logo%20arena%20gaming.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -40,7 +40,7 @@
     <header class="max-w-md mx-auto flex justify-between items-center bg-black p-4 sticky top-0 z-40 border-b-4 border-yellow-400">
         <div>
             <h1 class="text-lg font-black text-white">ARENA SYSTEM</h1>
-            <p id="user-info-text" class="text-[10px] font-bold text-yellow-400">V4.7 | Silakan Login</p>
+            <p id="user-info-text" class="text-[10px] font-bold text-yellow-400">V4.8 | Silakan Login</p>
         </div>
         <div id="header-actions" class="hidden flex gap-2">
             <button onclick="APP.loadDashboard()" class="bg-blue-500 text-white p-2 rounded-lg border-2 border-white">🔄</button>
@@ -111,7 +111,7 @@
         const APP = {
             init: () => {
                 document.getElementById('form-login').addEventListener('submit', APP.handleLogin);
-                const saved = localStorage.getItem('arena_user_v47');
+                const saved = localStorage.getItem('arena_user_v48');
                 if (saved) { STATE.user = JSON.parse(saved); APP.loadDashboard(); }
             },
             showLoader: (t) => { document.getElementById('loader-text').innerText = t; document.getElementById('loader').classList.remove('hidden'); },
@@ -165,11 +165,11 @@
                         if(rawUser.cabang_arena || rawUser.cabang) uBranch = rawUser.cabang_arena || rawUser.cabang;
                     }
                     STATE.user = { username: rawUser.id_user_arena || rawUser.Users || 'User', userType: uType, branch: uBranch };
-                    localStorage.setItem('arena_user_v47', JSON.stringify(STATE.user));
+                    localStorage.setItem('arena_user_v48', JSON.stringify(STATE.user));
                     APP.loadDashboard();
                 } else { alert("❌ Gagal Login. Periksa Username/Password."); }
             },
-            logout: () => { localStorage.removeItem('arena_user_v47'); location.reload(); },
+            logout: () => { localStorage.removeItem('arena_user_v48'); location.reload(); },
 
             loadDashboard: async () => {
                 APP.showLoader('SINKRONISASI...');
@@ -261,24 +261,24 @@
             renderUnitBoxes: () => {
                 const todayStr = APP.getTodayStr(); 
                 const tomorrowStr = APP.getTomorrowStr(); 
-                const yestStr = APP.getYesterdayStr(); // FIX BUG SHIFT MALAM!
-                const reversedLogs = [...STATE.logs].reverse();
+                const yestStr = APP.getYesterdayStr();
                 let html = '<div class="grid grid-cols-3 gap-2 mb-4">';
 
                 for(let i=1; i<=9; i++) {
-                    let status = 'kosong'; 
-                    const latestLog = reversedLogs.find(l => {
+                    // Murni menarik semua log untuk unit ini dalam 3 hari terakhir
+                    const unitLogs = STATE.logs.filter(l => {
                         const uNum = String(l.unit_arena).replace(/\D/g, ''); 
                         const dStr = (l.jam_mulai_sewa||'').substring(0,10);
-                        // Cek 3 Hari (Kemarin, Hari Ini, Besok)
-                        return uNum === String(i) && (dStr === todayStr || dStr === tomorrowStr || dStr === yestStr) && String(l.status_unit_arena).toLowerCase() !== 'batal';
+                        return uNum === String(i) && (dStr === todayStr || dStr === tomorrowStr || dStr === yestStr);
                     });
 
-                    if (latestLog) {
-                        const stat = String(latestLog.status_unit_arena).toLowerCase();
-                        if (stat === 'booked' || stat === 'book') status = 'book';
-                        else if (stat === 'playing' || stat === 'main') status = 'main';
-                    }
+                    // Cek berdasarkan prioritas (Playing > Booked) tanpa peduli urutan database
+                    let status = 'kosong';
+                    const isPlaying = unitLogs.some(l => ['playing', 'main'].includes(String(l.status_unit_arena).toLowerCase()));
+                    const isBooked = unitLogs.some(l => ['booked', 'book'].includes(String(l.status_unit_arena).toLowerCase()));
+
+                    if (isPlaying) status = 'main';
+                    else if (isBooked) status = 'book';
 
                     let bgClass = 'bg-black text-white'; let statusText = 'KOSONG';
                     if (status === 'book') { bgClass = 'bg-yellow-400 text-black border-yellow-500'; statusText = 'BOOKED'; }
