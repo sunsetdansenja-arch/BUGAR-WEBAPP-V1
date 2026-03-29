@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bugar Connect V5.7 - Full Enterprise</title>
+    <title>Bugar Connect V5.7 - Laba Presisi & Logistik</title>
     
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -120,15 +120,15 @@
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-[#FF3B30] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/10'}`}>{idx + 1}</div>
                                 <h4 className="font-black text-xl tracking-tight uppercase text-white leading-none">{cabang.id}</h4>
                             </div>
-                            <div className="text-right"><p className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Laba Bersih</p><p className="text-xl font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p></div>
+                            <div className="text-right"><p className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Laba Hak Owner</p><p className="text-xl font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p></div>
                         </div>
-                        <div className="border-t border-white/10 pt-3 flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-gray-400"><div>Omset: <span className="text-gray-200">{formatIDR(cabang.omsetHariIni)}</span></div><div>Expense: <span className="text-gray-200">{formatIDR(cabang.expenseHariIni)}</span></div></div>
+                        <div className="border-t border-white/10 pt-3 flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-gray-400"><div>Omset Total: <span className="text-gray-200">{formatIDR(cabang.omsetHariIni)}</span></div><div>Expense: <span className="text-gray-200">{formatIDR(cabang.expenseHariIni)}</span></div></div>
                     </div>
 
                     <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
                         <div className="grid grid-cols-2 gap-px bg-white/5 border-b border-white/5">
                             <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Total Pasien</p><p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni} Pax</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Profit Margin</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Margin Owner</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
                             <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Terapis MVP</p><p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p></div>
                             <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Last Transact</p><p className="text-sm font-black text-white mt-0.5">{cabang.lastTx}</p></div>
                         </div>
@@ -137,7 +137,7 @@
                             {cabang.logsHariIni && cabang.logsHariIni.length === 0 && <p className="text-center text-xs font-bold text-gray-600 py-4">Belum ada aktivitas</p>}
                             {cabang.logsHariIni && cabang.logsHariIni.map((log, i) => (
                                 <div key={i} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
-                                    <div className="flex gap-3 items-center"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div><p className={`text-xs font-bold uppercase truncate max-w-[140px] ${log.type==='expense' ? 'text-gray-400' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
+                                    <div className="flex gap-3 items-center"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div><p className={`text-xs font-bold uppercase truncate max-w-[140px] ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
                                     <p className={`text-xs font-black ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
                                 </div>
                             ))}
@@ -152,52 +152,81 @@
         // 1. KOMPONEN LOGISTIK (PORTAL PUSAT BARU)
         // ==========================================
         const LogistikView = ({ onLogout, sendToN8N, showToast }) => {
+            const isoToday = new Date().toISOString().split('T')[0];
             const [formData, setFormData] = useState({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
             const [loading, setLoading] = useState(false);
+            const [logs, setLogs] = useState([]);
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday });
+            const [loadingLogs, setLoadingLogs] = useState(true);
+
+            const fetchLogs = useCallback(async () => {
+                setLoadingLogs(true);
+                const res = await sendToN8N('logistik_load');
+                if (res && res.data) setLogs(res.data);
+                setLoadingLogs(false);
+            }, []);
+
+            useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
             const handleSubmit = async (e) => {
                 e.preventDefault(); setLoading(true);
                 const res = await sendToN8N('insert_logistik', formData);
                 if (res && res.status === 'success') {
                     setFormData({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
-                    showToast('Data Logistik Berhasil Dicatat!');
+                    showToast('Data Logistik Berhasil Dicatat!'); await fetchLogs();
                 } else { showToast('Gagal Mencatat Logistik', 'error'); }
                 setLoading(false);
             };
 
+            const filteredLogs = logs.filter(log => log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end);
+
             return (
                 <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
                     <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
-                        <div className="max-w-xl mx-auto flex justify-between items-center">
-                            <div className="flex items-center gap-2"><i className="fa-solid fa-boxes-stacked text-[#0A84FF] text-xl"></i><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Supply Chain</p><h1 className="text-sm font-black uppercase tracking-tight text-[#1C1C1E]">Portal Logistik</h1></div></div>
-                            <button onClick={onLogout} className="text-gray-500 hover:text-[#FF3B30] transition-all text-xl"><i className="fa-solid fa-power-off"></i></button>
-                        </div>
+                        <div className="max-w-xl mx-auto flex justify-between items-center"><div className="flex items-center gap-2"><i className="fa-solid fa-boxes-stacked text-[#0A84FF] text-xl"></i><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Supply Chain</p><h1 className="text-sm font-black uppercase tracking-tight text-[#1C1C1E]">Portal Logistik</h1></div></div><button onClick={onLogout} className="text-gray-500 hover:text-[#FF3B30] transition-all text-xl"><i className="fa-solid fa-power-off"></i></button></div>
                     </nav>
-                    <main className="max-w-xl mx-auto p-4 mt-4">
+                    <main className="max-w-xl mx-auto p-4 mt-2 space-y-6">
+                        {/* FORM INPUT LOGISTIK */}
                         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-200">
-                            <h2 className="font-black text-lg text-[#1C1C1E] uppercase tracking-tight mb-1">Catat Pembelian Pusat</h2>
+                            <h2 className="font-black text-lg text-[#1C1C1E] uppercase tracking-tight mb-1">Catat Pembelian</h2>
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Input kebutuhan cabang & pusat</p>
-                            
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
                                     <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Dialokasikan Untuk</label>
                                     <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-xs focus:border-[#0A84FF] transition-all border border-transparent" value={formData.TARGET_CABANG} onChange={e => setFormData({...formData, TARGET_CABANG: e.target.value})}>
                                         <option value="PUSAT">Pusat (Global)</option>
-                                        <option value="BUGAR1">Cabang BUGAR1</option>
-                                        <option value="BUGAR2">Cabang BUGAR2</option>
-                                        <option value="BUGAR3">Cabang BUGAR3</option>
-                                        <option value="BUGAR4">Cabang BUGAR4</option>
-                                        <option value="BUGAR5">Cabang BUGAR5</option>
+                                        {/* Anggap Cabang Maksimal 12, ini bisa dinamis tapi di-hardcode sementara untuk simplisitas Logistik */}
+                                        {Array.from({length: 12}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>Cabang BUGAR{i+1}</option>)}
                                     </select>
                                 </div>
                                 <input type="text" placeholder="Nama Barang (Cth: Krim 5kg, Servis AC)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-xs focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NAMA_BARANG} onChange={e => setFormData({...formData, NAMA_BARANG: e.target.value})} />
                                 <input type="number" placeholder="Nominal (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-xs focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NOMINAL} onChange={e => setFormData({...formData, NOMINAL: e.target.value})} />
                                 <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-xs focus:border-[#0A84FF] transition-all border border-transparent resize-none" value={formData.KETERANGAN} onChange={e => setFormData({...formData, KETERANGAN: e.target.value})}></textarea>
-                                
                                 <button type="submit" disabled={loading} className="w-full bg-[#0A84FF] text-white font-black py-5 rounded-2xl hover:bg-blue-600 active:scale-95 transition-all tracking-widest uppercase text-xs shadow-[0_10px_20px_rgba(10,132,255,0.3)] mt-2">
                                     {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN LOGISTIK"}
                                 </button>
                             </form>
+                        </div>
+
+                        {/* HISTORY LOG LOGISTIK */}
+                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-200">
+                            <HotelDateRangePicker value={filterDate} onChange={setFilterDate} title="Filter Riwayat Logistik" />
+                            <div className="mt-6 space-y-3">
+                                {loadingLogs ? <div className="text-center py-6"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-2xl"></i></div> : null}
+                                {!loadingLogs && filteredLogs.length === 0 && <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest py-4">Tidak ada data di rentang ini</p>}
+                                {filteredLogs.map((log, idx) => (
+                                    <div key={idx} className="bg-[#F2F2F7] p-4 rounded-2xl flex justify-between items-center border border-gray-100">
+                                        <div>
+                                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded text-white ${log.TARGET_CABANG === 'PUSAT' ? 'bg-[#1C1C1E]' : 'bg-[#0A84FF]'}`}>{log.TARGET_CABANG}</span>
+                                            <h5 className="font-black text-sm text-[#1C1C1E] uppercase mt-2">{log.NAMA_BARANG}</h5>
+                                            <p className="text-[9px] text-gray-500 font-bold mt-0.5">{log.TANGGAL}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-black text-[#FF3B30]">- {formatIDR(log.NOMINAL)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </main>
                 </div>
@@ -215,18 +244,11 @@
             const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
             const [isDeleting, setIsDeleting] = useState(null);
 
-            const fetchLogs = useCallback(async () => {
-                setLoading(true);
-                const res = await sendToN8N('supervisor_load');
-                if (res && res.data) setLogs(res.data);
-                setLoading(false);
-            }, []);
-
+            const fetchLogs = useCallback(async () => { setLoading(true); const res = await sendToN8N('supervisor_load'); if (res && res.data) setLogs(res.data); setLoading(false); }, []);
             useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
             const executeCancel = async () => {
-                const item = confirmModal.item;
-                const targetId = item.db_id || item.id || item.ID;
+                const item = confirmModal.item; const targetId = item.db_id || item.id || item.ID;
                 setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
                 await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
                 showToast('Order Berhasil Dibatalkan'); await fetchLogs(); setIsDeleting(null);
@@ -254,8 +276,7 @@
                             <div className="flex justify-between items-end px-1"><p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p><button onClick={fetchLogs} className="text-[#FF3B30] text-[10px] font-black uppercase tracking-widest"><i className="fa-solid fa-rotate-right"></i> Refresh</button></div>
                             {loading ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
                             {filteredLogs.map((item, idx) => {
-                                const currentId = item.db_id || item.id || item.ID;
-                                const isBatal = Number(item.TAGIHAN) === 0;
+                                const currentId = item.db_id || item.id || item.ID; const isBatal = Number(item.TAGIHAN) === 0;
                                 return (
                                     <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
                                         <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
@@ -290,7 +311,8 @@
             const [activeTab, setActiveTab] = useState('dashboard');
             const [reportSubTab, setReportSubTab] = useState('keuangan'); 
             
-            const [data, setData] = useState({ grandTotalHariIni: 0, grandTotalBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [] });
+            // data now includes logistikLogs
+            const [data, setData] = useState({ grandOmsetHariIni: 0, grandTotalBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [], logistikLogs: [] });
             const [loading, setLoading] = useState(true);
             const [refreshing, setRefreshing] = useState(false);
 
@@ -301,6 +323,9 @@
             const [filterGaji, setFilterGaji] = useState({ start: isoToday, end: isoToday, cabang: '' });
             const [slipData, setSlipData] = useState([]);
             const [loadingSlip, setLoadingSlip] = useState(false);
+
+            // Filter Calendar untuk Card Logistik Owner
+            const [filterLogistikOwner, setFilterLogistikOwner] = useState({ start: isoToday, end: isoToday });
 
             const loadOwnerData = async (isRefresh = false) => {
                 if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -314,7 +339,7 @@
 
             useEffect(() => { loadOwnerData(); }, []);
 
-            const fetchReportData = async () => {
+            const fetchReportData = async () => { /* ... tetep sama ... */
                 setLoadingReport(true);
                 try {
                     const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterReport.start, endDate: filterReport.end, cabang: filterReport.cabang }) });
@@ -323,7 +348,7 @@
                 } catch (e) {} setLoadingReport(false);
             };
 
-            const fetchSlipGaji = async () => {
+            const fetchSlipGaji = async () => { /* ... tetep sama ... */
                 setLoadingSlip(true);
                 try {
                     const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterGaji.start, endDate: filterGaji.end, cabang: filterGaji.cabang }) });
@@ -332,7 +357,7 @@
                 } catch (e) {} setLoadingSlip(false);
             };
 
-            const downloadSlipLaporan = () => {
+            const downloadSlipLaporan = () => { /* ... fungsi pdf laporan ... */ 
                 if(!reportData) return;
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a5' });
                 doc.setFontSize(16); doc.setTextColor(255, 59, 48); doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
@@ -352,7 +377,7 @@
                 doc.save(`Laporan_${filterReport.cabang}_${filterReport.start}.pdf`);
             };
 
-            const downloadSlipTerapis = (terapis) => {
+            const downloadSlipTerapis = (terapis) => { /* ... fungsi pdf kasbon enabled ... */
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a5' });
                 doc.setFontSize(18); doc.setTextColor(255, 59, 48); doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
                 doc.setFontSize(12); doc.setTextColor(28, 28, 30); doc.text("SLIP KOMISI TERAPIS", 74, 28, { align: "center" });
@@ -381,6 +406,9 @@
 
             if (loading) return <div className="min-h-screen bg-[#000000] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl"></i></div>;
             
+            // Engine Filter Logistik Owner di Frontend
+            const filteredLogistikOwner = (data.logistikLogs || []).filter(l => l.tanggal >= filterLogistikOwner.start && l.tanggal <= filterLogistikOwner.end);
+
             return (
                 <div className="min-h-screen bg-[#000000] text-white font-sans animate-fade-in pb-28">
                     {/* TAB DASHBOARD EKSEKUTIF */}
@@ -394,16 +422,17 @@
                                     </div>
                                     <div className="bg-[#FF3B30] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.3)] relative overflow-hidden">
                                         <div className="absolute top-0 right-0 p-6 opacity-20"><i className="fa-solid fa-wallet text-[80px]"></i></div>
-                                        <p className="text-white/80 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Bersih Hari Ini</p>
+                                        <p className="text-white/80 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Hari Ini)</p>
                                         <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
                                         <div className="flex justify-between items-center mt-5 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4">
-                                            <div><span className="opacity-70 block mb-1">Omset</span> {formatIDR(data.grandTotalHariIni)}</div><div className="text-right"><span className="opacity-70 block mb-1">Pengeluaran</span> {formatIDR(data.expenseHariIni)}</div>
+                                            <div><span className="opacity-70 block mb-1">Omset Global</span> {formatIDR(data.grandOmsetHariIni)}</div><div className="text-right"><span className="opacity-70 block mb-1">Pengeluaran</span> {formatIDR(data.expenseHariIni)}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
+                                
                                 {/* OVERSIGHT PEMBATALAN */}
                                 {data.cancelledOrders && data.cancelledOrders.length > 0 && (
                                     <div className="bg-[#2A0808] p-8 rounded-[2.5rem] border border-[#FF3B30]/30 shadow-[0_0_30px_rgba(255,59,48,0.1)]">
@@ -423,7 +452,26 @@
                                     </div>
                                 )}
 
-                                {/* Performa Cabang */}
+                                {/* KARTU LOGISTIK OWNER */}
+                                <div className="bg-[#0A84FF]/10 p-8 rounded-[2.5rem] border border-[#0A84FF]/30">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#0A84FF] mb-6 flex items-center gap-3"><i className="fa-solid fa-boxes-stacked"></i> Logistik & Supply Chain</h3>
+                                    <HotelDateRangePicker value={filterLogistikOwner} onChange={setFilterLogistikOwner} title="" />
+                                    <div className="space-y-3 mt-4">
+                                        {filteredLogistikOwner.length === 0 && <p className="text-center text-[10px] font-bold text-gray-500 py-4 uppercase tracking-widest">Tidak ada pengeluaran logistik</p>}
+                                        {filteredLogistikOwner.map((log, idx) => (
+                                            <div key={idx} className="bg-black/50 p-4 rounded-2xl border border-[#0A84FF]/20 flex justify-between items-center">
+                                                <div>
+                                                    <span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${log.target === 'PUSAT' ? 'bg-[#1C1C1E] text-white border border-white/10' : 'bg-[#0A84FF] text-white'}`}>{log.target}</span>
+                                                    <h5 className="font-black text-xs text-white uppercase mt-2 truncate max-w-[150px]">{log.nama}</h5>
+                                                    <p className="text-[9px] text-gray-500 font-bold mt-1">{log.tanggal}</p>
+                                                </div>
+                                                <p className="text-sm font-black text-[#FF3B30]">- {formatIDR(log.nominal)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Performa Cabang DENGAN ACCORDION & 4 METRIK */}
                                 <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5">
                                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30]"></i> Performa Cabang (Hari Ini)</h3>
                                     <div className="space-y-4">
@@ -536,7 +584,7 @@
         // 4. KOMPONEN KASIR (DENGAN TAB KASBON)
         // ==========================================
         const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
-            const [mode, setMode] = useState('pemasukan'); // 'pemasukan' | 'pengeluaran' | 'kasbon'
+            const [mode, setMode] = useState('pemasukan'); 
             const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0 });
             const [history, setHistory] = useState([]);
             const [expenseHistory, setExpenseHistory] = useState([]);
@@ -592,7 +640,7 @@
                 const res = await sendToN8N('insert_kasbon', { ...kasbonData, CABANG_ID: activeCabang });
                 if (res && res.status === 'success') {
                     setKasbonData({ NAMA_TERAPIS: '', NOMINAL: '' });
-                    showToast('Kasbon Terapis Berhasil Dicatat'); await loadDashboardData(); // otomatis akan ter-update di history expense juga
+                    showToast('Kasbon Terapis Berhasil Dicatat'); await loadDashboardData();
                 } else { showToast('Gagal Mencatat Kasbon', 'error'); }
                 setLoading(false);
             };
