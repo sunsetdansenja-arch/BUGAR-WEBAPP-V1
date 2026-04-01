@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bugar Connect V5.10 - Final Enterprise</title>
+    <title>Bugar Connect V5.11 - Ultimate Enterprise</title>
     
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -40,9 +40,15 @@
         
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 
-        // ==========================================
-        // UI COMPONENT: HOTEL BOOKING DATE RANGE (SMART THEME)
-        // ==========================================
+        // Helper Konversi Logo ke Base64 (Untuk PDF A4)
+        const getBase64Logo = () => {
+            return new Promise((resolve) => {
+                const img = new Image(); img.crossOrigin = 'Anonymous'; img.src = LOGO_URL;
+                img.onload = () => { const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0); resolve(canvas.toDataURL('image/png')); };
+                img.onerror = () => resolve(null);
+            });
+        };
+
         const HotelDateRangePicker = ({ value, onChange, title, theme = "dark" }) => {
             const [step, setStep] = useState(0); const [showModal, setShowModal] = useState(false);
             const days = useMemo(() => {
@@ -53,22 +59,17 @@
                     arr.push({ date: d, iso: getLocalIso(d), dayStr: d.getDate(), isToday: i===0 });
                 } return arr;
             }, []);
-
-            const handleDayClick = (iso) => {
-                if (step === 0 || iso < value.start) { onChange({ start: iso, end: iso }); setStep(1); } 
-                else { onChange({ ...value, end: iso }); setStep(0); setShowModal(false); }
-            };
-
+            const handleDayClick = (iso) => { if (step === 0 || iso < value.start) { onChange({ start: iso, end: iso }); setStep(1); } else { onChange({ ...value, end: iso }); setStep(0); setShowModal(false); } };
             const formatDateStr = (iso) => { if(!iso) return "-"; const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}); };
 
             const isDark = theme === "dark";
-            const boxClass = isDark ? "bg-[#1C1C1E] border border-white/10 text-white" : "bg-[#F2F2F7] border border-gray-200 text-[#1C1C1E]";
+            const boxClass = isDark ? "bg-[#1C1C1E] border border-white/10 text-white hover:border-white/20 shadow-inner" : "bg-[#F2F2F7] border border-gray-200 text-[#1C1C1E] shadow-sm";
             const titleClass = isDark ? "text-gray-500" : "text-gray-400";
 
             return (
                 <div className="w-full">
                     <label className={`text-[10px] uppercase font-black tracking-widest mb-2 block ${titleClass}`}>{title || "Pilih Rentang Waktu"}</label>
-                    <div onClick={() => {setShowModal(true); setStep(0);}} className={`${boxClass} rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all shadow-inner`}>
+                    <div onClick={() => {setShowModal(true); setStep(0);}} className={`${boxClass} rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all`}>
                         <div className="flex gap-4 items-center"><i className="fa-regular fa-calendar text-[#0A84FF] text-xl"></i><div><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Mulai</p><p className="text-base font-black">{formatDateStr(value.start)}</p></div></div>
                         <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-gray-300'}`}></div>
                         <div className="text-right"><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Selesai</p><p className="text-base font-black">{formatDateStr(value.end)}</p></div>
@@ -101,37 +102,42 @@
         };
 
         // ==========================================
-        // UI COMPONENT: EXPANDABLE BRANCH CARD
+        // UI COMPONENT: EXPANDABLE BRANCH CARD (RESPONSIVE FIX)
         // ==========================================
         const BranchCard = ({ cabang, idx }) => {
             const [expanded, setExpanded] = useState(false);
             return (
-                <div className="bg-black rounded-3xl border border-white/10 overflow-hidden transition-all duration-300 shadow-lg">
-                    <div className="p-5 cursor-pointer active:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
-                        <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-gradient-to-br from-[#FF3B30] to-[#E02020] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/10'}`}>{idx + 1}</div>
-                                <h4 className="font-black text-xl tracking-tight uppercase text-white leading-none">{cabang.id}</h4>
+                <div className="bg-black rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-300 shadow-lg">
+                    <div className="p-5 sm:p-6 cursor-pointer active:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
+                        <div className="flex justify-between items-start sm:items-center mb-5 gap-2">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className={`shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-black text-sm sm:text-lg ${idx === 0 ? 'bg-gradient-to-br from-[#FF3B30] to-[#E02020] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/5'}`}>{idx + 1}</div>
+                                <h4 className="font-black text-lg sm:text-2xl tracking-tighter uppercase text-white leading-none truncate max-w-[120px] sm:max-w-none">{cabang.id}</h4>
                             </div>
-                            <div className="text-right"><p className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Laba Hak Owner</p><p className="text-xl font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p></div>
+                            <div className="text-right shrink-0">
+                                <p className="text-[8px] sm:text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1.5 whitespace-nowrap">Laba Hak Owner</p>
+                                <p className="text-lg sm:text-2xl font-black text-[#FF3B30] leading-none whitespace-nowrap">{formatIDR(cabang.labaHariIni)}</p>
+                            </div>
                         </div>
-                        <div className="border-t border-white/10 pt-3 flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-gray-400"><div>Omset Total: <span className="text-gray-200">{formatIDR(cabang.omsetHariIni)}</span></div><div>Total Beban: <span className="text-gray-200">{formatIDR(cabang.expenseHariIni)}</span></div></div>
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-[#111111] p-3 sm:p-4 rounded-xl border border-white/5">
+                            <div><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Omset Total</p><p className="text-xs sm:text-sm font-black text-white">{formatIDR(cabang.omsetHariIni)}</p></div>
+                            <div className="text-right"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Pengeluaran</p><p className="text-xs sm:text-sm font-black text-gray-300">{formatIDR(cabang.expenseHariIni)}</p></div>
+                        </div>
                     </div>
 
                     <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
-                        <div className="grid grid-cols-2 gap-px bg-white/5 border-b border-white/5">
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Total Pasien</p><p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni} Pax</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Margin Owner</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Terapis MVP</p><p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Last Transact</p><p className="text-sm font-black text-white mt-0.5">{cabang.lastTx}</p></div>
+                        <div className="grid grid-cols-3 gap-px bg-white/5 border-b border-white/5">
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Pasien</p><p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni}</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Margin</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Trp MVP</p><p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p></div>
                         </div>
                         <div className="p-4 space-y-2">
-                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-3 px-1">Rincian Log Hari Ini</p>
+                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-3 px-1">Rincian Transaksi Hari Ini</p>
                             {cabang.logsHariIni && cabang.logsHariIni.length === 0 && <p className="text-center text-xs font-bold text-gray-600 py-4">Belum ada aktivitas</p>}
                             {cabang.logsHariIni && cabang.logsHariIni.map((log, i) => (
                                 <div key={i} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
-                                    <div className="flex gap-3 items-center"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div><p className={`text-xs font-bold uppercase truncate max-w-[140px] ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
-                                    <p className={`text-xs font-black ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
+                                    <div className="flex gap-3 items-center min-w-0"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div className="min-w-0"><p className={`text-xs font-bold uppercase truncate max-w-[120px] sm:max-w-[180px] ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
+                                    <p className={`text-xs font-black shrink-0 ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
                                 </div>
                             ))}
                         </div>
@@ -157,7 +163,6 @@
             const [fetching, setFetching] = useState(false);
             const [kategoriMenu, setKategoriMenu] = useState('REGULER');
 
-            // Kalender khusus rekap terapis (default: 7 hari ke belakang dari history)
             const isoToday = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             const [filterRekap, setFilterRekap] = useState({ start: isoToday, end: isoToday });
 
@@ -168,34 +173,26 @@
                     setStats(res.stats || { hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
                     setHistory(res.history || []);
                     setExpenseHistory(res.expenseHistory || []); 
-                    
-                    // Set default filter rekap ke hari ini s/d 7 hari ke belakang
                     const arrDates = (res.history || []).map(h => h.TANGGAL).sort();
-                    if(arrDates.length > 0) {
-                        setFilterRekap({ start: arrDates[0], end: isoToday });
-                    }
+                    if(arrDates.length > 0) setFilterRekap({ start: arrDates[0], end: isoToday });
                 }
                 if (isInitial) setFetching(false);
             }, [activeCabang]);
 
             useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
 
-            // Setoran Card Logic
             const expenseHariIniKasir = expenseHistory.filter(e => e.TANGGAL === isoToday).reduce((sum, item) => sum + (Number(item.NOMINAL)||0), 0);
             const targetSetoran = stats.hariIniCash - expenseHariIniKasir;
 
-            // Rekap Terapis Dinamis di Frontend
             const rekapTerapis = useMemo(() => {
                 const recapMap = {};
                 history.forEach(item => {
                     if (item.TANGGAL < filterRekap.start || item.TANGGAL > filterRekap.end) return;
-                    const isBatal = Number(item.TAGIHAN) === 0;
-                    if (isBatal) return;
+                    if (Number(item.TAGIHAN) === 0) return;
                     const namaTrp = item.TERAPIS || "Tanpa Nama";
-                    if (!recapMap[namaTrp]) recapMap[namaTrp] = { nama: namaTrp, pasien: 0, komisi: 0, omset: 0, riwayat: [] };
+                    if (!recapMap[namaTrp]) recapMap[namaTrp] = { nama: namaTrp, pasien: 0, komisi: 0, riwayat: [] };
                     recapMap[namaTrp].pasien += 1;
                     recapMap[namaTrp].komisi += Number(item.BAGI_TERAPIS) || 0;
-                    recapMap[namaTrp].omset += Number(item.TAGIHAN) || 0;
                     recapMap[namaTrp].riwayat.push(item);
                 });
                 return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
@@ -208,9 +205,7 @@
                 if (selectedPaket && !selectedPaket.includes("Ala Carte")) { 
                     const match = selectedPaket.match(/Rp\s*([\d.]+)/); 
                     if (match && match[1]) autoHarga = match[1].replace(/\./g, ''); 
-                } else if (selectedPaket.includes("Ala Carte")) {
-                    autoHarga = "";
-                }
+                } else if (selectedPaket.includes("Ala Carte")) { autoHarga = ""; }
                 setFormData({ ...formData, PAKET: selectedPaket, TAGIHAN: autoHarga });
             };
 
@@ -234,27 +229,20 @@
                 setLoading(false);
             };
 
-            // Accordion Card for Kasir Terapis Logs
             const TerapisAccordion = ({ t }) => {
                 const [expanded, setExpanded] = useState(false);
                 return (
                     <div className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm overflow-hidden mb-3">
                         <div className="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-all" onClick={() => setExpanded(!expanded)}>
                             <div><p className="font-black text-lg uppercase text-[#1C1C1E] tracking-tight leading-none">{t.nama}</p><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1.5">{t.pasien} Pasien Diselesaikan</p></div>
-                            <div className="text-right">
-                                <p className="text-xl font-black text-[#0A84FF] leading-none">{formatIDR(t.komisi)}</p>
-                                <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-2">Rincian {expanded ? '▲' : '▼'}</p>
-                            </div>
+                            <div className="text-right"><p className="text-xl font-black text-[#0A84FF] leading-none">{formatIDR(t.komisi)}</p><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-2">Rincian {expanded ? '▲' : '▼'}</p></div>
                         </div>
                         {expanded && (
                             <div className="bg-[#F2F2F7] p-5 border-t border-gray-100 space-y-3 animate-fade-in">
                                 {t.riwayat.map((r, i) => (
                                     <div key={i} className="flex justify-between items-center border-b border-gray-200 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
                                         <div><p className="text-sm font-black uppercase text-[#1C1C1E] tracking-tight">{r.NAMA_PASIEN}</p><p className="text-[9px] font-bold text-gray-500 uppercase mt-1 tracking-widest">{r.TANGGAL} | {r.PAKET}</p></div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-black text-[#0A84FF]">{formatIDR(r.BAGI_TERAPIS)}</p>
-                                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded mt-1 inline-block ${r.METODE_BAYAR === 'TRANSFER' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'bg-[#34C759]/10 text-[#34C759]'}`}>{r.METODE_BAYAR || 'CASH'}</span>
-                                        </div>
+                                        <div className="text-right"><p className="text-sm font-black text-[#0A84FF]">{formatIDR(r.BAGI_TERAPIS)}</p><span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded mt-1 inline-block ${r.METODE_BAYAR === 'TRANSFER' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'bg-[#34C759]/10 text-[#34C759]'}`}>{r.METODE_BAYAR || 'CASH'}</span></div>
                                     </div>
                                 ))}
                             </div>
@@ -279,7 +267,7 @@
                             <div className="animate-slide-up space-y-6">
                                 <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border border-gray-800">
                                     <div className="absolute top-0 right-0 p-6 opacity-5"><i className="fa-solid fa-vault text-[120px]"></i></div>
-                                    <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-2 relative z-10">Wajib Setor Laci (Hari Ini)</p>
+                                    <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1 relative z-10">Wajib Setor Laci (Hari Ini)</p>
                                     <h3 className="text-5xl font-black tracking-tighter relative z-10 text-[#34C759]">{formatIDR(targetSetoran)}</h3>
                                     <div className="flex justify-between items-center mt-6 relative z-10 text-[10px] font-bold uppercase border-t border-white/10 pt-4">
                                         <div><span className="text-gray-500 block mb-1">Omset Cash</span> <span className="text-base text-white">{formatIDR(stats.hariIniCash)}</span></div>
@@ -291,7 +279,7 @@
                                 <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
                                     <h4 className="font-black text-xs text-[#1C1C1E] mb-6 tracking-widest uppercase flex items-center gap-2"><i className="fa-solid fa-user-plus text-[#0A84FF] text-lg"></i> Input Pasien Baru</h4>
                                     <form onSubmit={handleOrderSubmit} className="space-y-4">
-                                        <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.NAMA_PASien} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
+                                        <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
                                         <input type="tel" placeholder="WhatsApp (08...)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
                                         
                                         <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
@@ -315,8 +303,8 @@
                                         
                                         <div className="pt-3">
                                             <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
-                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'CASH'})} className={`flex-1 py-4 rounded-xl text-xs font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'CASH' ? 'bg-white text-[#34C759] shadow-sm border border-gray-100' : 'text-gray-400 hover:text-black'}`}><i className="fa-solid fa-money-bill-wave"></i> CASH</button>
-                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'TRANSFER'})} className={`flex-1 py-4 rounded-xl text-xs font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'TRANSFER' ? 'bg-white text-[#0A84FF] shadow-sm border border-gray-100' : 'text-gray-400 hover:text-black'}`}><i className="fa-solid fa-building-columns"></i> TRANSFER</button>
+                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'CASH'})} className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'CASH' ? 'bg-white text-[#34C759] shadow-sm border border-gray-100' : 'text-gray-400 hover:text-black'}`}><i className="fa-solid fa-money-bill-wave"></i> CASH</button>
+                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'TRANSFER'})} className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'TRANSFER' ? 'bg-white text-[#0A84FF] shadow-sm border border-gray-100' : 'text-gray-400 hover:text-black'}`}><i className="fa-solid fa-building-columns"></i> TRANSFER</button>
                                             </div>
                                         </div>
 
@@ -324,28 +312,8 @@
                                     </form>
                                 </div>
 
-                                <div className="space-y-3 pt-4">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1"><i className="fa-solid fa-clock-rotate-left mr-1"></i> Log Transaksi (7 Hari Terakhir)</p>
-                                    {fetching && history.length === 0 && <div className="text-center py-6"><i className="fa-solid fa-spinner fa-spin text-gray-300 text-2xl"></i></div>}
-                                    {!fetching && history.length === 0 && <div className="bg-white p-8 rounded-[2rem] text-center border border-gray-100 shadow-sm"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada transaksi</p></div>}
-                                    {history.slice(0, 10).map((item, idx) => { // Tampilkan max 10 log order terbaru biar ga kepanjangan
-                                        const isBatal = Number(item.TAGIHAN) === 0;
-                                        return (
-                                            <div key={idx} className={`p-4 rounded-2xl border flex justify-between items-center transition-all ${isBatal ? 'bg-red-50 border-red-100 opacity-60' : 'bg-white border-gray-100 shadow-sm'}`}>
-                                                <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg ${isBatal ? 'bg-red-100 text-[#FF3B30]' : 'bg-[#F2F2F7] text-[#1C1C1E]'}`}>{item.NAMA_PASIEN?.charAt(0)}</div><div><h5 className={`font-black text-sm leading-none mb-1 text-[#1C1C1E] ${isBatal ? 'line-through opacity-70' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[9px] text-gray-500 font-bold uppercase truncate max-w-[150px]">{item.TANGGAL} | Trp: {item.TERAPIS}</p></div></div>
-                                                <div className="text-right">
-                                                    <p className={`text-base font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p>
-                                                    {!isBatal && <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded mt-1 inline-block ${item.METODE_BAYAR === 'TRANSFER' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'bg-[#34C759]/10 text-[#34C759]'}`}>{item.METODE_BAYAR || 'CASH'}</span>}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
                                 <div className="space-y-4 pt-6 border-t border-gray-200">
-                                    <div className="flex justify-between items-end px-1 mb-2">
-                                        <div><h4 className="font-black text-lg text-[#1C1C1E] tracking-tight uppercase"><i className="fa-solid fa-users text-[#0A84FF] mr-2"></i> Rekap Terapis</h4><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Transparansi Kinerja Cabang</p></div>
-                                    </div>
+                                    <div className="flex justify-between items-end px-1 mb-2"><div><h4 className="font-black text-lg text-[#1C1C1E] tracking-tight uppercase"><i className="fa-solid fa-users text-[#0A84FF] mr-2"></i> Rekap Terapis</h4><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Transparansi Kinerja Cabang</p></div></div>
                                     <HotelDateRangePicker value={filterRekap} onChange={setFilterRekap} title="Filter Tanggal Rekap" theme="light" />
                                     {rekapTerapis.length === 0 && <div className="bg-white p-8 rounded-[2rem] text-center border border-gray-100 shadow-sm mt-4"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada data</p></div>}
                                     <div className="space-y-3 mt-4">
@@ -529,10 +497,6 @@
             const [loading, setLoading] = useState(true);
             const [refreshing, setRefreshing] = useState(false);
 
-            const [filterReport, setFilterReport] = useState({ start: isoToday, end: isoToday, cabang: 'ALL' });
-            const [reportData, setReportData] = useState(null);
-            const [loadingReport, setLoadingReport] = useState(false);
-
             // Gaji Terapis Global Filter
             const [filterGajiGlobal, setFilterGajiGlobal] = useState({ start: isoToday, end: isoToday });
             const [gajiGlobalData, setGajiGlobalData] = useState({});
@@ -552,15 +516,6 @@
 
             useEffect(() => { loadOwnerData(); }, []);
 
-            const fetchReportData = async () => {
-                setLoadingReport(true);
-                try {
-                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterReport.start, endDate: filterReport.end, cabang: filterReport.cabang }) });
-                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
-                    setReportData(finalData?.data || finalData?.json?.data || null);
-                } catch (e) {} setLoadingReport(false);
-            };
-
             const fetchGajiGlobal = async () => {
                 setLoadingGajiGlobal(true);
                 try {
@@ -568,7 +523,6 @@
                     const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
                     const rawList = (finalData?.data || finalData?.json?.data)?.daftarTerapis || [];
                     
-                    // Grouping by Cabang in Frontend
                     const grouped = {};
                     rawList.forEach(t => {
                         const cab = t.cabang || 'UNKNOWN';
@@ -579,24 +533,94 @@
                 } catch (e) {} setLoadingGajiGlobal(false);
             };
 
-            const downloadSlipLaporan = () => {
-                if(!reportData) return;
-                const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a5' });
-                doc.setFontSize(16); doc.setTextColor(255, 59, 48); doc.text("BUGAR REFLEKSI", 74, 20, { align: "center" });
-                doc.setFontSize(12); doc.setTextColor(28, 28, 30); doc.text("REKAP LAPORAN KEUANGAN", 74, 28, { align: "center" });
-                doc.setLineWidth(0.5); doc.line(10, 35, 138, 35);
-                doc.setFontSize(10); doc.setTextColor(100, 100, 100);
-                doc.text(`Cabang     : ${filterReport.cabang === 'ALL' ? 'SEMUA CABANG' : filterReport.cabang}`, 15, 45);
-                doc.text(`Periode    : ${filterReport.start} s/d ${filterReport.end}`, 15, 53);
-                doc.line(10, 60, 138, 60);
-                doc.setFontSize(12); doc.setTextColor(0, 0, 0);
-                doc.text(`Total Hak Owner`, 15, 75); doc.text(`${formatIDR(reportData.bagiOwner)}`, 133, 75, {align: 'right'});
-                doc.text(`Total Pengeluaran`, 15, 85); doc.text(`- ${formatIDR(reportData.expense)}`, 133, 85, {align: 'right'});
-                doc.setLineWidth(0.5); doc.line(15, 95, 133, 95);
+            // PDF Laporan Keuangan (A4) Bulan Ini
+            const downloadLaporanBulanIni = async () => {
+                if(!data || !data.leaderboard) return;
+                const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a4' });
+                const logo = await getBase64Logo();
+                if (logo) doc.addImage(logo, 'PNG', 90, 15, 30, 30);
+                
+                doc.setFontSize(20); doc.setTextColor(255, 59, 48); doc.setFont(undefined, 'bold'); doc.text("BUGAR REFLEKSI", 105, 55, { align: "center" });
+                doc.setFontSize(12); doc.setTextColor(50, 50, 50); doc.text("LAPORAN KEUANGAN KONSOLIDASI", 105, 62, { align: "center" });
+                
+                doc.setLineWidth(0.5); doc.line(20, 70, 190, 70);
+                doc.setFontSize(10); doc.setTextColor(100, 100, 100); doc.setFont(undefined, 'normal');
+                const monthName = new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+                doc.text(`Periode Laporan: Bulan ${monthName}`, 20, 80);
+                
+                let y = 95;
+                doc.setFontSize(12); doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'bold');
+                doc.text("RINCIAN PER CABANG", 20, y);
+                y += 10;
+                
+                doc.setFont(undefined, 'normal');
+                data.leaderboard.forEach(c => {
+                    doc.text(`${c.id}`, 20, y);
+                    doc.text(`Omset: ${formatIDR(c.omsetBulanIni)}  |  Beban: ${formatIDR(c.expenseBulanIni)}`, 190, y, { align: 'right' });
+                    y += 8;
+                });
+                
+                y += 5; doc.setLineWidth(0.2); doc.line(20, y, 190, y); y += 10;
+                
+                const totalBranchExpense = data.leaderboard.reduce((s, c) => s + c.expenseBulanIni, 0);
+                const logistikPusatBulanIni = data.expenseBulanIni - totalBranchExpense;
+                
+                doc.text("Pengeluaran Logistik Pusat (Global)", 20, y); doc.text(`${formatIDR(logistikPusatBulanIni)}`, 190, y, { align: 'right' });
+                y += 15;
+                
+                doc.setLineWidth(0.5); doc.line(20, y, 190, y); y += 10;
+                
                 doc.setFont(undefined, 'bold'); doc.setFontSize(14);
-                if(reportData.laba < 0) doc.setTextColor(255, 59, 48);
-                doc.text(`LABA BERSIH`, 15, 110); doc.text(`${formatIDR(reportData.laba)}`, 133, 110, {align: 'right'});
-                doc.save(`Laporan_${filterReport.cabang}_${filterReport.start}.pdf`);
+                doc.text("TOTAL OMSET KESELURUHAN", 20, y); doc.text(`${formatIDR(data.grandTotalBulanIni)}`, 190, y, { align: 'right' });
+                y += 10;
+                doc.setTextColor(255, 59, 48);
+                doc.text("TOTAL BEBAN KESELURUHAN", 20, y); doc.text(`- ${formatIDR(data.expenseBulanIni)}`, 190, y, { align: 'right' });
+                y += 10;
+                
+                doc.setLineWidth(1); doc.line(20, y, 190, y); y += 15;
+                
+                doc.setTextColor(0, 0, 0); doc.setFontSize(18);
+                const labaBersih = data.grandTotalBulanIni - data.expenseBulanIni;
+                if(labaBersih < 0) doc.setTextColor(255, 59, 48);
+                doc.text("LABA KOTOR PERUSAHAAN", 20, y); doc.text(`${formatIDR(labaBersih)}`, 190, y, { align: 'right' });
+                
+                doc.save(`Laporan_Keuangan_${monthName.replace(/\s+/g, '_')}.pdf`);
+            };
+
+            // PDF Slip Gaji (A4)
+            const downloadSlipTerapis = async (terapis) => {
+                const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a4' });
+                const logo = await getBase64Logo();
+                if (logo) doc.addImage(logo, 'PNG', 90, 20, 30, 30);
+                
+                doc.setFontSize(22); doc.setTextColor(255, 59, 48); doc.setFont(undefined, 'bold'); doc.text("BUGAR REFLEKSI", 105, 65, { align: "center" });
+                doc.setFontSize(14); doc.setTextColor(50, 50, 50); doc.setFont(undefined, 'normal'); doc.text("SLIP GAJI & KOMISI TERAPIS", 105, 75, { align: "center" });
+                
+                doc.setLineWidth(0.5); doc.line(20, 85, 190, 85);
+                
+                doc.setFontSize(12); doc.setTextColor(80, 80, 80);
+                doc.text(`Cabang      : ${terapis.cabang}`, 20, 100);
+                doc.text(`Nama Terapis: ${terapis.nama}`, 20, 110);
+                doc.text(`Periode     : ${filterGajiGlobal.start} s/d ${filterGajiGlobal.end}`, 20, 120);
+                
+                doc.setLineWidth(0.2); doc.setLineDash([2, 2], 0); doc.line(20, 135, 190, 135); doc.setLineDash([]);
+                
+                doc.setFontSize(14); doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'bold');
+                doc.text("Rincian Kinerja:", 20, 150);
+                doc.setFontSize(12); doc.setFont(undefined, 'normal');
+                doc.text(`Total Pasien Diselesaikan`, 20, 165); doc.text(`${terapis.totalPasien} Orang`, 190, 165, { align: 'right' });
+                doc.text(`Total Komisi (Hak Terapis)`, 20, 175); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 175, { align: 'right' });
+                
+                doc.setLineWidth(0.5); doc.line(20, 200, 190, 200);
+                
+                doc.setFontSize(20); doc.setFont(undefined, 'bold'); doc.setTextColor(52, 199, 89);
+                doc.text("TOTAL DITERIMA", 20, 220); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 220, { align: 'right' });
+                
+                doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.setTextColor(150, 150, 150);
+                doc.text("Dokumen ini sah dan diterbitkan secara otomatis oleh Sistem Bugar Connect.", 105, 270, { align: "center" });
+                doc.text("Terima kasih atas dedikasi dan kerja keras Anda!", 105, 276, { align: "center" });
+                
+                doc.save(`Slip_Gaji_${terapis.nama.replace(/\s+/g, '_')}_${filterGajiGlobal.start}.pdf`);
             };
 
             if (loading) return <div className="min-h-screen bg-[#111111] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl drop-shadow-[0_0_15px_rgba(255,59,48,0.5)]"></i></div>;
@@ -644,7 +668,7 @@
 
                                 <div className="bg-[#0A84FF]/10 p-8 rounded-[2.5rem] border border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.05)]">
                                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#0A84FF] mb-6 flex items-center gap-3"><i className="fa-solid fa-boxes-stacked text-lg"></i> Supply Chain Pusat</h3>
-                                    <HotelDateRangePicker value={filterLogistikOwner} onChange={setFilterLogistikOwner} title="" theme="dark" />
+                                    <HotelDateRangePicker value={filterLogistikOwner} onChange={setFilterLogistikOwner} title="" />
                                     <div className="space-y-3 mt-6">
                                         {filteredLogistikOwner.length === 0 && <p className="text-center text-[10px] font-bold text-[#0A84FF]/50 py-4 uppercase tracking-widest">Tidak ada pengeluaran logistik</p>}
                                         {filteredLogistikOwner.map((log, idx) => (
@@ -660,21 +684,7 @@
                                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30] text-lg"></i> Performa Cabang Harian</h3>
                                     <div className="space-y-4">
                                         {data.leaderboard && data.leaderboard.map((cabang, idx) => (
-                                            <div key={cabang.id} className="bg-black rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-300 shadow-lg">
-                                                <div className="p-6">
-                                                    <div className="flex justify-between items-center mb-5">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${idx === 0 ? 'bg-gradient-to-br from-[#FF3B30] to-[#E02020] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/5'}`}>{idx + 1}</div>
-                                                            <h4 className="font-black text-2xl tracking-tighter uppercase text-white leading-none">{cabang.id}</h4>
-                                                        </div>
-                                                        <div className="text-right"><p className="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1.5">Laba Hak Owner</p><p className="text-2xl font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p></div>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-4 bg-[#111111] p-4 rounded-2xl border border-white/5">
-                                                        <div><p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Total Omset</p><p className="text-sm font-black text-white">{formatIDR(cabang.omsetHariIni)}</p></div>
-                                                        <div className="text-right"><p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Pengeluaran</p><p className="text-sm font-black text-gray-300">{formatIDR(cabang.expenseHariIni)}</p></div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <BranchCard key={cabang.id} cabang={cabang} idx={idx} />
                                         ))}
                                     </div>
                                 </div>
@@ -682,7 +692,7 @@
                         </div>
                     )}
 
-                    {/* TAB LAPORAN & GAJI (RE-LAYOUT OWNER) */}
+                    {/* TAB LAPORAN & GAJI (RE-LAYOUT OWNER INSTANT) */}
                     {activeTab === 'report' && (
                         <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
                             <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Administrasi</h2><p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-2">Pusat Rekonsiliasi & Penggajian</p></div>
@@ -692,35 +702,47 @@
                                 <button onClick={() => setReportSubTab('gaji')} className={`flex-1 py-3.5 rounded-xl text-xs font-black uppercase transition-all tracking-widest ${reportSubTab === 'gaji' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-500 hover:text-white'}`}>Gaji Global</button>
                             </div>
 
-                            {reportSubTab === 'keuangan' && (
-                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl animate-fade-in">
-                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-chart-pie text-[#FF3B30]"></i> Cetak Laporan Keuangan</h3>
-                                    <div className="space-y-5">
-                                        <HotelDateRangePicker value={filterReport} onChange={setFilterReport} title="Pilih Periode Tarik Data" theme="dark" />
-                                        <div>
-                                            <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Target Tarik Data</label>
-                                            <select className="w-full p-4 bg-black rounded-2xl text-white outline-none font-bold text-base border border-white/5 focus:border-[#FF3B30] appearance-none" value={filterReport.cabang} onChange={e => setFilterReport({...filterReport, cabang: e.target.value})}>
-                                                <option value="ALL">Semua Cabang (Global)</option>
-                                                {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
-                                            </select>
+                            {/* KEUANGAN BULAN INI INSTANT */}
+                            {reportSubTab === 'keuangan' && (() => {
+                                const monthName = new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+                                const totalBranchExpense = data.leaderboard.reduce((s, c) => s + c.expenseBulanIni, 0);
+                                const logistikPusatBulanIni = data.expenseBulanIni - totalBranchExpense;
+                                const labaBersih = data.grandTotalBulanIni - data.expenseBulanIni;
+                                
+                                return (
+                                    <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl animate-fade-in">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white flex items-center gap-3"><i className="fa-solid fa-chart-pie text-[#FF3B30]"></i> Laporan Bulan Ini</h3>
+                                            <button onClick={downloadLaporanBulanIni} className="bg-[#FF3B30] text-white p-3 rounded-xl hover:bg-red-600 transition-all"><i className="fa-solid fa-download"></i></button>
                                         </div>
-                                        <button onClick={fetchReportData} disabled={loadingReport} className="w-full bg-white text-black font-black py-5 rounded-2xl active:scale-95 transition-all text-sm uppercase tracking-widest mt-2 shadow-[0_10px_20px_rgba(255,255,255,0.1)] hover:bg-gray-200">{loadingReport ? <i className="fa-solid fa-spinner fa-spin"></i> : "PROSES DATA"}</button>
-                                    </div>
-                                    {reportData && (
-                                        <div className="mt-10 pt-10 border-t border-white/10 animate-fade-in">
-                                            <div className="paper-slip p-8 rounded-3xl shadow-inner mb-6 border border-gray-300 relative">
-                                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-4 bg-[#1C1C1E] rounded-b-full"></div>
-                                                <h4 className="text-center font-black text-2xl text-[#FF3B30] mb-1 tracking-tighter uppercase">Bugar Refleksi</h4>
-                                                <p className="text-center font-bold text-[10px] uppercase border-b-2 border-dashed border-gray-400 pb-4 mb-5 tracking-[0.3em] text-gray-500">Laporan Keuangan</p>
-                                                <div className="space-y-2 mb-6 text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 p-3 rounded-xl"><div className="flex justify-between"><span>Target</span> <span className="text-black">{filterReport.cabang}</span></div><div className="flex justify-between"><span>Periode</span> <span className="text-black">{filterReport.start} sd {filterReport.end}</span></div></div>
-                                                <div className="border-t border-b border-gray-300 py-4 mb-6 space-y-3"><div className="flex justify-between font-black text-base text-gray-800"><span>TOTAL HAK OWNER</span> <span>{formatIDR(reportData.bagiOwner)}</span></div><div className="flex justify-between font-black text-base text-red-600"><span>TOTAL BEBAN</span> <span>- {formatIDR(reportData.expense)}</span></div></div>
-                                                <div className="flex justify-between font-black text-2xl text-black items-center"><span className="text-sm tracking-widest uppercase">LABA BERSIH</span> <span className={reportData.laba < 0 ? "text-red-600" : ""}>{formatIDR(reportData.laba)}</span></div>
+                                        
+                                        <div className="paper-slip p-8 rounded-3xl shadow-inner border border-gray-300 relative">
+                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-4 bg-[#1C1C1E] rounded-b-full"></div>
+                                            <h4 className="text-center font-black text-2xl text-[#FF3B30] mb-1 tracking-tighter uppercase">Bugar Refleksi</h4>
+                                            <p className="text-center font-bold text-[10px] uppercase border-b-2 border-dashed border-gray-400 pb-4 mb-5 tracking-[0.3em] text-gray-500">Laporan Konsolidasi</p>
+                                            
+                                            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 p-3 rounded-xl mb-6 text-center">Periode: {monthName}</p>
+                                            
+                                            <div className="space-y-4 mb-6 border-b border-gray-300 pb-6">
+                                                {data.leaderboard.map(c => (
+                                                    <div key={c.id} className="flex justify-between items-center text-xs">
+                                                        <span className="font-black text-gray-800 uppercase">{c.id}</span>
+                                                        <div className="text-right"><span className="text-gray-500 font-bold mr-2">Omset: {formatIDR(c.omsetBulanIni)}</span> <span className="text-red-500 font-bold">| Beban: {formatIDR(c.expenseBulanIni)}</span></div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <button onClick={downloadSlipLaporan} className="w-full bg-[#FF3B30] text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest flex justify-center items-center gap-3 hover:bg-red-600 transition-all shadow-[0_10px_20px_rgba(255,59,48,0.3)]"><i className="fa-solid fa-file-pdf text-xl"></i> DOWNLOAD PDF</button>
+
+                                            <div className="flex justify-between items-center text-xs mb-6 border-b border-gray-300 pb-6">
+                                                <span className="font-black text-gray-800 uppercase">LOGISTIK PUSAT</span>
+                                                <span className="text-red-500 font-bold">- {formatIDR(logistikPusatBulanIni)}</span>
+                                            </div>
+                                            
+                                            <div className="border-t border-b border-gray-300 py-4 mb-6 space-y-3"><div className="flex justify-between font-black text-base text-gray-800"><span>TOTAL OMSET</span> <span>{formatIDR(data.grandTotalBulanIni)}</span></div><div className="flex justify-between font-black text-base text-red-600"><span>TOTAL BEBAN</span> <span>- {formatIDR(data.expenseBulanIni)}</span></div></div>
+                                            <div className="flex justify-between font-black text-2xl text-black items-center"><span className="text-sm tracking-widest uppercase">LABA KOTOR</span> <span className={labaBersih < 0 ? "text-red-600" : ""}>{formatIDR(labaBersih)}</span></div>
                                         </div>
-                                    )}
-                                </div>
-                            )}
+                                    </div>
+                                );
+                            })()}
 
                             {/* ADMIN GAJI GLOBAL (TANPA DROPDOWN) */}
                             {reportSubTab === 'gaji' && (
@@ -748,7 +770,7 @@
                                                                     <div><p className="font-black text-base uppercase text-white tracking-tight">{t.nama}</p><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{t.totalPasien} Pasien</p></div>
                                                                     <div className="text-right">
                                                                         <p className="text-base font-black text-[#34C759] leading-none mb-1">{formatIDR(t.totalKomisi)}</p>
-                                                                        <p className="text-[9px] text-gray-500 font-black tracking-widest uppercase">Omset: {formatIDR(t.omset)}</p>
+                                                                        <button onClick={() => downloadSlipTerapis(t)} className="mt-2 bg-white/10 hover:bg-white text-gray-400 hover:text-black px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"><i className="fa-solid fa-print mr-1"></i> PDF A4</button>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -823,7 +845,7 @@
                         <div className="absolute top-10 left-10 w-72 h-72 bg-[#FF3B30]/10 rounded-full blur-3xl"></div>
                         <div className="absolute bottom-10 right-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div>
                         <div className={`bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
-                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Portal Management V5.10</p></div>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Portal Management V5.11</p></div>
                             <form onSubmit={handleLogin} className="space-y-5">
                                 <input type="text" placeholder="LOGIN ID" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
                                 <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
