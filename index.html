@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bugar Connect V5.8.1 - Final Enterprise</title>
+    <title>Bugar Connect V5.9 - Ultimate Kasir</title>
     
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -65,15 +65,23 @@
             "Paket Reguler (Hotel) - Rp 200.000",
             "Paket Standart (Hotel) - Rp 180.000"
         ];
+
+        const PAKET_NON = [
+            "REFLEKSI 1 JAM - Rp 70.000",
+            "BODY MASSAGE 1 JAM - Rp 80.000",
+            "LULUR - Rp 80.000",
+            "BEKAM KERING - Rp 60.000",
+            "BEKAM BASAH - Rp 80.000",
+            "TOTOK WAJAH - Rp 40.000",
+            "KERIK - Rp 30.000",
+            "PIJAT KEPALA - Rp 30.000",
+            "KOP API - Rp 50.000",
+            "KRETEK / CHIROPRACTIC - Rp 300.000",
+            "REFLEKSI 1.5 JAM - Rp 100.000",
+            "BODY MASSAGE 1.5 JAM - Rp 120.000"
+        ];
         
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
-
-        const getLimits = () => {
-            const today = new Date(); const minDate = new Date(today); minDate.setDate(today.getDate() - 30);
-            const getIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-            return { today: getIso(today), minDate: getIso(minDate) };
-        };
-        const limits = getLimits();
 
         // ==========================================
         // UI COMPONENT: HOTEL BOOKING DATE RANGE
@@ -400,7 +408,6 @@
 
             return (
                 <div className="min-h-screen bg-[#000000] text-white font-sans animate-fade-in pb-28">
-                    {/* TAB DASHBOARD EKSEKUTIF */}
                     {activeTab === 'dashboard' && (
                         <div className="animate-slide-up">
                             <div className="bg-[#1C1C1E] px-6 py-10 rounded-b-[3rem] shadow-2xl border-b-2 border-[#FF3B30]/30">
@@ -461,7 +468,6 @@
                         </div>
                     )}
 
-                    {/* TAB LAPORAN & GAJI */}
                     {activeTab === 'report' && (
                         <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-6">
                             <div className="mb-6"><h2 className="text-3xl font-black uppercase tracking-tighter text-white">Administrasi</h2><p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-1">Pusat Pembukuan & Penggajian</p></div>
@@ -545,25 +551,31 @@
         };
 
         // ==========================================
-        // 4. KOMPONEN KASIR (DENGAN TAB REKAP TERAPIS 7 HARI)
+        // 4. KOMPONEN KASIR (DENGAN TAB REKAP TERAPIS 7 HARI & ACCORDION)
         // ==========================================
         const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
             const [mode, setMode] = useState('pemasukan'); 
-            const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0 });
+            const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
             const [history, setHistory] = useState([]);
             const [expenseHistory, setExpenseHistory] = useState([]);
             
-            const [formData, setFormData] = useState({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '' });
+            const [formData, setFormData] = useState({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '', METODE_BAYAR: 'CASH' });
             const [expenseData, setExpenseData] = useState({ NAMA_PENGELUARAN: '', NOMINAL: '', KETERANGAN: '' });
 
             const [loading, setLoading] = useState(false);
             const [fetching, setFetching] = useState(false);
 
+            // Tab Kategori Menu
+            const [kategoriMenu, setKategoriMenu] = useState('REGULER'); // REGULER | HOTEL | NON
+
+            // Setoran Card
+            const setoranFisik = stats.hariIniCash - stats.hariIniExpense; // expense hari ini dihitung nanti
+
             const loadDashboardData = useCallback(async (isInitial = false) => {
                 if (isInitial) setFetching(true);
                 const res = await sendToN8N('load_data', { CABANG_ID: activeCabang });
                 if (res && (res.status === 'success' || res.history)) {
-                    setStats(res.stats || { hariIni: 0, bulanIni: 0 });
+                    setStats(res.stats || { hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
                     setHistory(res.history || []);
                     setExpenseHistory(res.expenseHistory || []); 
                 }
@@ -572,6 +584,10 @@
 
             useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
 
+            const isoToday = new Date().toISOString().split('T')[0];
+            const expenseHariIniKasir = expenseHistory.filter(e => e.TANGGAL === isoToday).reduce((sum, item) => sum + (Number(item.NOMINAL)||0), 0);
+            const targetSetoran = stats.hariIniCash - expenseHariIniKasir;
+
             // Hitung Rekap Terapis 7 Hari di Frontend berdasarkan 'history'
             const rekapTerapis = useMemo(() => {
                 const recapMap = {};
@@ -579,26 +595,23 @@
                     const isBatal = Number(item.TAGIHAN) === 0;
                     if (isBatal) return;
                     const namaTrp = item.TERAPIS || "Tanpa Nama";
-                    if (!recapMap[namaTrp]) recapMap[namaTrp] = { nama: namaTrp, pasien: 0, komisi: 0, omset: 0 };
+                    if (!recapMap[namaTrp]) recapMap[namaTrp] = { nama: namaTrp, pasien: 0, komisi: 0, omset: 0, riwayat: [] };
                     recapMap[namaTrp].pasien += 1;
                     recapMap[namaTrp].komisi += Number(item.BAGI_TERAPIS) || 0;
                     recapMap[namaTrp].omset += Number(item.TAGIHAN) || 0;
+                    recapMap[namaTrp].riwayat.push(item);
                 });
                 return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
             }, [history]);
 
             const isLhokseumawe = activeCabang.includes('LSM') || activeCabang === 'LHOKSEUMAWE';
-            const isoToday = new Date().toISOString().split('T')[0];
-            const latestTransactions = history.filter(h => h.TANGGAL === isoToday).slice(0, 5);
 
             const handlePaketChange = (e) => {
                 const selectedPaket = e.target.value; 
                 let autoHarga = formData.TAGIHAN;
-                if (selectedPaket && selectedPaket !== "Paket Non-Paket (Ala Carte)") { 
+                if (selectedPaket && !selectedPaket.includes("Ala Carte")) { 
                     const match = selectedPaket.match(/Rp\s*([\d.]+)/); 
                     if (match && match[1]) autoHarga = match[1].replace(/\./g, ''); 
-                } else if (selectedPaket === "Paket Non-Paket (Ala Carte)") {
-                    autoHarga = ""; 
                 }
                 setFormData({ ...formData, PAKET: selectedPaket, TAGIHAN: autoHarga });
             };
@@ -607,7 +620,7 @@
                 e.preventDefault(); setLoading(true);
                 const res = await sendToN8N('insert', { ...formData, CABANG_ID: activeCabang });
                 if (res && (res.id || res.status === 'success')) {
-                    setFormData({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '' });
+                    setFormData({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '', METODE_BAYAR: 'CASH' });
                     showToast('Pasien Berhasil Disimpan'); await loadDashboardData();
                 } else { showToast('Gagal Menyimpan', 'error'); }
                 setLoading(false);
@@ -621,6 +634,38 @@
                     showToast('Pengeluaran Berhasil Dicatat'); await loadDashboardData();
                 } else { showToast('Gagal Mencatat', 'error'); }
                 setLoading(false);
+            };
+
+            // Accordion Terapis
+            const TerapisCard = ({ t }) => {
+                const [expanded, setExpanded] = useState(false);
+                return (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all">
+                        <div className="p-5 flex justify-between items-center cursor-pointer active:bg-gray-50" onClick={() => setExpanded(!expanded)}>
+                            <div>
+                                <p className="font-black text-base uppercase text-[#1C1C1E] tracking-tight">{t.nama}</p>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{t.pasien} Pasien Diselesaikan</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-base font-black text-[#34C759]">{formatIDR(t.komisi)}</p>
+                                <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">Lihat Rincian {expanded ? '▲' : '▼'}</p>
+                            </div>
+                        </div>
+                        {expanded && (
+                            <div className="bg-[#F2F2F7] p-4 border-t border-gray-100 space-y-2">
+                                {t.riwayat.map((r, i) => (
+                                    <div key={i} className="flex justify-between items-center border-b border-gray-200 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">
+                                        <div>
+                                            <p className="text-xs font-black uppercase text-[#1C1C1E]">{r.NAMA_PASIEN}</p>
+                                            <p className="text-[9px] font-bold text-gray-500 uppercase mt-0.5">{r.TANGGAL} | {r.PAKET}</p>
+                                        </div>
+                                        <p className="text-xs font-black text-[#34C759]">{formatIDR(r.BAGI_TERAPIS)}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )
             };
 
             return (
@@ -637,69 +682,82 @@
 
                         {mode === 'pemasukan' && (
                             <div className="animate-slide-up space-y-6">
-                                <div className="grid grid-cols-2 gap-3"><div className="bg-[#FF3B30] p-6 rounded-[2rem] text-white shadow-[0_10px_30px_rgba(255,59,48,0.2)]"><p className="text-[10px] uppercase font-black opacity-70 tracking-widest mb-1">Hari Ini</p><h3 className="text-2xl font-black tracking-tight">{formatIDR(stats.hariIni)}</h3></div><div className="bg-[#1C1C1E] p-6 rounded-[2rem] text-white shadow-lg"><p className="text-[10px] uppercase font-black opacity-40 tracking-widest mb-1">Bulan Ini</p><h3 className="text-2xl font-black tracking-tight">{formatIDR(stats.bulanIni)}</h3></div></div>
+                                {/* HERO CARD: SETORAN HARI INI */}
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border border-white/10">
+                                    <div className="absolute top-0 right-0 p-6 opacity-10"><i className="fa-solid fa-vault text-[100px]"></i></div>
+                                    <p className="text-[10px] uppercase font-black opacity-60 tracking-widest mb-2 relative z-10">Wajib Setor Laci (Hari Ini)</p>
+                                    <h3 className="text-5xl font-black tracking-tighter relative z-10 text-[#34C759]">{formatIDR(targetSetoran)}</h3>
+                                    <div className="flex justify-between items-center mt-6 relative z-10 text-[10px] font-bold uppercase border-t border-white/10 pt-4">
+                                        <div><span className="opacity-50 block mb-1">Total Omset Cash</span> <span className="text-sm">{formatIDR(stats.hariIniCash)}</span></div>
+                                        <div className="text-right"><span className="opacity-50 block mb-1">Total Laci Keluar</span> <span className="text-sm text-[#FF3B30]">- {formatIDR(expenseHariIniKasir)}</span></div>
+                                    </div>
+                                    <p className="text-center text-[8px] text-gray-500 font-black uppercase tracking-widest mt-4 opacity-70">Omset Transfer (Rp {formatIDR(stats.hariIniTransfer)}) tidak masuk laci</p>
+                                </div>
 
                                 <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
-                                    <h4 className="font-black text-[11px] text-gray-400 mb-5 tracking-widest uppercase">Input Pasien Baru</h4>
+                                    <h4 className="font-black text-[11px] text-[#0A84FF] mb-5 tracking-widest uppercase"><i className="fa-solid fa-user-plus mr-1"></i> Input Pasien Baru</h4>
                                     <form onSubmit={handleOrderSubmit} className="space-y-4">
-                                        <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
-                                        <input type="tel" placeholder="WhatsApp (08...)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
+                                        <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
+                                        <input type="tel" placeholder="WhatsApp (08...)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
                                         
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <select required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all appearance-none" value={formData.PAKET} onChange={handlePaketChange}>
-                                                <option value="">Pilih Paket Layanan...</option>
-                                                <optgroup label="PAKET REGULER">
-                                                    {isLhokseumawe 
-                                                        ? PAKET_LHOKSEUMAWE.map(p => <option key={p} value={p}>{p}</option>)
-                                                        : PAKET_STANDAR.map(p => <option key={p} value={p}>{p}</option>)
-                                                    }
-                                                </optgroup>
-                                                <optgroup label="PAKET HOTEL">
-                                                    {PAKET_HOTEL.map(p => <option key={p} value={p}>{p}</option>)}
-                                                </optgroup>
-                                                <optgroup label="LAINNYA">
-                                                    <option value="Paket Non-Paket (Ala Carte)">Paket Non-Paket (Ala Carte)</option>
-                                                </optgroup>
-                                            </select>
-                                            <input type="number" placeholder="Total Tagihan (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
+                                        {/* 3 TAB KATEGORI PAKET */}
+                                        <div className="flex bg-[#F2F2F7] p-1 rounded-2xl">
+                                            <button type="button" onClick={()=>setKategoriMenu('REGULER')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'REGULER' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400'}`}>Reguler</button>
+                                            <button type="button" onClick={()=>setKategoriMenu('HOTEL')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'HOTEL' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400'}`}>Hotel</button>
+                                            <button type="button" onClick={()=>setKategoriMenu('NON')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'NON' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400'}`}>Satuan</button>
                                         </div>
-                                        <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value})} />
-                                        <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#FF3B30] active:scale-[0.98] transition-all mt-4 tracking-widest uppercase text-base shadow-lg">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN TRANSAKSI"}</button>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <select required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all appearance-none" value={formData.PAKET} onChange={handlePaketChange}>
+                                                <option value="">Pilih Layanan...</option>
+                                                {kategoriMenu === 'REGULER' && (
+                                                    isLhokseumawe ? PAKET_LHOKSEUMAWE.map(p => <option key={p} value={p}>{p}</option>) : PAKET_STANDAR.map(p => <option key={p} value={p}>{p}</option>)
+                                                )}
+                                                {kategoriMenu === 'HOTEL' && PAKET_HOTEL.map(p => <option key={p} value={p}>{p}</option>)}
+                                                {kategoriMenu === 'NON' && PAKET_NON.map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                            <input type="number" placeholder="Total Tagihan (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
+                                        </div>
+
+                                        <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value})} />
+                                        
+                                        {/* METODE BAYAR TOGGLE */}
+                                        <div className="pt-2">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 text-center">Metode Pembayaran</p>
+                                            <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
+                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'CASH'})} className={`flex-1 py-4 rounded-xl text-xs font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'CASH' ? 'bg-[#34C759] text-white shadow-md' : 'text-gray-400'}`}><i className="fa-solid fa-money-bill-wave"></i> CASH</button>
+                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'TRANSFER'})} className={`flex-1 py-4 rounded-xl text-xs font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'TRANSFER' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-400'}`}><i className="fa-solid fa-building-columns"></i> TRANSFER</button>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#0A84FF] active:scale-[0.98] transition-all mt-4 tracking-widest uppercase text-base shadow-lg">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN TRANSAKSI"}</button>
                                     </form>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">5 Transaksi Terakhir (Hari Ini)</p>
+                                <div className="space-y-3 pt-4">
+                                    <p className="text-[10px] font-black text-[#1C1C1E] uppercase tracking-widest px-1"><i className="fa-solid fa-clock-rotate-left mr-1"></i> Log Transaksi (7 Hari Terakhir)</p>
                                     {fetching && history.length === 0 && <div className="text-center py-6"><i className="fa-solid fa-spinner fa-spin text-gray-300 text-2xl"></i></div>}
-                                    {!fetching && latestTransactions.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-4">Belum ada transaksi hari ini</p>}
-                                    {latestTransactions.map((item, idx) => {
+                                    {!fetching && history.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-4">Belum ada transaksi</p>}
+                                    {history.map((item, idx) => {
                                         const isBatal = Number(item.TAGIHAN) === 0;
                                         return (
-                                            <div key={idx} className={`p-4 rounded-2xl border flex justify-between items-center transition-all ${isBatal ? 'bg-red-50 border-red-100 opacity-60' : 'bg-white border-gray-100'}`}>
-                                                <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isBatal ? 'bg-red-100 text-[#FF3B30]' : 'bg-[#F2F2F7] text-[#1C1C1E]'}`}>{item.NAMA_PASIEN?.charAt(0)}</div><div><h5 className={`font-black text-sm leading-none mb-1 text-[#1C1C1E] ${isBatal ? 'line-through opacity-70' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[9px] text-gray-400 font-bold uppercase truncate max-w-[150px]">{item.PAKET} • {item.TERAPIS}</p></div></div>
-                                                <p className={`text-sm font-black pr-2 ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p>
+                                            <div key={idx} className={`p-4 rounded-2xl border flex justify-between items-center transition-all ${isBatal ? 'bg-red-50 border-red-100 opacity-60' : 'bg-white border-gray-100 shadow-sm'}`}>
+                                                <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${isBatal ? 'bg-red-100 text-[#FF3B30]' : 'bg-[#F2F2F7] text-[#1C1C1E]'}`}>{item.NAMA_PASIEN?.charAt(0)}</div><div><h5 className={`font-black text-sm leading-none mb-1 text-[#1C1C1E] ${isBatal ? 'line-through opacity-70' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[9px] text-gray-500 font-bold uppercase truncate max-w-[150px]">{item.TANGGAL} | Trp: {item.TERAPIS}</p></div></div>
+                                                <div className="text-right">
+                                                    <p className={`text-sm font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p>
+                                                    {!isBatal && <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded mt-1 inline-block ${item.METODE_BAYAR === 'TRANSFER' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'bg-[#34C759]/10 text-[#34C759]'}`}>{item.METODE_BAYAR || 'CASH'}</span>}
+                                                </div>
                                             </div>
                                         );
                                     })}
                                 </div>
 
-                                <div className="bg-[#111111] p-6 rounded-[2rem] border border-white/5 shadow-2xl mt-8">
-                                    <h4 className="font-black text-[10px] text-[#0A84FF] mb-4 tracking-widest uppercase"><i className="fa-solid fa-users mr-1"></i> Rekap Gaji Terapis (7 Hari Terakhir)</h4>
-                                    <div className="space-y-3">
-                                        {rekapTerapis.length === 0 && <p className="text-center text-[10px] font-bold text-gray-500 uppercase tracking-widest py-4">Belum ada data 7 hari terakhir</p>}
-                                        {rekapTerapis.map((t, idx) => (
-                                            <div key={idx} className="flex justify-between items-center bg-black p-4 rounded-2xl border border-white/5">
-                                                <div>
-                                                    <p className="font-black text-base text-white uppercase tracking-tight">{t.nama}</p>
-                                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{t.pasien} Pasien</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-base font-black text-[#34C759]">{formatIDR(t.komisi)}</p>
-                                                    <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest mt-1">Omset: {formatIDR(t.omset)}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                <div className="space-y-3 pt-6 border-t border-gray-200">
+                                    <p className="text-[10px] font-black text-[#1C1C1E] uppercase tracking-widest px-1"><i className="fa-solid fa-users mr-1"></i> Rekap Gaji Terapis (7 Hari)</p>
+                                    {rekapTerapis.length === 0 && <p className="text-center text-[10px] font-bold text-gray-500 uppercase tracking-widest py-4">Belum ada data</p>}
+                                    {rekapTerapis.map((t, idx) => (
+                                        <TerapisCard key={idx} t={t} />
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -707,7 +765,7 @@
                         {mode === 'pengeluaran' && (
                             <div className="space-y-6 animate-slide-up">
                                 <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
-                                    <div className="text-center mb-6"><i className="fa-solid fa-receipt text-[#FF3B30] text-4xl mb-3"></i><h4 className="font-black text-xl text-[#1C1C1E] tracking-tight uppercase">Catat Laci Keluar</h4><p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">Cth: Listrik, Tisu, Minyak</p></div>
+                                    <div className="text-center mb-6"><i className="fa-solid fa-receipt text-[#FF3B30] text-4xl mb-3"></i><h4 className="font-black text-xl text-[#1C1C1E] tracking-tight uppercase">Catat Laci Keluar</h4><p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">Mengurangi Kewajiban Setoran</p></div>
                                     <form onSubmit={handleExpenseSubmit} className="space-y-4">
                                         <input type="text" placeholder="Nama Pengeluaran" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all" value={expenseData.NAMA_PENGELUARAN} onChange={e => setExpenseData({...expenseData, NAMA_PENGELUARAN: e.target.value})} />
                                         <input type="number" placeholder="Nominal Rp (Cth: 20000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all" value={expenseData.NOMINAL} onChange={e => setExpenseData({...expenseData, NOMINAL: e.target.value})} />
@@ -778,7 +836,7 @@
                 return (
                     <div className="min-h-screen bg-[#1C1C1E] flex items-center justify-center p-6 pb-24">
                         <div className={`bg-white/10 backdrop-blur-md p-10 rounded-[2.5rem] w-full max-w-md border border-white/5 shadow-2xl ${shakeLogin ? 'animate-shake' : ''}`}>
-                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-16 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,59,48,0.6)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1><p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V5.8.1</p></div>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-16 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(255,59,48,0.6)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase">Bugar Connect</h1><p className="text-[10px] text-[#FF3B30] uppercase font-black tracking-widest mt-2">Portal Management V5.9</p></div>
                             <form onSubmit={handleLogin} className="space-y-4">
                                 <input type="text" placeholder="LOGIN ID" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
                                 <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black/40 text-white outline-none border border-transparent focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest text-base" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
