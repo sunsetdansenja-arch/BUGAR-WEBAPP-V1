@@ -36,11 +36,21 @@
         const PAKET_STANDAR = ["Paket 1 (70 Menit) - Rp 100.000", "Paket 2 (90 Menit) - Rp 120.000", "Paket 3 (120 Menit) - Rp 140.000", "Paket 4 (120 Menit) - Rp 150.000", "Paket 5 (120 Menit) - Rp 150.000", "Paket 6 (120 Menit) - Rp 170.000", "Paket 7 (120 Menit) - Rp 200.000", "Paket 8 - Rp 300.000: Chiropractic"];
         const PAKET_LHOKSEUMAWE = ["Paket 1 (1.5 Jam) - Rp 100.000", "Paket 2 (2 Jam) - Rp 120.000", "Paket 3 (2 Jam) - Rp 130.000", "Paket 4 (2 Jam) - Rp 150.000", "Paket 5 (2.5 Jam) - Rp 200.000", "Paket 6 (2 Jam) - Rp 150.000", "Paket 7 - Rp 300.000: Chiropractic", "Paket 8 (2.5 Jam) - Rp 200.000", "Paket 9 (2.5 Jam) - Rp 200.000", "Paket 10 (3 Jam) - Rp 350.000"];
         const PAKET_HOTEL = ["Paket Hotel Hermes - Rp 300.000", "Paket Hotel Kriyad - Rp 200.000", "Paket Hotel Plum Lading - Rp 160.000", "Paket Hotel The Pade - Rp 180.000", "Paket Premium (Hotel) - Rp 220.000", "Paket Reguler (Hotel) - Rp 200.000", "Paket Standart (Hotel) - Rp 180.000"];
-        const PAKET_NON = ["REFLEKSI 1 JAM - Rp 70.000", "BODY MASSAGE 1 JAM - Rp 80.000", "LULUR - Rp 80.000", "BEKAM KERING - Rp 60.000", "BEKAM BASAH - Rp 80.000", "TOTOK WAJAH - Rp 40.000", "KERIK - Rp 30.000", "PIJAT KEPALA - Rp 30.000", "KOP API - Rp 50.000", "KRETEK / CHIROPRACTIC - Rp 300.000", "REFLEKSI 1.5 JAM - Rp 100.000", "BODY MASSAGE 1.5 JAM - Rp 120.000"];
+        
+        // UPDATE: Penyesuaian Harga & Durasi Non-Paket Sesuai Menu Fisik
+        const PAKET_NON = [
+            "BODY MASSAGE (60 Menit) - Rp 80.000", 
+            "REFLEKSI (60 Menit) - Rp 80.000", 
+            "BEKAM BASAH (60 Menit) - Rp 80.000", 
+            "LULUR - Rp 80.000", 
+            "TOTOK WAJAH (20 Menit) - Rp 60.000", 
+            "PIJAT KEPALA (20 Menit) - Rp 60.000", 
+            "TERAPI TELINGA - Rp 60.000",
+            "BEKAM KERING - Rp 50.000"
+        ];
         
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 
-        // Helper Konversi Logo ke Base64 (Untuk PDF A4)
         const getBase64Logo = () => {
             return new Promise((resolve) => {
                 const img = new Image(); img.crossOrigin = 'Anonymous'; img.src = LOGO_URL;
@@ -101,9 +111,6 @@
             )
         };
 
-        // ==========================================
-        // UI COMPONENT: EXPANDABLE BRANCH CARD (RESPONSIVE FIX)
-        // ==========================================
         const BranchCard = ({ cabang, idx }) => {
             const [expanded, setExpanded] = useState(false);
             return (
@@ -147,9 +154,6 @@
             )
         }
 
-        // ==========================================
-        // 1. KOMPONEN KASIR (RE-LAYOUT PREMIUM & FAST RENDER)
-        // ==========================================
         const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
             const [mode, setMode] = useState('pemasukan'); 
             const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
@@ -353,9 +357,6 @@
             );
         };
 
-        // ==========================================
-        // 2. KOMPONEN SUPERVISOR (AUDIT CENTER)
-        // ==========================================
         const SupervisorView = ({ onLogout, sendToN8N, showToast }) => {
             const [logs, setLogs] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -411,9 +412,6 @@
             );
         };
 
-        // ==========================================
-        // 3. KOMPONEN LOGISTIK (PORTAL PUSAT BARU)
-        // ==========================================
         const LogistikView = ({ onLogout, sendToN8N, showToast }) => {
             const isoToday = new Date().toISOString().split('T')[0];
             const [formData, setFormData] = useState({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
@@ -486,9 +484,6 @@
             );
         };
 
-        // ==========================================
-        // 4. KOMPONEN DASHBOARD OWNER (ULTIMATE VERSION)
-        // ==========================================
         const OwnerView = ({ onLogout }) => {
             const isoToday = new Date().toISOString().split('T')[0];
             const [activeTab, setActiveTab] = useState('dashboard');
@@ -497,7 +492,6 @@
             const [loading, setLoading] = useState(true);
             const [refreshing, setRefreshing] = useState(false);
 
-            // Gaji Terapis Global Filter
             const [filterGajiGlobal, setFilterGajiGlobal] = useState({ start: isoToday, end: isoToday });
             const [gajiGlobalData, setGajiGlobalData] = useState({});
             const [loadingGajiGlobal, setLoadingGajiGlobal] = useState(false);
@@ -533,7 +527,6 @@
                 } catch (e) {} setLoadingGajiGlobal(false);
             };
 
-            // PDF Laporan Keuangan (A4) Bulan Ini
             const downloadLaporanBulanIni = async () => {
                 if(!data || !data.leaderboard) return;
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a4' });
@@ -587,7 +580,6 @@
                 doc.save(`Laporan_Keuangan_${monthName.replace(/\s+/g, '_')}.pdf`);
             };
 
-            // PDF Slip Gaji (A4)
             const downloadSlipTerapis = async (terapis) => {
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a4' });
                 const logo = await getBase64Logo();
@@ -630,7 +622,6 @@
                 <div className="min-h-screen bg-[#111111] text-white font-sans animate-fade-in pb-28">
                     {activeTab === 'dashboard' && (
                         <div className="animate-slide-up">
-                            {/* PREMIUM HEADER OWNER */}
                             <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF3B30]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
                                 <div className="max-w-xl mx-auto relative z-10">
@@ -692,7 +683,6 @@
                         </div>
                     )}
 
-                    {/* TAB LAPORAN & GAJI (RE-LAYOUT OWNER INSTANT) */}
                     {activeTab === 'report' && (
                         <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
                             <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Administrasi</h2><p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-2">Pusat Rekonsiliasi & Penggajian</p></div>
@@ -702,7 +692,6 @@
                                 <button onClick={() => setReportSubTab('gaji')} className={`flex-1 py-3.5 rounded-xl text-xs font-black uppercase transition-all tracking-widest ${reportSubTab === 'gaji' ? 'bg-[#FF3B30] text-white shadow-md' : 'text-gray-500 hover:text-white'}`}>Gaji Global</button>
                             </div>
 
-                            {/* KEUANGAN BULAN INI INSTANT */}
                             {reportSubTab === 'keuangan' && (() => {
                                 const monthName = new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' });
                                 const totalBranchExpense = data.leaderboard.reduce((s, c) => s + c.expenseBulanIni, 0);
@@ -744,7 +733,6 @@
                                 );
                             })()}
 
-                            {/* ADMIN GAJI GLOBAL (TANPA DROPDOWN) */}
                             {reportSubTab === 'gaji' && (
                                 <div className="animate-fade-in space-y-6">
                                     <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
@@ -797,9 +785,6 @@
             );
         };
 
-        // ==========================================
-        // MAIN APP (ROUTER)
-        // ==========================================
         const App = () => {
             const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
             const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || ''); 
