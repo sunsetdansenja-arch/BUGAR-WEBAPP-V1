@@ -37,7 +37,6 @@
         const PAKET_LHOKSEUMAWE = ["Paket 1 (1.5 Jam) - Rp 100.000", "Paket 2 (2 Jam) - Rp 120.000", "Paket 3 (2 Jam) - Rp 130.000", "Paket 4 (2 Jam) - Rp 150.000", "Paket 5 (2.5 Jam) - Rp 200.000", "Paket 6 (2 Jam) - Rp 150.000", "Paket 7 - Rp 300.000: Chiropractic", "Paket 8 (2.5 Jam) - Rp 200.000", "Paket 9 (2.5 Jam) - Rp 200.000", "Paket 10 (3 Jam) - Rp 350.000"];
         const PAKET_HOTEL = ["Paket Hotel Hermes - Rp 300.000", "Paket Hotel Kriyad - Rp 200.000", "Paket Hotel Plum Lading - Rp 160.000", "Paket Hotel The Pade - Rp 180.000", "Paket Premium (Hotel) - Rp 220.000", "Paket Reguler (Hotel) - Rp 200.000", "Paket Standart (Hotel) - Rp 180.000"];
         
-        // UPDATE: Penyesuaian Harga & Durasi Non-Paket Sesuai Menu Fisik
         const PAKET_NON = [
             "BODY MASSAGE (60 Menit) - Rp 80.000", 
             "REFLEKSI (60 Menit) - Rp 80.000", 
@@ -630,6 +629,7 @@
                                         <button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#FF3B30]' : 'text-gray-300'}`}></i></button>
                                     </div>
                                     
+                                    {/* CARD HARI INI (MERAH) */}
                                     <div className="bg-gradient-to-br from-[#FF3B30] to-[#E02020] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.4)] relative overflow-hidden border border-white/20">
                                         <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-chart-line text-[100px]"></i></div>
                                         <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Hari Ini)</p>
@@ -639,6 +639,18 @@
                                             <div className="text-right"><span className="opacity-70 block mb-1">Total Beban</span> <span className="text-sm">- {formatIDR(data.expenseHariIni)}</span></div>
                                         </div>
                                     </div>
+
+                                    {/* CARD BULAN INI (BIRU PREMIUM) */}
+                                    <div className="bg-gradient-to-br from-[#0A84FF] to-[#0040DD] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(10,132,255,0.4)] relative overflow-hidden border border-white/20 mt-6">
+                                        <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-calendar-check text-[100px]"></i></div>
+                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Bulan Ini)</p>
+                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaBulanIni)}</h2>
+                                        <div className="flex justify-between items-center mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4">
+                                            <div><span className="opacity-70 block mb-1">Omset Global</span> <span className="text-sm">{formatIDR(data.grandTotalBulanIni)}</span></div>
+                                            <div className="text-right"><span className="opacity-70 block mb-1">Total Beban</span> <span className="text-sm">- {formatIDR(data.expenseBulanIni)}</span></div>
+                                        </div>
+                                    </div>
+                                    
                                 </div>
                             </div>
 
