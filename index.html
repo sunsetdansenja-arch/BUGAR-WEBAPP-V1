@@ -487,7 +487,7 @@
             const isoToday = new Date().toISOString().split('T')[0];
             const [activeTab, setActiveTab] = useState('dashboard');
             const [reportSubTab, setReportSubTab] = useState('keuangan'); 
-            const [data, setData] = useState({ grandOmsetHariIni: 0, grandTotalBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [], logistikLogs: [] });
+            const [data, setData] = useState({ grandOmsetHariIni: 0, grandBagiTerapisHariIni: 0, grandTotalBulanIni: 0, grandBagiTerapisBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [], logistikLogs: [] });
             const [loading, setLoading] = useState(true);
             const [refreshing, setRefreshing] = useState(false);
 
@@ -564,15 +564,17 @@
                 
                 doc.setFont(undefined, 'bold'); doc.setFontSize(14);
                 doc.text("TOTAL OMSET KESELURUHAN", 20, y); doc.text(`${formatIDR(data.grandTotalBulanIni)}`, 190, y, { align: 'right' });
-                y += 10;
+                y += 8;
                 doc.setTextColor(255, 59, 48);
+                doc.text("HAK KOMISI TERAPIS", 20, y); doc.text(`- ${formatIDR(data.grandBagiTerapisBulanIni)}`, 190, y, { align: 'right' });
+                y += 8;
                 doc.text("TOTAL BEBAN KESELURUHAN", 20, y); doc.text(`- ${formatIDR(data.expenseBulanIni)}`, 190, y, { align: 'right' });
                 y += 10;
                 
                 doc.setLineWidth(1); doc.line(20, y, 190, y); y += 15;
                 
                 doc.setTextColor(0, 0, 0); doc.setFontSize(18);
-                const labaBersih = data.grandTotalBulanIni - data.expenseBulanIni;
+                const labaBersih = data.globalLabaBulanIni;
                 if(labaBersih < 0) doc.setTextColor(255, 59, 48);
                 doc.text("LABA KOTOR PERUSAHAAN", 20, y); doc.text(`${formatIDR(labaBersih)}`, 190, y, { align: 'right' });
                 
@@ -634,9 +636,20 @@
                                         <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-chart-line text-[100px]"></i></div>
                                         <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Hari Ini)</p>
                                         <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
-                                        <div className="flex justify-between items-center mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4">
-                                            <div><span className="opacity-70 block mb-1">Omset Global</span> <span className="text-sm">{formatIDR(data.grandOmsetHariIni)}</span></div>
-                                            <div className="text-right"><span className="opacity-70 block mb-1">Total Beban</span> <span className="text-sm">- {formatIDR(data.expenseHariIni)}</span></div>
+                                        
+                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Omset Global</span> 
+                                                <span className="text-sm font-black">{formatIDR(data.grandOmsetHariIni)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Hak Terapis</span> 
+                                                <span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisHariIni)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Pengeluaran / Laci Keluar</span> 
+                                                <span className="text-sm font-black">- {formatIDR(data.expenseHariIni)}</span>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -645,9 +658,20 @@
                                         <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-calendar-check text-[100px]"></i></div>
                                         <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Bulan Ini)</p>
                                         <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaBulanIni)}</h2>
-                                        <div className="flex justify-between items-center mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4">
-                                            <div><span className="opacity-70 block mb-1">Omset Global</span> <span className="text-sm">{formatIDR(data.grandTotalBulanIni)}</span></div>
-                                            <div className="text-right"><span className="opacity-70 block mb-1">Total Beban</span> <span className="text-sm">- {formatIDR(data.expenseBulanIni)}</span></div>
+                                        
+                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Omset Global</span> 
+                                                <span className="text-sm font-black">{formatIDR(data.grandTotalBulanIni)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Hak Terapis</span> 
+                                                <span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisBulanIni)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Total Beban</span> 
+                                                <span className="text-sm font-black">- {formatIDR(data.expenseBulanIni)}</span>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -708,7 +732,7 @@
                                 const monthName = new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' });
                                 const totalBranchExpense = data.leaderboard.reduce((s, c) => s + c.expenseBulanIni, 0);
                                 const logistikPusatBulanIni = data.expenseBulanIni - totalBranchExpense;
-                                const labaBersih = data.grandTotalBulanIni - data.expenseBulanIni;
+                                const labaBersih = data.globalLabaBulanIni;
                                 
                                 return (
                                     <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl animate-fade-in">
@@ -738,7 +762,11 @@
                                                 <span className="text-red-500 font-bold">- {formatIDR(logistikPusatBulanIni)}</span>
                                             </div>
                                             
-                                            <div className="border-t border-b border-gray-300 py-4 mb-6 space-y-3"><div className="flex justify-between font-black text-base text-gray-800"><span>TOTAL OMSET</span> <span>{formatIDR(data.grandTotalBulanIni)}</span></div><div className="flex justify-between font-black text-base text-red-600"><span>TOTAL BEBAN</span> <span>- {formatIDR(data.expenseBulanIni)}</span></div></div>
+                                            <div className="border-t border-b border-gray-300 py-4 mb-6 space-y-3">
+                                                <div className="flex justify-between font-black text-base text-gray-800"><span>TOTAL OMSET</span> <span>{formatIDR(data.grandTotalBulanIni)}</span></div>
+                                                <div className="flex justify-between font-black text-base text-red-600"><span>HAK TERAPIS</span> <span>- {formatIDR(data.grandBagiTerapisBulanIni)}</span></div>
+                                                <div className="flex justify-between font-black text-base text-red-600"><span>TOTAL BEBAN</span> <span>- {formatIDR(data.expenseBulanIni)}</span></div>
+                                            </div>
                                             <div className="flex justify-between font-black text-2xl text-black items-center"><span className="text-sm tracking-widest uppercase">LABA KOTOR</span> <span className={labaBersih < 0 ? "text-red-600" : ""}>{formatIDR(labaBersih)}</span></div>
                                         </div>
                                     </div>
