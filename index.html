@@ -302,7 +302,7 @@
                                             <input type="number" placeholder="Total Tagihan Rp (Cth: 150000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
                                         </div>
 
-                                        <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value})} />
+                                        <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF] uppercase" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value.toUpperCase()})} />
                                         
                                         <div className="pt-3">
                                             <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
