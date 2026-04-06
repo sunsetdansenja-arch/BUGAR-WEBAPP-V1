@@ -606,6 +606,7 @@
                             <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'dashboard' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-chart-pie text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Dasbor</span></button>
                             <button onClick={() => setActiveTab('logistik')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'logistik' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-boxes-stacked text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Logistik</span></button>
                             <button onClick={() => setActiveTab('audit')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'audit' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-shield-halved text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Audit</span></button>
+                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1.5 transition-all text-gray-500 hover:text-white"><i className="fa-solid fa-power-off text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Keluar</span></button>
                         </div>
                     </div>
                 </div>
