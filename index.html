@@ -35,7 +35,9 @@
         
         const PAKET_STANDAR = ["Paket 1 (70 Menit) - Rp 100.000", "Paket 2 (90 Menit) - Rp 120.000", "Paket 3 (120 Menit) - Rp 140.000", "Paket 4 (120 Menit) - Rp 150.000", "Paket 5 (120 Menit) - Rp 150.000", "Paket 6 (120 Menit) - Rp 170.000", "Paket 7 (120 Menit) - Rp 200.000", "Paket 8 - Rp 300.000: Chiropractic"];
         const PAKET_LHOKSEUMAWE = ["Paket 1 (1.5 Jam) - Rp 100.000", "Paket 2 (2 Jam) - Rp 120.000", "Paket 3 (2 Jam) - Rp 130.000", "Paket 4 (2 Jam) - Rp 150.000", "Paket 5 (2.5 Jam) - Rp 200.000", "Paket 6 (2 Jam) - Rp 150.000", "Paket 7 - Rp 300.000: Chiropractic", "Paket 8 (2.5 Jam) - Rp 200.000", "Paket 9 (2.5 Jam) - Rp 200.000", "Paket 10 (3 Jam) - Rp 350.000"];
-        const PAKET_HOTEL = ["Paket Hotel Hermes - Rp 300.000", "Paket Hotel Kriyad - Rp 200.000", "Paket Hotel Plum Lading - Rp 160.000", "Paket Hotel The Pade - Rp 180.000", "Paket Premium (Hotel) - Rp 220.000", "Paket Reguler (Hotel) - Rp 200.000", "Paket Standart (Hotel) - Rp 180.000"];
+        
+        // FIX HARGA HERMES 180K
+        const PAKET_HOTEL = ["Paket Hotel Hermes - Rp 180.000", "Paket Hotel Kriyad - Rp 200.000", "Paket Hotel Plum Lading - Rp 160.000", "Paket Hotel The Pade - Rp 180.000", "Paket Premium (Hotel) - Rp 220.000", "Paket Reguler (Hotel) - Rp 200.000", "Paket Standart (Hotel) - Rp 180.000"];
         
         const PAKET_NON = [
             "BODY MASSAGE (60 Menit) - Rp 80.000", 
@@ -230,29 +232,56 @@
                 const cleanTagihan = Number(formData.TAGIHAN);
                 const paketName = String(formData.PAKET || "").toUpperCase();
                 
+                // MENGHITUNG PASIEN KE BERAPA (Berdasarkan Terapis yg diketik)
+                const terapisName = formData.TERAPIS.trim().toUpperCase();
+                const pasienHariIni = history.filter(h => h.TANGGAL === isoToday && (h.TERAPIS || "").toUpperCase() === terapisName && Number(h.TAGIHAN) > 0).length;
+                const pasienKe = terapisName !== "" ? (pasienHariIni + 1) : 1;
+
                 let bagiTerapis = 0;
                 let bagiOwner = 0;
                 let tipeHitungan = "Persentase 30%";
 
-                if (paketName.includes("BODY MASSAGE (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; } 
-                else if (paketName.includes("REFLEKSI (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; } 
-                else if (paketName.includes("BEKAM BASAH")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; } 
-                else if (paketName.includes("LULUR")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; } 
-                else if (paketName.includes("TOTOK WAJAH")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; } 
-                else if (paketName.includes("PIJAT KEPALA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; } 
-                else if (paketName.includes("TERAPI TELINGA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; } 
-                else if (paketName.includes("BEKAM KERING")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; } 
-                else if (!paketName.includes("PAKET") && paketName !== "") { 
-                    bagiTerapis = cleanTagihan * 0.30; tipeHitungan = "Ala Carte (30%)"; 
+                if (paketName.includes("PAKET 8") || paketName.includes("CHIROPRACTIC")) {
+                    bagiTerapis = 100000;
+                    bagiOwner = cleanTagihan - bagiTerapis;
+                    tipeHitungan = "Flat Paket Khusus";
+                } 
+                else if (paketName.includes("HERMES")) {
+                    bagiTerapis = 54000;
+                    bagiOwner = cleanTagihan - bagiTerapis; 
+                    tipeHitungan = "Flat Hotel Hermes";
+                }
+                else if (paketName.includes("BODY MASSAGE (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("REFLEKSI (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("BEKAM BASAH")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("LULUR")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("TOTOK WAJAH")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("PIJAT KEPALA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("TERAPI TELINGA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("BEKAM KERING")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (!paketName.includes("PAKET") && !paketName.includes("HOTEL") && paketName !== "") { 
+                    bagiTerapis = cleanTagihan * 0.30; tipeHitungan = "Ala Carte (30%)"; bagiOwner = cleanTagihan - bagiTerapis;
                 } else {
-                    const persenTerapis = isShiftMalam ? 0.40 : 0.30;
+                    let persenTerapis = 0.30;
+                    if (isShiftMalam) persenTerapis = 0.40;
+                    
+                    if (pasienKe === 4) persenTerapis = Math.max(persenTerapis, 0.40);
+                    else if (pasienKe === 5) persenTerapis = Math.max(persenTerapis, 0.45);
+                    else if (pasienKe >= 6) persenTerapis = Math.max(persenTerapis, 0.50);
+
                     bagiTerapis = cleanTagihan * persenTerapis;
-                    tipeHitungan = isShiftMalam ? "Lembur / Overtime 40%" : "Reguler 30%";
+                    bagiOwner = cleanTagihan - bagiTerapis;
+                    
+                    let labelPersen = persenTerapis * 100;
+                    if (pasienKe >= 4) {
+                        tipeHitungan = `Pasien Ke-${pasienKe} (${labelPersen}%)`;
+                    } else {
+                        tipeHitungan = isShiftMalam ? `Lembur/Overtime (${labelPersen}%)` : `Reguler (${labelPersen}%)`;
+                    }
                 }
 
-                bagiOwner = cleanTagihan - bagiTerapis;
                 return { bagiOwner, bagiTerapis, tipeHitungan };
-            }, [formData.TAGIHAN, formData.PAKET]);
+            }, [formData.TAGIHAN, formData.PAKET, formData.TERAPIS, history, isoToday]);
 
             const handleSelectPaket = (selectedPaket) => {
                 let autoHarga = formData.TAGIHAN;
@@ -273,7 +302,15 @@
 
             const handleOrderSubmit = async (e) => {
                 e.preventDefault(); setLoading(true);
-                const res = await sendToN8N('insert', { ...formData, CABANG_ID: activeCabang });
+                
+                // MENGHITUNG PASIEN KE BERAPA UNTUK DIKIRIM KE BACKEND N8N
+                const terapisName = formData.TERAPIS.trim().toUpperCase();
+                const pasienHariIni = history.filter(h => h.TANGGAL === isoToday && (h.TERAPIS || "").toUpperCase() === terapisName && Number(h.TAGIHAN) > 0).length;
+                const pasienKe = pasienHariIni + 1;
+
+                const payload = { ...formData, CABANG_ID: activeCabang, PASIEN_KE: pasienKe };
+
+                const res = await sendToN8N('insert', payload);
                 if (res && (res.id || res.status === 'success')) {
                     setFormData({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '', METODE_BAYAR: 'CASH' });
                     showToast('Pasien Berhasil Disimpan'); await loadDashboardData();
@@ -390,9 +427,11 @@
                                             <input type="number" placeholder="Total Tagihan Rp (Cth: 150000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
                                         </div>
 
+                                        <input type="text" placeholder="Nama Terapis (Cth: RANI)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF] uppercase" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value.toUpperCase()})} />
+                                        
                                         {/* LIVE ESTIMASI CARD (Muncul otomatis saat nominal ada) */}
                                         {estimasiBagiHasil && (
-                                            <div className="bg-[#0A84FF]/5 border border-[#0A84FF]/20 p-4 rounded-2xl animate-fade-in relative overflow-hidden">
+                                            <div className="bg-[#0A84FF]/5 border border-[#0A84FF]/20 p-4 rounded-2xl animate-fade-in relative overflow-hidden mt-2">
                                                 <div className="absolute top-0 right-0 p-3 opacity-10"><i className="fa-solid fa-calculator text-5xl text-[#0A84FF]"></i></div>
                                                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#0A84FF] mb-3 relative z-10 flex items-center gap-1"><i className="fa-solid fa-bolt"></i> Live Estimasi Sistem</p>
                                                 <div className="flex justify-between items-center mb-2 relative z-10">
@@ -409,8 +448,6 @@
                                             </div>
                                         )}
 
-                                        <input type="text" placeholder="Nama Terapis" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF] uppercase" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value.toUpperCase()})} />
-                                        
                                         <div className="pt-3">
                                             <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
                                                 <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'CASH'})} className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'CASH' ? 'bg-white text-[#34C759] shadow-sm border border-gray-100' : 'text-gray-400 hover:text-black'}`}><i className="fa-solid fa-money-bill-wave"></i> CASH</button>
@@ -463,9 +500,133 @@
             );
         };
 
-        // =================================================================
-        // OWNER VIEW (REVISED: Dasbor, Logistik, Audit Pembatalan)
-        // =================================================================
+        const SupervisorView = ({ onLogout, sendToN8N, showToast }) => {
+            const [logs, setLogs] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday, search: '' });
+            const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
+            const [isDeleting, setIsDeleting] = useState(null);
+
+            const fetchLogs = useCallback(async () => { setLoading(true); const res = await sendToN8N('supervisor_load'); if (res && res.data) setLogs(res.data); setLoading(false); }, []);
+            useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+            const executeCancel = async () => {
+                const item = confirmModal.item; const targetId = item.db_id || item.id || item.ID;
+                setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
+                await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
+                showToast('Order Berhasil Dibatalkan'); await fetchLogs(); setIsDeleting(null);
+            };
+
+            const filteredLogs = logs.filter(log => {
+                const matchDate = log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end;
+                const matchSearch = filterDate.search === '' || log.NAMA_PASIEN?.toLowerCase().includes(filterDate.search.toLowerCase()) || log.CABANG_ID?.toLowerCase().includes(filterDate.search.toLowerCase());
+                return matchDate && matchSearch;
+            });
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-[#1C1C1E] p-4 sticky top-0 z-40 shadow-lg border-b border-white/10">
+                        <div className="max-w-xl mx-auto flex justify-between items-center text-white"><div className="flex items-center gap-3"><i className="fa-solid fa-shield-halved text-[#FF3B30] text-2xl"></i><div><p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p><h1 className="text-base font-black uppercase tracking-tight">Supervisor Portal</h1></div></div><button onClick={onLogout} className="text-white bg-white/10 px-5 py-2.5 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button></div>
+                    </nav>
+                    <main className="max-w-xl mx-auto p-4 space-y-6 mt-4">
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                            <HotelDateRangePicker value={filterDate} onChange={(val)=>setFilterDate({...filterDate, start:val.start, end:val.end})} title="Filter Rentang Waktu (Maks 35 Hari)" theme="light" />
+                            <input type="text" placeholder="Cari Nama / Cabang..." className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all mt-5 border border-transparent" value={filterDate.search} onChange={e => setFilterDate({...filterDate, search: e.target.value})} />
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-end px-2"><p className="text-[11px] font-black text-[#1C1C1E] uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p><button onClick={fetchLogs} className="text-[#0A84FF] text-[10px] font-black uppercase tracking-widest p-2"><i className="fa-solid fa-rotate-right"></i> Refresh</button></div>
+                            {loading ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
+                            {filteredLogs.map((item, idx) => {
+                                const currentId = item.db_id || item.id || item.ID; const isBatal = Number(item.TAGIHAN) === 0;
+                                return (
+                                    <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 shadow-sm'}`}>
+                                        <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3"><div><span className="bg-[#1C1C1E] text-white text-[9px] px-2.5 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span><span className="text-[10px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span></div>{isBatal && <span className="text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}</div>
+                                        <div className="flex justify-between items-center"><div><h5 className={`font-black text-base text-[#1C1C1E] uppercase tracking-tight ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[10px] text-gray-500 font-bold tracking-widest mt-1">{item.PAKET}</p></div><div className="flex items-center gap-4"><div className="text-right"><p className={`text-base font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">Trp: {item.TERAPIS}</p></div><button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isBatal ? 'opacity-0' : 'bg-[#F2F2F7] text-gray-400 hover:bg-[#FF3B30] hover:text-white active:scale-90 text-lg'}`}>{isDeleting === currentId ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-ban"></i>}</button></div></div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </main>
+                    {confirmModal.show && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"><div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div><div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up"><i className="fa-solid fa-triangle-exclamation text-[#FF3B30] text-[50px] mb-5"></i><h3 className="text-2xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batalkan Order?</h3><p className="text-[11px] text-gray-500 font-bold mb-6 uppercase tracking-widest leading-relaxed">Tindakan ini akan meng-Nol-kan nominal tagihan untuk audit.</p><div className="bg-[#F2F2F7] p-5 rounded-2xl mb-6 text-left border border-gray-200"><p className="text-sm font-black uppercase text-[#1C1C1E]">{confirmModal.item.NAMA_PASIEN}</p><p className="text-[10px] font-bold uppercase text-gray-500 mt-1">{confirmModal.item.CABANG_ID} • {formatIDR(confirmModal.item.TAGIHAN)}</p></div><button onClick={executeCancel} className="w-full py-5 bg-[#FF3B30] text-white font-black rounded-2xl mb-3 active:scale-95 transition-all tracking-widest uppercase text-sm shadow-lg">YA, EKSEKUSI</button><button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-5 bg-gray-200 text-[#1C1C1E] font-black rounded-2xl active:scale-95 transition-all tracking-widest uppercase text-sm">KEMBALI</button></div></div>
+                    )}
+                </div>
+            );
+        };
+
+        const LogistikView = ({ onLogout, sendToN8N, showToast }) => {
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [formData, setFormData] = useState({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
+            const [loading, setLoading] = useState(false);
+            const [logs, setLogs] = useState([]);
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday });
+            const [loadingLogs, setLoadingLogs] = useState(true);
+
+            const fetchLogs = useCallback(async () => {
+                setLoadingLogs(true);
+                const res = await sendToN8N('logistik_load');
+                if (res && res.data) setLogs(res.data);
+                setLoadingLogs(false);
+            }, []);
+
+            useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault(); setLoading(true);
+                const res = await sendToN8N('insert_logistik', formData);
+                if (res && res.status === 'success') {
+                    setFormData({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
+                    showToast('Data Logistik Berhasil Dicatat!'); await fetchLogs();
+                } else { showToast('Gagal Mencatat Logistik', 'error'); }
+                setLoading(false);
+            };
+
+            const filteredLogs = logs.filter(log => log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end);
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
+                        <div className="max-w-xl mx-auto flex justify-between items-center"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#0A84FF]/10 rounded-full flex items-center justify-center"><i className="fa-solid fa-boxes-stacked text-[#0A84FF] text-lg"></i></div><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Supply Chain</p><h1 className="text-base font-black uppercase tracking-tight text-[#1C1C1E]">Portal Logistik</h1></div></div><button onClick={onLogout} className="text-gray-500 hover:text-[#FF3B30] transition-all text-xl p-2"><i className="fa-solid fa-power-off"></i></button></div>
+                    </nav>
+                    <main className="max-w-xl mx-auto p-4 mt-4 space-y-6">
+                        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
+                            <h2 className="font-black text-xl text-[#1C1C1E] uppercase tracking-tight mb-1">Catat Pembelian</h2>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Input kebutuhan cabang & pusat</p>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Dialokasikan Untuk</label>
+                                    <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent appearance-none" value={formData.TARGET_CABANG} onChange={e => setFormData({...formData, TARGET_CABANG: e.target.value})}>
+                                        <option value="PUSAT">Pusat (Global)</option>
+                                        {Array.from({length: 12}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>Cabang BUGAR{i+1}</option>)}
+                                    </select>
+                                </div>
+                                <input type="text" placeholder="Nama Barang (Cth: Krim 5kg, Servis AC)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NAMA_BARANG} onChange={e => setFormData({...formData, NAMA_BARANG: e.target.value})} />
+                                <input type="number" placeholder="Nominal (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NOMINAL} onChange={e => setFormData({...formData, NOMINAL: e.target.value})} />
+                                <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent resize-none" value={formData.KETERANGAN} onChange={e => setFormData({...formData, KETERANGAN: e.target.value})}></textarea>
+                                <button type="submit" disabled={loading} className="w-full bg-[#0A84FF] text-white font-black py-5 rounded-2xl hover:bg-blue-600 active:scale-95 transition-all tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(10,132,255,0.3)] mt-4">
+                                    {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN LOGISTIK"}
+                                </button>
+                            </form>
+                        </div>
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                            <HotelDateRangePicker value={filterDate} onChange={setFilterDate} title="Filter Riwayat Logistik" theme="light" />
+                            <div className="mt-8 space-y-3">
+                                {loadingLogs ? <div className="text-center py-6"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-2xl"></i></div> : null}
+                                {!loadingLogs && filteredLogs.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-4">Tidak ada data di rentang ini</p>}
+                                {filteredLogs.map((log, idx) => (
+                                    <div key={idx} className="bg-[#F2F2F7] p-5 rounded-2xl flex justify-between items-center border border-gray-200">
+                                        <div><span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded text-white shadow-sm ${log.TARGET_CABANG === 'PUSAT' ? 'bg-[#1C1C1E]' : 'bg-[#0A84FF]'}`}>{log.TARGET_CABANG}</span><h5 className="font-black text-base text-[#1C1C1E] uppercase mt-3 tracking-tight">{log.NAMA_BARANG}</h5><p className="text-[10px] text-gray-500 font-bold mt-1 tracking-widest">{log.TANGGAL}</p></div>
+                                        <div className="text-right"><p className="text-base font-black text-[#FF3B30]">- {formatIDR(log.NOMINAL)}</p></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
         const OwnerView = ({ onLogout }) => {
             const isoToday = new Date().toISOString().split('T')[0];
             const [activeTab, setActiveTab] = useState('dashboard');
@@ -606,7 +767,6 @@
                             <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'dashboard' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-chart-pie text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Dasbor</span></button>
                             <button onClick={() => setActiveTab('logistik')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'logistik' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-boxes-stacked text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Logistik</span></button>
                             <button onClick={() => setActiveTab('audit')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'audit' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-shield-halved text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Audit</span></button>
-                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1.5 transition-all text-gray-500 hover:text-white"><i className="fa-solid fa-power-off text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Keluar</span></button>
                         </div>
                     </div>
                 </div>
@@ -732,34 +892,34 @@
             const downloadSlipTerapis = async (terapis) => {
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a4' });
                 const logo = await getBase64Logo();
-                if (logo) doc.addImage(logo, 'PNG', 90, 20, 30, 30);
+                if (logo) doc.addImage(logo, 'PNG', 90, 15, 30, 30);
                 
-                doc.setFontSize(22); doc.setTextColor(255, 59, 48); doc.setFont(undefined, 'bold'); doc.text("BUGAR REFLEKSI", 105, 65, { align: "center" });
-                doc.setFontSize(14); doc.setTextColor(50, 50, 50); doc.setFont(undefined, 'normal'); doc.text("SLIP GAJI & KOMISI TERAPIS", 105, 75, { align: "center" });
+                doc.setFontSize(20); doc.setTextColor(255, 59, 48); doc.setFont(undefined, 'bold'); doc.text("BUGAR REFLEKSI", 105, 55, { align: "center" });
+                doc.setFontSize(12); doc.setTextColor(50, 50, 50); doc.setFont(undefined, 'normal'); doc.text("SLIP GAJI & KOMISI TERAPIS", 105, 62, { align: "center" });
                 
-                doc.setLineWidth(0.5); doc.line(20, 85, 190, 85);
+                doc.setLineWidth(0.5); doc.line(20, 70, 190, 70);
                 
                 doc.setFontSize(12); doc.setTextColor(80, 80, 80);
-                doc.text(`Cabang      : ${terapis.cabang}`, 20, 100);
-                doc.text(`Nama Terapis: ${terapis.nama}`, 20, 110);
-                doc.text(`Periode     : ${filterGajiGlobal.start} s/d ${filterGajiGlobal.end}`, 20, 120);
+                doc.text(`Cabang      : ${terapis.cabang}`, 20, 85);
+                doc.text(`Nama Terapis: ${terapis.nama}`, 20, 95);
+                doc.text(`Periode     : ${filterGajiGlobal.start} s/d ${filterGajiGlobal.end}`, 20, 105);
                 
-                doc.setLineWidth(0.2); doc.setLineDash([2, 2], 0); doc.line(20, 135, 190, 135); doc.setLineDash([]);
+                doc.setLineWidth(0.2); doc.setLineDash([2, 2], 0); doc.line(20, 115, 190, 115); doc.setLineDash([]);
                 
                 doc.setFontSize(14); doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'bold');
-                doc.text("Rincian Kinerja:", 20, 150);
+                doc.text("Rincian Kinerja:", 20, 130);
                 doc.setFontSize(12); doc.setFont(undefined, 'normal');
-                doc.text(`Total Pasien Diselesaikan`, 20, 165); doc.text(`${terapis.totalPasien} Orang`, 190, 165, { align: 'right' });
-                doc.text(`Total Komisi (Hak Terapis)`, 20, 175); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 175, { align: 'right' });
+                doc.text(`Total Pasien Diselesaikan`, 20, 145); doc.text(`${terapis.totalPasien} Orang`, 190, 145, { align: 'right' });
+                doc.text(`Total Komisi (Hak Terapis)`, 20, 155); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 155, { align: 'right' });
                 
-                doc.setLineWidth(0.5); doc.line(20, 200, 190, 200);
+                doc.setLineWidth(0.5); doc.line(20, 175, 190, 175);
                 
                 doc.setFontSize(20); doc.setFont(undefined, 'bold'); doc.setTextColor(52, 199, 89);
-                doc.text("TOTAL DITERIMA", 20, 220); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 220, { align: 'right' });
+                doc.text("TOTAL DITERIMA", 20, 195); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 195, { align: 'right' });
                 
                 doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.setTextColor(150, 150, 150);
-                doc.text("Dokumen ini sah dan diterbitkan secara otomatis oleh Sistem Bugar Connect.", 105, 270, { align: "center" });
-                doc.text("Terima kasih atas dedikasi dan kerja keras Anda!", 105, 276, { align: "center" });
+                doc.text("Dokumen ini sah dan diterbitkan secara otomatis oleh Sistem Bugar Connect.", 105, 230, { align: "center" });
+                doc.text("Terima kasih atas dedikasi dan kerja keras Anda!", 105, 236, { align: "center" });
                 
                 doc.save(`Slip_Gaji_${terapis.nama.replace(/\s+/g, '_')}_${filterGajiGlobal.start}.pdf`);
             };
