@@ -16,7 +16,6 @@
         body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         .paper-slip { background-color: #fff; color: #1a1a1a; background-image: radial-gradient(#e5e5e5 1px, transparent 1px); background-size: 20px 20px; }
         ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-        input, select, textarea { font-size: 16px !important; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -99,19 +98,16 @@
             const isoToday = new Date().toISOString().split('T')[0];
             const [activeTab, setActiveTab] = useState('administrasi');
             
-            // State Administrasi (Gaji & Konsolidasi)
             const [reportSubTab, setReportSubTab] = useState('keuangan'); 
             const [dataOwner, setDataOwner] = useState(null);
             const [filterGajiGlobal, setFilterGajiGlobal] = useState({ start: isoToday, end: isoToday });
             const [gajiGlobalData, setGajiGlobalData] = useState({});
             const [loadingGajiGlobal, setLoadingGajiGlobal] = useState(false);
 
-            // State Log Order
             const [filterLog, setFilterLog] = useState({ start: isoToday, end: isoToday, cabang: 'ALL' });
             const [logData, setLogData] = useState([]);
             const [loadingLog, setLoadingLog] = useState(false);
 
-            // Fetch Data Konsolidasi Bulan Ini
             useEffect(() => {
                 const loadOwnerData = async () => {
                     try {
@@ -153,7 +149,6 @@
                 } catch (e) {} setLoadingLog(false);
             };
 
-            // FUNGSI ACC BONUS OLEH KEUANGAN
             const handleAccBonus = async (item, newPercent) => {
                 const targetId = item.db_id || item.id || item.ID;
                 if (!targetId) return showToast("Gagal: ID Transaksi tidak ditemukan", "error");
@@ -167,7 +162,7 @@
 
                 if (res && res.status === 'success') {
                     showToast(`Bonus ${newPercent}% Berhasil Di-ACC!`);
-                    await fetchLogOrder(); // Segarkan data log
+                    await fetchLogOrder(); 
                 } else {
                     showToast('Gagal memproses ACC Bonus', 'error');
                 }
@@ -255,7 +250,7 @@
                 doc.setLineWidth(0.5); doc.line(20, 175, 190, 175);
                 
                 doc.setFontSize(20); doc.setFont(undefined, 'bold'); doc.setTextColor(52, 199, 89);
-                doc.text("TOTAL DITERIMA", 20, 195); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 195, { align: 'right' });
+                doc.text("TOTAL DITERIMA", 20, 195); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 220, { align: 'right' });
                 
                 doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.setTextColor(150, 150, 150);
                 doc.text("Dokumen ini sah dan diterbitkan secara otomatis oleh Sistem Bugar Connect.", 105, 230, { align: "center" });
@@ -265,13 +260,14 @@
             };
 
             return (
-                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                // UPDATE: pb-40 agar konten tidak ketutup navbar bawah
+                <div className="min-h-screen bg-[#F2F2F7] pb-40 animate-fade-in font-sans">
                     <nav className="bg-[#1C1C1E] p-4 sticky top-0 z-40 shadow-lg border-b border-white/10">
                         <div className="max-w-xl mx-auto flex justify-between items-center text-white"><div className="flex items-center gap-3"><i className="fa-solid fa-file-invoice-dollar text-[#0A84FF] text-2xl"></i><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Finance Center</p><h1 className="text-base font-black uppercase tracking-tight">Portal Keuangan</h1></div></div><button onClick={onLogout} className="text-white bg-white/10 px-5 py-2.5 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button></div>
                     </nav>
 
                     {activeTab === 'administrasi' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-6 space-y-6">
+                        <div className="animate-slide-up max-w-xl mx-auto p-4 pt-6 space-y-6">
                             <div className="flex bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm mb-4">
                                 <button onClick={() => setReportSubTab('keuangan')} className={`flex-1 py-3.5 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest ${reportSubTab === 'keuangan' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500 hover:text-black'}`}>Lap. Konsolidasi</button>
                                 <button onClick={() => setReportSubTab('gaji')} className={`flex-1 py-3.5 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest ${reportSubTab === 'gaji' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500 hover:text-black'}`}>Gaji Terapis</button>
@@ -284,39 +280,57 @@
                                 const labaBersih = dataOwner.globalLabaBulanIni;
                                 
                                 return (
-                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm animate-fade-in">
+                                    <div className="bg-white p-4 sm:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm animate-fade-in">
                                         <div className="flex justify-between items-center mb-6">
-                                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#1C1C1E] flex items-center gap-3"><i className="fa-solid fa-chart-pie text-[#0A84FF]"></i> Laporan Bulan Ini</h3>
+                                            <h3 className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-[#1C1C1E] flex items-center gap-2 sm:gap-3"><i className="fa-solid fa-chart-pie text-[#0A84FF]"></i> Laporan Bulan Ini</h3>
                                             <button onClick={downloadLaporanBulanIni} className="bg-[#0A84FF] text-white p-3 rounded-xl hover:bg-blue-600 transition-all"><i className="fa-solid fa-download"></i></button>
                                         </div>
                                         
-                                        <div className="paper-slip p-8 rounded-3xl shadow-inner border border-gray-300 relative">
+                                        <div className="paper-slip p-5 sm:p-8 rounded-3xl shadow-inner border border-gray-300 relative">
                                             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-4 bg-white rounded-b-full"></div>
-                                            <h4 className="text-center font-black text-2xl text-[#FF3B30] mb-1 tracking-tighter uppercase">Bugar Refleksi</h4>
-                                            <p className="text-center font-bold text-[10px] uppercase border-b-2 border-dashed border-gray-400 pb-4 mb-5 tracking-[0.3em] text-gray-500">Laporan Konsolidasi</p>
+                                            <h4 className="text-center font-black text-xl sm:text-2xl text-[#FF3B30] mb-1 tracking-tighter uppercase">Bugar Refleksi</h4>
+                                            <p className="text-center font-bold text-[8px] sm:text-[10px] uppercase border-b-2 border-dashed border-gray-400 pb-4 mb-5 tracking-[0.3em] text-gray-500">Laporan Konsolidasi</p>
                                             
-                                            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 p-3 rounded-xl mb-6 text-center">Periode: {monthName}</p>
+                                            <p className="text-[9px] sm:text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 p-2 sm:p-3 rounded-xl mb-6 text-center">Periode: {monthName}</p>
                                             
+                                            {/* UPDATE: Struktur List Cabang Diperbaiki (Anti-Overlap) */}
                                             <div className="space-y-4 mb-6 border-b border-gray-300 pb-6">
                                                 {dataOwner.leaderboard.map(c => (
-                                                    <div key={c.id} className="flex justify-between items-center text-xs">
-                                                        <span className="font-black text-gray-800 uppercase">{c.id}</span>
-                                                        <div className="text-right"><span className="text-gray-500 font-bold mr-2">Omset: {formatIDR(c.omsetBulanIni)}</span> <span className="text-red-500 font-bold">| Beban: {formatIDR(c.expenseBulanIni)}</span></div>
+                                                    <div key={c.id} className="flex justify-between items-start sm:items-center text-[10px] sm:text-xs">
+                                                        <span className="font-black text-gray-800 uppercase leading-tight mt-0.5">{c.id}</span>
+                                                        <div className="text-right flex flex-col gap-1">
+                                                            <span className="text-gray-500 font-bold whitespace-nowrap">Omset: {formatIDR(c.omsetBulanIni)}</span> 
+                                                            <span className="text-red-500 font-bold whitespace-nowrap">Beban: {formatIDR(c.expenseBulanIni)}</span>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
 
-                                            <div className="flex justify-between items-center text-xs mb-6 border-b border-gray-300 pb-6">
-                                                <span className="font-black text-gray-800 uppercase">LOGISTIK PUSAT</span>
-                                                <span className="text-red-500 font-bold">- {formatIDR(logistikPusatBulanIni)}</span>
+                                            <div className="flex justify-between items-start text-[10px] sm:text-xs mb-6 border-b border-gray-300 pb-6">
+                                                <span className="font-black text-gray-800 uppercase mt-0.5">LOGISTIK PUSAT</span>
+                                                <span className="text-red-500 font-bold text-right whitespace-nowrap">- {formatIDR(logistikPusatBulanIni)}</span>
                                             </div>
                                             
                                             <div className="border-t border-b border-gray-300 py-4 mb-6 space-y-3">
-                                                <div className="flex justify-between font-black text-base text-gray-800"><span>TOTAL OMSET</span> <span>{formatIDR(dataOwner.grandTotalBulanIni)}</span></div>
-                                                <div className="flex justify-between font-black text-base text-red-600"><span>HAK TERAPIS</span> <span>- {formatIDR(dataOwner.grandBagiTerapisBulanIni)}</span></div>
-                                                <div className="flex justify-between font-black text-base text-red-600"><span>TOTAL BEBAN</span> <span>- {formatIDR(dataOwner.expenseBulanIni)}</span></div>
+                                                <div className="flex justify-between font-black text-sm sm:text-base text-gray-800">
+                                                    <span>TOTAL OMSET</span> 
+                                                    <span className="text-right text-xs sm:text-base">{formatIDR(dataOwner.grandTotalBulanIni)}</span>
+                                                </div>
+                                                <div className="flex justify-between font-black text-sm sm:text-base text-red-600">
+                                                    <span>HAK TERAPIS</span> 
+                                                    <span className="text-right text-xs sm:text-base">- {formatIDR(dataOwner.grandBagiTerapisBulanIni)}</span>
+                                                </div>
+                                                <div className="flex justify-between font-black text-sm sm:text-base text-red-600">
+                                                    <span>TOTAL BEBAN</span> 
+                                                    <span className="text-right text-xs sm:text-base">- {formatIDR(dataOwner.expenseBulanIni)}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex justify-between font-black text-2xl text-black items-center"><span className="text-sm tracking-widest uppercase">LABA KOTOR</span> <span className={labaBersih < 0 ? "text-red-600" : ""}>{formatIDR(labaBersih)}</span></div>
+
+                                            {/* UPDATE: Laba Kotor Dirapikan */}
+                                            <div className="flex flex-col items-end sm:flex-row sm:justify-between font-black text-xl text-black sm:items-center gap-1 mt-4">
+                                                <span className="text-xs tracking-widest uppercase text-gray-500 self-start sm:self-auto">LABA KOTOR</span> 
+                                                <span className={`text-2xl ${labaBersih < 0 ? "text-red-600" : "text-[#34C759]"}`}>{formatIDR(labaBersih)}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -365,8 +379,8 @@
 
                     {/* TAB: LOG ORDER BUKU BESAR */}
                     {activeTab === 'log_order' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-6 space-y-6">
-                            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                        <div className="animate-slide-up max-w-xl mx-auto p-4 pt-6 space-y-6">
+                            <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                                 <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#1C1C1E] mb-6 flex items-center gap-3"><i className="fa-solid fa-book-open text-[#0A84FF] text-lg"></i> Buku Besar Transaksi</h3>
                                 <HotelDateRangePicker value={filterLog} onChange={(val)=>setFilterLog({...filterLog, start:val.start, end:val.end})} title="Filter Periode Waktu" theme="light" />
                                 <div className="mt-5 mb-6">
@@ -387,30 +401,30 @@
                                 {logData.map((item, idx) => {
                                     const isBatal = Number(item.TAGIHAN) === 0;
                                     return (
-                                        <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
+                                        <div key={idx} className={`p-4 sm:p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
                                             <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
                                                 <div>
-                                                    <span className="bg-[#1C1C1E] text-white text-[9px] px-2.5 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span>
-                                                    <span className="text-[10px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span>
+                                                    <span className="bg-[#1C1C1E] text-white text-[8px] sm:text-[9px] px-2 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span>
+                                                    <span className="text-[9px] sm:text-[10px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span>
                                                 </div>
-                                                {isBatal && <span className="text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}
+                                                {isBatal && <span className="text-[8px] sm:text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}
                                                 {!isBatal && <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${item.METODE_BAYAR === 'TRANSFER' ? 'border-[#0A84FF] text-[#0A84FF]' : 'border-[#34C759] text-[#34C759]'}`}>{item.METODE_BAYAR}</span>}
                                             </div>
-                                            <div className="flex justify-between items-center mb-3">
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-1 gap-2 sm:gap-0">
                                                 <div>
-                                                    <h5 className={`font-black text-base text-[#1C1C1E] uppercase tracking-tight ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5>
-                                                    <p className="text-[10px] text-gray-500 font-bold tracking-widest mt-1">{item.PAKET}</p>
-                                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-2">Trp: {item.TERAPIS}</p>
+                                                    <h5 className={`font-black text-sm sm:text-base text-[#1C1C1E] uppercase tracking-tight ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5>
+                                                    <p className="text-[9px] sm:text-[10px] text-gray-500 font-bold tracking-widest mt-1">{item.PAKET}</p>
+                                                    <p className="text-[8px] sm:text-[9px] text-gray-400 font-black uppercase tracking-widest mt-2">Trp: {item.TERAPIS}</p>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className={`text-lg font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#0A84FF]'}`}>{formatIDR(item.TAGIHAN)}</p>
-                                                    <p className="text-[9px] text-gray-400 font-bold mt-1 tracking-widest">Id: {item.db_id || item.id}</p>
+                                                <div className="text-left sm:text-right">
+                                                    <p className={`text-base sm:text-lg font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#0A84FF]'}`}>{formatIDR(item.TAGIHAN)}</p>
+                                                    <p className="text-[8px] sm:text-[9px] text-gray-400 font-bold mt-1 tracking-widest">Id: {item.db_id || item.id}</p>
                                                 </div>
                                             </div>
                                             
                                             {/* UI PENDING & APPROVED BONUS KHUSUS FINANCE */}
                                             {!isBatal && item.STATUS_BONUS === 'PENDING' && (
-                                                <div className="bg-[#FFCC00]/10 border border-[#FFCC00]/30 p-3 rounded-xl mt-3">
+                                                <div className="bg-[#FFCC00]/10 border border-[#FFCC00]/30 p-3 rounded-xl mt-4">
                                                     <p className="text-[10px] font-black text-[#FFCC00] uppercase tracking-widest mb-1"><i className="fa-solid fa-bell mr-1"></i> Pengajuan Bonus Kasir</p>
                                                     <p className="text-[10px] text-gray-600 font-bold mb-3">Alasan Kasir: {item.ALASAN_BONUS || "-"}</p>
                                                     <div className="flex gap-2">
@@ -421,8 +435,8 @@
                                                 </div>
                                             )}
                                             {!isBatal && item.STATUS_BONUS === 'APPROVED' && (
-                                                <div className="bg-[#34C759]/10 border border-[#34C759]/30 p-2 rounded-xl mt-3 text-center">
-                                                    <p className="text-[9px] font-black text-[#34C759] uppercase tracking-widest"><i className="fa-solid fa-check-circle mr-1"></i> Bonus Approved (Dihitung Ulang)</p>
+                                                <div className="mt-3 bg-[#34C759]/10 p-2 text-center rounded-lg text-[9px] font-black text-[#34C759] uppercase">
+                                                    <i className="fa-solid fa-check-circle mr-1"></i> Bonus Approved
                                                 </div>
                                             )}
 
@@ -433,11 +447,11 @@
                         </div>
                     )}
 
-                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/90 backdrop-blur-2xl border-t border-white/10 pb-8 pt-3 px-6 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-white/90 backdrop-blur-2xl border-t border-gray-200 pb-8 pt-3 px-6 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
                         <div className="flex justify-between items-center">
-                            <button onClick={() => setActiveTab('administrasi')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'administrasi' ? 'text-[#0A84FF]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-file-invoice-dollar text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Administrasi</span></button>
-                            <button onClick={() => setActiveTab('log_order')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'log_order' ? 'text-[#0A84FF]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-book-open text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Log Order</span></button>
-                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1.5 transition-all text-gray-600 hover:text-white"><i className="fa-solid fa-power-off text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Keluar</span></button>
+                            <button onClick={() => setActiveTab('administrasi')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'administrasi' ? 'text-[#0A84FF]' : 'text-gray-400 hover:text-gray-600'}`}><i className="fa-solid fa-file-invoice-dollar text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Administrasi</span></button>
+                            <button onClick={() => setActiveTab('log_order')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'log_order' ? 'text-[#0A84FF]' : 'text-gray-400 hover:text-gray-600'}`}><i className="fa-solid fa-book-open text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Log Order</span></button>
+                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1.5 transition-all text-gray-400 hover:text-[#FF3B30]"><i className="fa-solid fa-power-off text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Keluar</span></button>
                         </div>
                     </div>
                 </div>
