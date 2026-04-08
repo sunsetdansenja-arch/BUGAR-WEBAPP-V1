@@ -767,16 +767,16 @@
                             <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'dashboard' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-chart-pie text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Dasbor</span></button>
                             <button onClick={() => setActiveTab('logistik')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'logistik' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-boxes-stacked text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Logistik</span></button>
                             <button onClick={() => setActiveTab('audit')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'audit' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-shield-halved text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Audit</span></button>
+                            {/* TOMBOL KELUAR OWNER YANG HILANG SUDAH DIKEMBALIKAN */}
+                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1.5 transition-all text-gray-500 hover:text-white"><i className="fa-solid fa-power-off text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Keluar</span></button>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // =================================================================
-        // FINANCE VIEW (NEW: Administrasi Laporan & Log Order Buku Besar)
-        // =================================================================
         const FinanceView = ({ onLogout }) => {
+            // ... (Kode FinanceView tetap sama persis tidak diubah) ...
             const isoToday = new Date().toISOString().split('T')[0];
             const [activeTab, setActiveTab] = useState('administrasi');
             
@@ -915,7 +915,7 @@
                 doc.setLineWidth(0.5); doc.line(20, 175, 190, 175);
                 
                 doc.setFontSize(20); doc.setFont(undefined, 'bold'); doc.setTextColor(52, 199, 89);
-                doc.text("TOTAL DITERIMA", 20, 195); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 195, { align: 'right' });
+                doc.text("TOTAL DITERIMA", 20, 195); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 220, { align: 'right' });
                 
                 doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.setTextColor(150, 150, 150);
                 doc.text("Dokumen ini sah dan diterbitkan secara otomatis oleh Sistem Bugar Connect.", 105, 230, { align: "center" });
