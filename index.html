@@ -1,1163 +1,1485 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bugar Connect V5.11 - Ultimate Enterprise</title>
-    
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { theme: { extend: { animation: { 'slide-up': 'slideUp 0.4s ease-out', 'fade-in': 'fadeIn 0.3s ease-out' }, keyframes: { slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }, fadeIn: { 'from': { opacity: '0' }, 'to': { opacity: '1' } } } } } }
-    </script>
-    <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .paper-slip { background-color: #fff; color: #1a1a1a; background-image: radial-gradient(#e5e5e5 1px, transparent 1px); background-size: 20px 20px; }
-        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-        input, select, textarea { font-size: 16px !important; }
-    </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body class="bg-[#111111] text-white">
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useCallback, useEffect, useMemo, useRef } = React;
-
-        const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
-        const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
-        
-        const PAKET_STANDAR = ["Paket 1 (70 Menit) - Rp 100.000", "Paket 2 (90 Menit) - Rp 120.000", "Paket 3 (120 Menit) - Rp 140.000", "Paket 4 (120 Menit) - Rp 150.000", "Paket 5 (120 Menit) - Rp 150.000", "Paket 6 (120 Menit) - Rp 170.000", "Paket 7 (120 Menit) - Rp 200.000", "Paket 8 - Rp 300.000: Chiropractic"];
-        const PAKET_LHOKSEUMAWE = ["Paket 1 (1.5 Jam) - Rp 100.000", "Paket 2 (2 Jam) - Rp 120.000", "Paket 3 (2 Jam) - Rp 130.000", "Paket 4 (2 Jam) - Rp 150.000", "Paket 5 (2.5 Jam) - Rp 200.000", "Paket 6 (2 Jam) - Rp 150.000", "Paket 7 - Rp 300.000: Chiropractic", "Paket 8 (2.5 Jam) - Rp 200.000", "Paket 9 (2.5 Jam) - Rp 200.000", "Paket 10 (3 Jam) - Rp 350.000"];
-        
-        // FIX HARGA HERMES 180K
-        const PAKET_HOTEL = ["Paket Hotel Hermes - Rp 180.000", "Paket Hotel Kriyad - Rp 200.000", "Paket Hotel Plum Lading - Rp 160.000", "Paket Hotel The Pade - Rp 180.000", "Paket Premium (Hotel) - Rp 220.000", "Paket Reguler (Hotel) - Rp 200.000", "Paket Standart (Hotel) - Rp 180.000"];
-        
-        const PAKET_NON = [
-            "BODY MASSAGE (60 Menit) - Rp 80.000", 
-            "REFLEKSI (60 Menit) - Rp 80.000", 
-            "BEKAM BASAH (60 Menit) - Rp 80.000", 
-            "LULUR - Rp 80.000", 
-            "TOTOK WAJAH (20 Menit) - Rp 60.000", 
-            "PIJAT KEPALA (20 Menit) - Rp 60.000", 
-            "TERAPI TELINGA - Rp 60.000",
-            "BEKAM KERING - Rp 50.000"
-        ];
-        
-        const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
-
-        const getBase64Logo = () => {
-            return new Promise((resolve) => {
-                const img = new Image(); img.crossOrigin = 'Anonymous'; img.src = LOGO_URL;
-                img.onload = () => { const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0); resolve(canvas.toDataURL('image/png')); };
-                img.onerror = () => resolve(null);
-            });
-        };
-
-        const HotelDateRangePicker = ({ value, onChange, title, theme = "dark" }) => {
-            const [step, setStep] = useState(0); const [showModal, setShowModal] = useState(false);
-            const days = useMemo(() => {
-                const arr = []; const today = new Date(); today.setHours(0,0,0,0);
-                const getLocalIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                for(let i=34; i>=0; i--) {
-                    const d = new Date(today); d.setDate(d.getDate() - i);
-                    arr.push({ date: d, iso: getLocalIso(d), dayStr: d.getDate(), isToday: i===0 });
-                } return arr;
-            }, []);
-            const handleDayClick = (iso) => { if (step === 0 || iso < value.start) { onChange({ start: iso, end: iso }); setStep(1); } else { onChange({ ...value, end: iso }); setStep(0); setShowModal(false); } };
-            const formatDateStr = (iso) => { if(!iso) return "-"; const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}); };
-
-            const isDark = theme === "dark";
-            const boxClass = isDark ? "bg-[#1C1C1E] border border-white/10 text-white hover:border-white/20 shadow-inner" : "bg-[#F2F2F7] border border-gray-200 text-[#1C1C1E] shadow-sm";
-            const titleClass = isDark ? "text-gray-500" : "text-gray-400";
-
-            return (
-                <div className="w-full">
-                    <label className={`text-[10px] uppercase font-black tracking-widest mb-2 block ${titleClass}`}>{title || "Pilih Rentang Waktu"}</label>
-                    <div onClick={() => {setShowModal(true); setStep(0);}} className={`${boxClass} rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all`}>
-                        <div className="flex gap-4 items-center"><i className="fa-regular fa-calendar text-[#0A84FF] text-xl"></i><div><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Mulai</p><p className="text-base font-black">{formatDateStr(value.start)}</p></div></div>
-                        <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-gray-300'}`}></div>
-                        <div className="text-right"><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Selesai</p><p className="text-base font-black">{formatDateStr(value.end)}</p></div>
-                    </div>
-                    {showModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-                            <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/10 animate-slide-up relative overflow-hidden">
-                                <div className="text-center mb-6"><h3 className="text-lg font-black uppercase tracking-tight text-white">{step === 0 ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai"}</h3><p className="text-[10px] text-[#0A84FF] font-bold uppercase tracking-widest mt-1">Maksimal 35 Hari Ke Belakang</p></div>
-                                <div className="grid grid-cols-7 gap-2 mb-2">{['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d=><div key={d} className="text-center text-[9px] font-black text-gray-500 uppercase">{d}</div>)}</div>
-                                <div className="grid grid-cols-7 gap-y-2 gap-x-0 relative">
-                                    {Array.from({length: days[0].date.getDay()}).map((_,i) => <div key={`blank-${i}`} />)}
-                                    {days.map((d, i) => {
-                                        const isStart = d.iso === value.start; const isEnd = d.iso === value.end; const inRange = d.iso > value.start && d.iso < value.end;
-                                        let bgClass = "bg-transparent text-gray-300";
-                                        if (isStart || isEnd) bgClass = "bg-[#0A84FF] text-white shadow-[0_0_15px_rgba(10,132,255,0.5)] z-10 scale-110 rounded-full";
-                                        else if (inRange) bgClass = "bg-[#0A84FF]/20 text-[#0A84FF] rounded-none";
-                                        else if (d.isToday) bgClass = "bg-white/10 text-white border border-white/20 rounded-full";
-                                        let wrapperClass = "flex justify-center items-center h-10 w-full relative cursor-pointer";
-                                        if(isStart && value.start !== value.end) wrapperClass += " rounded-l-full bg-[#0A84FF]/20";
-                                        if(isEnd && value.start !== value.end) wrapperClass += " rounded-r-full bg-[#0A84FF]/20";
-                                        return (<div key={i} className={wrapperClass} onClick={() => handleDayClick(d.iso)}><div className={`w-8 h-8 flex items-center justify-center font-bold text-sm transition-all ${bgClass}`}>{d.dayStr}</div></div>)
-                                    })}
-                                </div>
-                                <button onClick={()=>setShowModal(false)} className="mt-8 w-full py-4 bg-white/10 text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 text-base hover:bg-white/20 transition-all">Batalkan</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )
-        };
-
-        const BranchCard = ({ cabang, idx }) => {
-            const [expanded, setExpanded] = useState(false);
-            return (
-                <div className="bg-black rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-300 shadow-lg">
-                    <div className="p-5 sm:p-6 cursor-pointer active:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
-                        <div className="flex justify-between items-start sm:items-center mb-5 gap-2">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className={`shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-black text-sm sm:text-lg ${idx === 0 ? 'bg-gradient-to-br from-[#FF3B30] to-[#E02020] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/5'}`}>{idx + 1}</div>
-                                <h4 className="font-black text-lg sm:text-2xl tracking-tighter uppercase text-white leading-none truncate max-w-[120px] sm:max-w-none">{cabang.id}</h4>
-                            </div>
-                            <div className="text-right shrink-0">
-                                <p className="text-[8px] sm:text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1.5 whitespace-nowrap">Laba Hak Owner</p>
-                                <p className="text-lg sm:text-2xl font-black text-[#FF3B30] leading-none whitespace-nowrap">{formatIDR(cabang.labaHariIni)}</p>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-[#111111] p-3 sm:p-4 rounded-xl border border-white/5">
-                            <div><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Omset Total</p><p className="text-xs sm:text-sm font-black text-white">{formatIDR(cabang.omsetHariIni)}</p></div>
-                            <div className="text-right"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Pengeluaran</p><p className="text-xs sm:text-sm font-black text-gray-300">{formatIDR(cabang.expenseHariIni)}</p></div>
-                        </div>
-                    </div>
-
-                    <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
-                        <div className="grid grid-cols-3 gap-px bg-white/5 border-b border-white/5">
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Pasien</p><p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni}</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Margin</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Trp MVP</p><p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p></div>
-                        </div>
-                        <div className="p-4 space-y-2">
-                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-3 px-1">Rincian Transaksi Hari Ini</p>
-                            {cabang.logsHariIni && cabang.logsHariIni.length === 0 && <p className="text-center text-xs font-bold text-gray-600 py-4">Belum ada aktivitas</p>}
-                            {cabang.logsHariIni && cabang.logsHariIni.map((log, i) => (
-                                <div key={i} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
-                                    <div className="flex gap-3 items-center min-w-0"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div className="min-w-0"><p className={`text-xs font-bold uppercase truncate max-w-[120px] sm:max-w-[180px] ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
-                                    <p className={`text-xs font-black shrink-0 ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <div onClick={() => setExpanded(!expanded)} className="bg-black text-center py-3 border-t border-white/5 cursor-pointer hover:bg-white/5 transition-all text-gray-500 hover:text-white"><span className="text-[9px] font-black uppercase tracking-widest">{expanded ? 'Tutup Rincian ▲' : 'Lihat Rincian Hari Ini ▾'}</span></div>
-                </div>
-            )
-        }
-
-        const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
-            const [mode, setMode] = useState('pemasukan'); 
-            const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
-            const [history, setHistory] = useState([]);
-            const [expenseHistory, setExpenseHistory] = useState([]);
-            
-            const [formData, setFormData] = useState({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '', METODE_BAYAR: 'CASH' });
-            const [expenseData, setExpenseData] = useState({ NAMA_PENGELUARAN: '', NOMINAL: '', KETERANGAN: '' });
-
-            const [loading, setLoading] = useState(false);
-            const [fetching, setFetching] = useState(false);
-            
-            const [kategoriMenu, setKategoriMenu] = useState('REGULER');
-            const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-            const dropdownRef = useRef(null);
-
-            const isoToday = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-            const [filterRekap, setFilterRekap] = useState({ start: isoToday, end: isoToday });
-
-            const loadDashboardData = useCallback(async (isInitial = false) => {
-                if (isInitial) setFetching(true);
-                const res = await sendToN8N('load_data', { CABANG_ID: activeCabang });
-                if (res && (res.status === 'success' || res.history)) {
-                    setStats(res.stats || { hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
-                    setHistory(res.history || []);
-                    setExpenseHistory(res.expenseHistory || []); 
-                    const arrDates = (res.history || []).map(h => h.TANGGAL).sort();
-                    if(arrDates.length > 0) setFilterRekap({ start: arrDates[0], end: isoToday });
-                }
-                if (isInitial) setFetching(false);
-            }, [activeCabang]);
-
-            useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
-
-            // Tutup dropdown saat klik di luar
-            useEffect(() => {
-                const handleClickOutside = (event) => {
-                    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                        setIsDropdownOpen(false);
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "239f820a-2d32-4432-a4b1-af48e7f97550",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        5520,
+        6752
+      ],
+      "id": "83cc3f5c-1a54-4541-89c2-b366a33ddc5e",
+      "name": "Webhook",
+      "webhookId": "f1f7fafe-e526-484e-b4b0-e889181c6503"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "login",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
                     }
-                };
-                document.addEventListener("mousedown", handleClickOutside);
-                return () => document.removeEventListener("mousedown", handleClickOutside);
-            }, [dropdownRef]);
-
-            const expenseHariIniKasir = expenseHistory.filter(e => e.TANGGAL === isoToday).reduce((sum, item) => sum + (Number(item.NOMINAL)||0), 0);
-            const targetSetoran = stats.hariIniCash - expenseHariIniKasir;
-
-            const rekapTerapis = useMemo(() => {
-                const recapMap = {};
-                history.forEach(item => {
-                    if (item.TANGGAL < filterRekap.start || item.TANGGAL > filterRekap.end) return;
-                    if (Number(item.TAGIHAN) === 0) return;
-                    const namaTrp = item.TERAPIS || "Tanpa Nama";
-                    if (!recapMap[namaTrp]) recapMap[namaTrp] = { nama: namaTrp, pasien: 0, komisi: 0, riwayat: [] };
-                    recapMap[namaTrp].pasien += 1;
-                    recapMap[namaTrp].komisi += Number(item.BAGI_TERAPIS) || 0;
-                    recapMap[namaTrp].riwayat.push(item);
-                });
-                return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
-            }, [history, filterRekap]);
-
-            const isLhokseumawe = activeCabang.includes('LSM') || activeCabang === 'LHOKSEUMAWE';
-
-            // MIRRORING LOGIC (Untuk Live Card Estimasi)
-            const estimasiBagiHasil = useMemo(() => {
-                if (!formData.TAGIHAN || formData.TAGIHAN <= 0) return null;
-                
-                const wib = new Date(new Date().getTime() + (new Date().getTimezoneOffset() * 60000) + (3600000 * 7));
-                const jam = wib.getHours();
-                const menit = wib.getMinutes();
-                let isShiftMalam = false;
-                if ((jam === 22 && menit >= 40) || jam >= 23 || jam < 7) { isShiftMalam = true; }
-
-                const cleanTagihan = Number(formData.TAGIHAN);
-                const paketName = String(formData.PAKET || "").toUpperCase();
-                
-                // MENGHITUNG PASIEN KE BERAPA (Berdasarkan Terapis yg diketik)
-                const terapisName = formData.TERAPIS.trim().toUpperCase();
-                const pasienHariIni = history.filter(h => h.TANGGAL === isoToday && (h.TERAPIS || "").toUpperCase() === terapisName && Number(h.TAGIHAN) > 0).length;
-                const pasienKe = terapisName !== "" ? (pasienHariIni + 1) : 1;
-
-                let bagiTerapis = 0;
-                let bagiOwner = 0;
-                let tipeHitungan = "Persentase 30%";
-
-                if (paketName.includes("PAKET 8") || paketName.includes("CHIROPRACTIC")) {
-                    bagiTerapis = 100000;
-                    bagiOwner = cleanTagihan - bagiTerapis;
-                    tipeHitungan = "Flat Paket Khusus";
-                } 
-                else if (paketName.includes("HERMES")) {
-                    bagiTerapis = 54000;
-                    bagiOwner = cleanTagihan - bagiTerapis; 
-                    tipeHitungan = "Flat Hotel Hermes";
-                }
-                else if (paketName.includes("BODY MASSAGE (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
-                else if (paketName.includes("REFLEKSI (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
-                else if (paketName.includes("BEKAM BASAH")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
-                else if (paketName.includes("LULUR")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
-                else if (paketName.includes("TOTOK WAJAH")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
-                else if (paketName.includes("PIJAT KEPALA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
-                else if (paketName.includes("TERAPI TELINGA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
-                else if (paketName.includes("BEKAM KERING")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
-                else if (!paketName.includes("PAKET") && !paketName.includes("HOTEL") && paketName !== "") { 
-                    bagiTerapis = cleanTagihan * 0.30; tipeHitungan = "Ala Carte (30%)"; bagiOwner = cleanTagihan - bagiTerapis;
-                } else {
-                    let persenTerapis = 0.30;
-                    if (isShiftMalam) persenTerapis = 0.40;
-                    
-                    if (pasienKe === 4) persenTerapis = Math.max(persenTerapis, 0.40);
-                    else if (pasienKe === 5) persenTerapis = Math.max(persenTerapis, 0.45);
-                    else if (pasienKe >= 6) persenTerapis = Math.max(persenTerapis, 0.50);
-
-                    bagiTerapis = cleanTagihan * persenTerapis;
-                    bagiOwner = cleanTagihan - bagiTerapis;
-                    
-                    let labelPersen = persenTerapis * 100;
-                    if (pasienKe >= 4) {
-                        tipeHitungan = `Pasien Ke-${pasienKe} (${labelPersen}%)`;
-                    } else {
-                        tipeHitungan = isShiftMalam ? `Lembur/Overtime (${labelPersen}%)` : `Reguler (${labelPersen}%)`;
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LOGIN"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "load_data",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
                     }
-                }
-
-                return { bagiOwner, bagiTerapis, tipeHitungan };
-            }, [formData.TAGIHAN, formData.PAKET, formData.TERAPIS, history, isoToday]);
-
-            const handleSelectPaket = (selectedPaket) => {
-                let autoHarga = formData.TAGIHAN;
-                if (selectedPaket && !selectedPaket.includes("Ala Carte")) { 
-                    const match = selectedPaket.match(/Rp\s*([\d.]+)/); 
-                    if (match && match[1]) autoHarga = match[1].replace(/\./g, ''); 
-                } else if (selectedPaket.includes("Ala Carte")) { autoHarga = ""; }
-                
-                setFormData({ ...formData, PAKET: selectedPaket, TAGIHAN: autoHarga });
-                setIsDropdownOpen(false);
-            };
-
-            const activeListPaket = useMemo(() => {
-                if (kategoriMenu === 'REGULER') return isLhokseumawe ? PAKET_LHOKSEUMAWE : PAKET_STANDAR;
-                if (kategoriMenu === 'HOTEL') return PAKET_HOTEL;
-                return PAKET_NON;
-            }, [kategoriMenu, isLhokseumawe]);
-
-            const handleOrderSubmit = async (e) => {
-                e.preventDefault(); setLoading(true);
-                
-                // MENGHITUNG PASIEN KE BERAPA UNTUK DIKIRIM KE BACKEND N8N
-                const terapisName = formData.TERAPIS.trim().toUpperCase();
-                const pasienHariIni = history.filter(h => h.TANGGAL === isoToday && (h.TERAPIS || "").toUpperCase() === terapisName && Number(h.TAGIHAN) > 0).length;
-                const pasienKe = pasienHariIni + 1;
-
-                const payload = { ...formData, CABANG_ID: activeCabang, PASIEN_KE: pasienKe };
-
-                const res = await sendToN8N('insert', payload);
-                if (res && (res.id || res.status === 'success')) {
-                    setFormData({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '', METODE_BAYAR: 'CASH' });
-                    showToast('Pasien Berhasil Disimpan'); await loadDashboardData();
-                } else { showToast('Gagal Menyimpan', 'error'); }
-                setLoading(false);
-            };
-
-            const handleExpenseSubmit = async (e) => {
-                e.preventDefault(); setLoading(true);
-                const res = await sendToN8N('insert_expense', { ...expenseData, CABANG_ID: activeCabang });
-                if (res && res.status === 'success') {
-                    setExpenseData({ NAMA_PENGELUARAN: '', NOMINAL: '', KETERANGAN: '' });
-                    showToast('Pengeluaran Berhasil Dicatat'); await loadDashboardData();
-                } else { showToast('Gagal Mencatat', 'error'); }
-                setLoading(false);
-            };
-
-            const TerapisAccordion = ({ t }) => {
-                const [expanded, setExpanded] = useState(false);
-                return (
-                    <div className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm overflow-hidden mb-3">
-                        <div className="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-all" onClick={() => setExpanded(!expanded)}>
-                            <div><p className="font-black text-lg uppercase text-[#1C1C1E] tracking-tight leading-none">{t.nama}</p><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1.5">{t.pasien} Pasien Diselesaikan</p></div>
-                            <div className="text-right"><p className="text-xl font-black text-[#0A84FF] leading-none">{formatIDR(t.komisi)}</p><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-2">Rincian {expanded ? '▲' : '▼'}</p></div>
-                        </div>
-                        {expanded && (
-                            <div className="bg-[#F2F2F7] p-5 border-t border-gray-100 space-y-3 animate-fade-in">
-                                {t.riwayat.map((r, i) => (
-                                    <div key={i} className="flex justify-between items-center border-b border-gray-200 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
-                                        <div><p className="text-sm font-black uppercase text-[#1C1C1E] tracking-tight">{r.NAMA_PASIEN}</p><p className="text-[9px] font-bold text-gray-500 uppercase mt-1 tracking-widest">{r.TANGGAL} | {r.PAKET}</p></div>
-                                        <div className="text-right"><p className="text-sm font-black text-[#0A84FF]">{formatIDR(r.BAGI_TERAPIS)}</p><span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded mt-1 inline-block ${r.METODE_BAYAR === 'TRANSFER' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'bg-[#34C759]/10 text-[#34C759]'}`}>{r.METODE_BAYAR || 'CASH'}</span></div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )
-            };
-
-            return (
-                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
-                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
-                        <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm"><div className="flex items-center gap-3 text-[#1C1C1E]"><img src={LOGO_URL} alt="Logo" className="h-8 w-8 object-contain drop-shadow-md" /> <div><p className="text-[8px] text-gray-400 tracking-widest leading-none mb-0.5">PORTAL KASIR</p><span className="text-[#1C1C1E] text-sm tracking-tight">{activeCabang}</span></div></div><button onClick={onLogout} className="text-[#FF3B30] bg-[#FF3B30]/10 px-5 py-2.5 rounded-full text-[10px] flex items-center gap-2 hover:bg-[#FF3B30]/20 active:scale-95 transition-all tracking-widest"><i className="fa-solid fa-right-from-bracket"></i> KELUAR</button></div>
-                    </nav>
-
-                    <main className="max-w-xl mx-auto p-4 space-y-6 mt-4">
-                        <div className="flex bg-gray-200 p-1.5 rounded-full shadow-inner">
-                            <button onClick={() => setMode('pemasukan')} className={`flex-1 py-3.5 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pemasukan' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Pemasukan</button>
-                            <button onClick={() => setMode('pengeluaran')} className={`flex-1 py-3.5 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pengeluaran' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Laci Keluar</button>
-                        </div>
-
-                        {mode === 'pemasukan' && (
-                            <div className="animate-slide-up space-y-6">
-                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border border-gray-800">
-                                    <div className="absolute top-0 right-0 p-6 opacity-5"><i className="fa-solid fa-vault text-[120px]"></i></div>
-                                    <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1 relative z-10">Wajib Setor Laci (Hari Ini)</p>
-                                    <h3 className="text-5xl font-black tracking-tighter relative z-10 text-[#34C759]">{formatIDR(targetSetoran)}</h3>
-                                    <div className="flex justify-between items-center mt-6 relative z-10 text-[10px] font-bold uppercase border-t border-white/10 pt-4">
-                                        <div><span className="text-gray-500 block mb-1">Omset Cash</span> <span className="text-base text-white">{formatIDR(stats.hariIniCash)}</span></div>
-                                        <div className="text-right"><span className="text-gray-500 block mb-1">Laci Keluar</span> <span className="text-base text-[#FF3B30]">- {formatIDR(expenseHariIniKasir)}</span></div>
-                                    </div>
-                                    <p className="text-center text-[9px] text-[#0A84FF] font-black uppercase tracking-widest mt-5 bg-[#0A84FF]/10 py-2.5 rounded-xl border border-[#0A84FF]/20">Omset Transfer: {formatIDR(stats.hariIniTransfer)}</p>
-                                </div>
-
-                                <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
-                                    <h4 className="font-black text-xs text-[#1C1C1E] mb-6 tracking-widest uppercase flex items-center gap-2"><i className="fa-solid fa-user-plus text-[#0A84FF] text-lg"></i> Input Pasien Baru</h4>
-                                    <form onSubmit={handleOrderSubmit} className="space-y-4">
-                                        <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
-                                        <input type="tel" placeholder="WhatsApp (08...)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
-                                        
-                                        <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
-                                            <button type="button" onClick={()=>{setKategoriMenu('REGULER'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'REGULER' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Reguler</button>
-                                            <button type="button" onClick={()=>{setKategoriMenu('HOTEL'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'HOTEL' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Hotel</button>
-                                            <button type="button" onClick={()=>{setKategoriMenu('NON'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'NON' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Satuan</button>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 gap-4">
-                                            {/* CUSTOM PREMIUM DROPDOWN */}
-                                            <div className="relative" ref={dropdownRef}>
-                                                <div 
-                                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                                    className={`w-full p-4 rounded-2xl outline-none font-bold text-base transition-all border flex justify-between items-center cursor-pointer ${isDropdownOpen ? 'bg-white border-[#0A84FF] ring-2 ring-[#0A84FF]/20' : 'bg-[#F2F2F7] border-transparent hover:bg-white text-[#1C1C1E]'}`}
-                                                >
-                                                    <span className={formData.PAKET ? 'text-[#1C1C1E]' : 'text-gray-400'}>
-                                                        {formData.PAKET || "-- Pilih Layanan --"}
-                                                    </span>
-                                                    <i className={`fa-solid fa-chevron-down text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}></i>
-                                                </div>
-
-                                                {/* Dropdown Options Container (Glassmorphism) */}
-                                                {isDropdownOpen && (
-                                                    <div className="absolute z-50 w-full mt-2 bg-white/90 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden animate-slide-up">
-                                                        <div className="max-h-64 overflow-y-auto no-scrollbar py-2">
-                                                            {activeListPaket.map((p, i) => (
-                                                                <div 
-                                                                    key={i} 
-                                                                    onClick={() => handleSelectPaket(p)}
-                                                                    className="px-5 py-3 hover:bg-[#0A84FF]/10 hover:text-[#0A84FF] cursor-pointer text-sm font-bold text-gray-700 transition-colors border-b border-gray-100 last:border-0"
-                                                                >
-                                                                    {p}
-                                                                </div>
-                                                            ))}
-                                                            <div 
-                                                                onClick={() => handleSelectPaket("Paket Non-Paket (Ala Carte)")}
-                                                                className="px-5 py-4 bg-gray-50 hover:bg-gray-200 cursor-pointer text-xs font-black uppercase tracking-widest text-gray-600 transition-colors border-t border-gray-200"
-                                                            >
-                                                                <i className="fa-solid fa-pen-to-square mr-2"></i>Lainnya / Ketik Manual
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <input type="number" placeholder="Total Tagihan Rp (Cth: 150000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
-                                        </div>
-
-                                        <input type="text" placeholder="Nama Terapis (Cth: RANI)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF] uppercase" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value.toUpperCase()})} />
-                                        
-                                        {/* LIVE ESTIMASI CARD (Muncul otomatis saat nominal ada) */}
-                                        {estimasiBagiHasil && (
-                                            <div className="bg-[#0A84FF]/5 border border-[#0A84FF]/20 p-4 rounded-2xl animate-fade-in relative overflow-hidden mt-2">
-                                                <div className="absolute top-0 right-0 p-3 opacity-10"><i className="fa-solid fa-calculator text-5xl text-[#0A84FF]"></i></div>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#0A84FF] mb-3 relative z-10 flex items-center gap-1"><i className="fa-solid fa-bolt"></i> Live Estimasi Sistem</p>
-                                                <div className="flex justify-between items-center mb-2 relative z-10">
-                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hak Bugar (Owner)</span>
-                                                    <span className="text-sm font-black text-[#1C1C1E]">{formatIDR(estimasiBagiHasil.bagiOwner)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center relative z-10">
-                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hak Terapis</span>
-                                                    <div className="text-right">
-                                                        <span className="text-sm font-black text-[#34C759] block">{formatIDR(estimasiBagiHasil.bagiTerapis)}</span>
-                                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">({estimasiBagiHasil.tipeHitungan})</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="pt-3">
-                                            <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
-                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'CASH'})} className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'CASH' ? 'bg-white text-[#34C759] shadow-sm border border-gray-100' : 'text-gray-400 hover:text-black'}`}><i className="fa-solid fa-money-bill-wave"></i> CASH</button>
-                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'TRANSFER'})} className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'TRANSFER' ? 'bg-white text-[#0A84FF] shadow-sm border border-gray-100' : 'text-gray-400 hover:text-black'}`}><i className="fa-solid fa-building-columns"></i> TRANSFER</button>
-                                            </div>
-                                        </div>
-
-                                        <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#0A84FF] active:scale-[0.98] transition-all mt-4 tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(0,0,0,0.2)]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN TRANSAKSI"}</button>
-                                    </form>
-                                </div>
-
-                                <div className="space-y-4 pt-6 border-t border-gray-200">
-                                    <div className="flex justify-between items-end px-1 mb-2"><div><h4 className="font-black text-lg text-[#1C1C1E] tracking-tight uppercase"><i className="fa-solid fa-users text-[#0A84FF] mr-2"></i> Rekap Terapis</h4><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Transparansi Kinerja Cabang</p></div></div>
-                                    <HotelDateRangePicker value={filterRekap} onChange={setFilterRekap} title="Filter Tanggal Rekap" theme="light" />
-                                    {rekapTerapis.length === 0 && <div className="bg-white p-8 rounded-[2rem] text-center border border-gray-100 shadow-sm mt-4"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada data</p></div>}
-                                    <div className="space-y-3 mt-4">
-                                        {rekapTerapis.map((t, idx) => (
-                                            <TerapisAccordion key={idx} t={t} />
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {mode === 'pengeluaran' && (
-                            <div className="space-y-6 animate-slide-up">
-                                <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
-                                    <div className="text-center mb-8"><div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><i className="fa-solid fa-receipt text-[#FF3B30] text-3xl"></i></div><h4 className="font-black text-xl text-[#1C1C1E] tracking-tight uppercase">Catat Laci Keluar</h4><p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-2">Mengurangi Kewajiban Setoran</p></div>
-                                    <form onSubmit={handleExpenseSubmit} className="space-y-4">
-                                        <input type="text" placeholder="Nama Pengeluaran" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#FF3B30]/20 focus:bg-white transition-all border border-transparent focus:border-[#FF3B30]" value={expenseData.NAMA_PENGELUARAN} onChange={e => setExpenseData({...expenseData, NAMA_PENGELUARAN: e.target.value})} />
-                                        <input type="number" placeholder="Nominal Rp (Cth: 20000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#FF3B30]/20 focus:bg-white transition-all border border-transparent focus:border-[#FF3B30]" value={expenseData.NOMINAL} onChange={e => setExpenseData({...expenseData, NOMINAL: e.target.value})} />
-                                        <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#FF3B30]/20 focus:bg-white transition-all border border-transparent focus:border-[#FF3B30] resize-none" value={expenseData.KETERANGAN} onChange={e => setExpenseData({...expenseData, KETERANGAN: e.target.value})}></textarea>
-                                        <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 rounded-2xl hover:bg-red-600 active:scale-[0.98] transition-all mt-4 tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(255,59,48,0.3)]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN PENGELUARAN"}</button>
-                                    </form>
-                                </div>
-                                <div className="space-y-3">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1"><i className="fa-solid fa-list-check text-[#FF3B30] mr-1"></i> Log Laci Keluar (7 Hari Terakhir)</p>
-                                    {expenseHistory.length === 0 && <div className="bg-white p-8 rounded-[2rem] text-center border border-gray-100 shadow-sm"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada pengeluaran</p></div>}
-                                    {expenseHistory.map((exp, idx) => (
-                                        <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
-                                            <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-xl bg-red-50 text-[#FF3B30] flex items-center justify-center text-lg"><i className="fa-solid fa-arrow-down"></i></div><div><h5 className="font-black text-base text-[#1C1C1E] uppercase tracking-tight">{exp.NAMA_PENGELUARAN}</h5><p className="text-[10px] text-gray-400 font-bold uppercase mt-1 truncate max-w-[150px] tracking-widest">{exp.TANGGAL} | {exp.KETERANGAN || '-'}</p></div></div>
-                                            <p className="text-base font-black text-[#FF3B30]">- {formatIDR(exp.NOMINAL)}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </main>
-                </div>
-            );
-        };
-
-        const SupervisorView = ({ onLogout, sendToN8N, showToast }) => {
-            const [logs, setLogs] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const isoToday = new Date().toISOString().split('T')[0];
-            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday, search: '' });
-            const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
-            const [isDeleting, setIsDeleting] = useState(null);
-
-            const fetchLogs = useCallback(async () => { setLoading(true); const res = await sendToN8N('supervisor_load'); if (res && res.data) setLogs(res.data); setLoading(false); }, []);
-            useEffect(() => { fetchLogs(); }, [fetchLogs]);
-
-            const executeCancel = async () => {
-                const item = confirmModal.item; const targetId = item.db_id || item.id || item.ID;
-                setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
-                await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
-                showToast('Order Berhasil Dibatalkan'); await fetchLogs(); setIsDeleting(null);
-            };
-
-            const filteredLogs = logs.filter(log => {
-                const matchDate = log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end;
-                const matchSearch = filterDate.search === '' || log.NAMA_PASIEN?.toLowerCase().includes(filterDate.search.toLowerCase()) || log.CABANG_ID?.toLowerCase().includes(filterDate.search.toLowerCase());
-                return matchDate && matchSearch;
-            });
-
-            return (
-                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
-                    <nav className="bg-[#1C1C1E] p-4 sticky top-0 z-40 shadow-lg border-b border-white/10">
-                        <div className="max-w-xl mx-auto flex justify-between items-center text-white"><div className="flex items-center gap-3"><i className="fa-solid fa-shield-halved text-[#FF3B30] text-2xl"></i><div><p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p><h1 className="text-base font-black uppercase tracking-tight">Supervisor Portal</h1></div></div><button onClick={onLogout} className="text-white bg-white/10 px-5 py-2.5 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button></div>
-                    </nav>
-                    <main className="max-w-xl mx-auto p-4 space-y-6 mt-4">
-                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-                            <HotelDateRangePicker value={filterDate} onChange={(val)=>setFilterDate({...filterDate, start:val.start, end:val.end})} title="Filter Rentang Waktu (Maks 35 Hari)" theme="light" />
-                            <input type="text" placeholder="Cari Nama / Cabang..." className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all mt-5 border border-transparent" value={filterDate.search} onChange={e => setFilterDate({...filterDate, search: e.target.value})} />
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-end px-2"><p className="text-[11px] font-black text-[#1C1C1E] uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p><button onClick={fetchLogs} className="text-[#0A84FF] text-[10px] font-black uppercase tracking-widest p-2"><i className="fa-solid fa-rotate-right"></i> Refresh</button></div>
-                            {loading ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
-                            {filteredLogs.map((item, idx) => {
-                                const currentId = item.db_id || item.id || item.ID; const isBatal = Number(item.TAGIHAN) === 0;
-                                return (
-                                    <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 shadow-sm'}`}>
-                                        <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3"><div><span className="bg-[#1C1C1E] text-white text-[9px] px-2.5 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span><span className="text-[10px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span></div>{isBatal && <span className="text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}</div>
-                                        <div className="flex justify-between items-center"><div><h5 className={`font-black text-base text-[#1C1C1E] uppercase tracking-tight ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[10px] text-gray-500 font-bold tracking-widest mt-1">{item.PAKET}</p></div><div className="flex items-center gap-4"><div className="text-right"><p className={`text-base font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">Trp: {item.TERAPIS}</p></div><button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isBatal ? 'opacity-0' : 'bg-[#F2F2F7] text-gray-400 hover:bg-[#FF3B30] hover:text-white active:scale-90 text-lg'}`}>{isDeleting === currentId ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-ban"></i>}</button></div></div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </main>
-                    {confirmModal.show && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"><div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div><div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up"><i className="fa-solid fa-triangle-exclamation text-[#FF3B30] text-[50px] mb-5"></i><h3 className="text-2xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batalkan Order?</h3><p className="text-[11px] text-gray-500 font-bold mb-6 uppercase tracking-widest leading-relaxed">Tindakan ini akan meng-Nol-kan nominal tagihan untuk audit.</p><div className="bg-[#F2F2F7] p-5 rounded-2xl mb-6 text-left border border-gray-200"><p className="text-sm font-black uppercase text-[#1C1C1E]">{confirmModal.item.NAMA_PASIEN}</p><p className="text-[10px] font-bold uppercase text-gray-500 mt-1">{confirmModal.item.CABANG_ID} • {formatIDR(confirmModal.item.TAGIHAN)}</p></div><button onClick={executeCancel} className="w-full py-5 bg-[#FF3B30] text-white font-black rounded-2xl mb-3 active:scale-95 transition-all tracking-widest uppercase text-sm shadow-lg">YA, EKSEKUSI</button><button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-5 bg-gray-200 text-[#1C1C1E] font-black rounded-2xl active:scale-95 transition-all tracking-widest uppercase text-sm">KEMBALI</button></div></div>
-                    )}
-                </div>
-            );
-        };
-
-        const LogistikView = ({ onLogout, sendToN8N, showToast }) => {
-            const isoToday = new Date().toISOString().split('T')[0];
-            const [formData, setFormData] = useState({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
-            const [loading, setLoading] = useState(false);
-            const [logs, setLogs] = useState([]);
-            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday });
-            const [loadingLogs, setLoadingLogs] = useState(true);
-
-            const fetchLogs = useCallback(async () => {
-                setLoadingLogs(true);
-                const res = await sendToN8N('logistik_load');
-                if (res && res.data) setLogs(res.data);
-                setLoadingLogs(false);
-            }, []);
-
-            useEffect(() => { fetchLogs(); }, [fetchLogs]);
-
-            const handleSubmit = async (e) => {
-                e.preventDefault(); setLoading(true);
-                const res = await sendToN8N('insert_logistik', formData);
-                if (res && res.status === 'success') {
-                    setFormData({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
-                    showToast('Data Logistik Berhasil Dicatat!'); await fetchLogs();
-                } else { showToast('Gagal Mencatat Logistik', 'error'); }
-                setLoading(false);
-            };
-
-            const filteredLogs = logs.filter(log => log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end);
-
-            return (
-                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
-                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
-                        <div className="max-w-xl mx-auto flex justify-between items-center"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#0A84FF]/10 rounded-full flex items-center justify-center"><i className="fa-solid fa-boxes-stacked text-[#0A84FF] text-lg"></i></div><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Supply Chain</p><h1 className="text-base font-black uppercase tracking-tight text-[#1C1C1E]">Portal Logistik</h1></div></div><button onClick={onLogout} className="text-gray-500 hover:text-[#FF3B30] transition-all text-xl p-2"><i className="fa-solid fa-power-off"></i></button></div>
-                    </nav>
-                    <main className="max-w-xl mx-auto p-4 mt-4 space-y-6">
-                        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
-                            <h2 className="font-black text-xl text-[#1C1C1E] uppercase tracking-tight mb-1">Catat Pembelian</h2>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Input kebutuhan cabang & pusat</p>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Dialokasikan Untuk</label>
-                                    <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent appearance-none" value={formData.TARGET_CABANG} onChange={e => setFormData({...formData, TARGET_CABANG: e.target.value})}>
-                                        <option value="PUSAT">Pusat (Global)</option>
-                                        {Array.from({length: 12}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>Cabang BUGAR{i+1}</option>)}
-                                    </select>
-                                </div>
-                                <input type="text" placeholder="Nama Barang (Cth: Krim 5kg, Servis AC)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NAMA_BARANG} onChange={e => setFormData({...formData, NAMA_BARANG: e.target.value})} />
-                                <input type="number" placeholder="Nominal (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NOMINAL} onChange={e => setFormData({...formData, NOMINAL: e.target.value})} />
-                                <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent resize-none" value={formData.KETERANGAN} onChange={e => setFormData({...formData, KETERANGAN: e.target.value})}></textarea>
-                                <button type="submit" disabled={loading} className="w-full bg-[#0A84FF] text-white font-black py-5 rounded-2xl hover:bg-blue-600 active:scale-95 transition-all tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(10,132,255,0.3)] mt-4">
-                                    {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN LOGISTIK"}
-                                </button>
-                            </form>
-                        </div>
-                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-                            <HotelDateRangePicker value={filterDate} onChange={setFilterDate} title="Filter Riwayat Logistik" theme="light" />
-                            <div className="mt-8 space-y-3">
-                                {loadingLogs ? <div className="text-center py-6"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-2xl"></i></div> : null}
-                                {!loadingLogs && filteredLogs.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-4">Tidak ada data di rentang ini</p>}
-                                {filteredLogs.map((log, idx) => (
-                                    <div key={idx} className="bg-[#F2F2F7] p-5 rounded-2xl flex justify-between items-center border border-gray-200">
-                                        <div><span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded text-white shadow-sm ${log.TARGET_CABANG === 'PUSAT' ? 'bg-[#1C1C1E]' : 'bg-[#0A84FF]'}`}>{log.TARGET_CABANG}</span><h5 className="font-black text-base text-[#1C1C1E] uppercase mt-3 tracking-tight">{log.NAMA_BARANG}</h5><p className="text-[10px] text-gray-500 font-bold mt-1 tracking-widest">{log.TANGGAL}</p></div>
-                                        <div className="text-right"><p className="text-base font-black text-[#FF3B30]">- {formatIDR(log.NOMINAL)}</p></div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </main>
-                </div>
-            );
-        };
-
-        const OwnerView = ({ onLogout }) => {
-            const isoToday = new Date().toISOString().split('T')[0];
-            const [activeTab, setActiveTab] = useState('dashboard');
-            
-            const [data, setData] = useState({ grandOmsetHariIni: 0, grandBagiTerapisHariIni: 0, grandTotalBulanIni: 0, grandBagiTerapisBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [], logistikLogs: [] });
-            const [loading, setLoading] = useState(true);
-            const [refreshing, setRefreshing] = useState(false);
-            const [filterLogistikOwner, setFilterLogistikOwner] = useState({ start: isoToday, end: isoToday });
-
-            const loadOwnerData = async (isRefresh = false) => {
-                if (isRefresh) setRefreshing(true); else setLoading(true);
-                try {
-                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'owner_load' }) });
-                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
-                    if (finalData && finalData.json) finalData = finalData.json;
-                    setData(finalData || {});
-                } catch (e) {} setLoading(false); setRefreshing(false);
-            };
-
-            useEffect(() => { loadOwnerData(); }, []);
-
-            if (loading) return <div className="min-h-screen bg-[#111111] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl drop-shadow-[0_0_15px_rgba(255,59,48,0.5)]"></i></div>;
-            const filteredLogistikOwner = (data.logistikLogs || []).filter(l => l.tanggal >= filterLogistikOwner.start && l.tanggal <= filterLogistikOwner.end);
-
-            return (
-                <div className="min-h-screen bg-[#111111] text-white font-sans animate-fade-in pb-28">
-                    
-                    {/* TAB: DASBOR UTAMA */}
-                    {activeTab === 'dashboard' && (
-                        <div className="animate-slide-up">
-                            <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF3B30]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-                                <div className="max-w-xl mx-auto relative z-10">
-                                    <div className="flex justify-between items-start mb-10">
-                                        <div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Bugar Analytics</h1></div></div>
-                                        <button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#FF3B30]' : 'text-gray-300'}`}></i></button>
-                                    </div>
-                                    
-                                    {/* CARD HARI INI (MERAH) */}
-                                    <div className="bg-gradient-to-br from-[#FF3B30] to-[#E02020] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.4)] relative overflow-hidden border border-white/20">
-                                        <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-chart-line text-[100px]"></i></div>
-                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Hari Ini)</p>
-                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
-                                        
-                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
-                                            <div className="flex justify-between items-center">
-                                                <span className="opacity-70">Omset Global</span> 
-                                                <span className="text-sm font-black">{formatIDR(data.grandOmsetHariIni)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="opacity-70">Hak Terapis</span> 
-                                                <span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisHariIni)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="opacity-70">Pengeluaran / Laci Keluar</span> 
-                                                <span className="text-sm font-black">- {formatIDR(data.expenseHariIni)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* CARD BULAN INI (BIRU PREMIUM) */}
-                                    <div className="bg-gradient-to-br from-[#0A84FF] to-[#0040DD] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(10,132,255,0.4)] relative overflow-hidden border border-white/20 mt-6">
-                                        <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-calendar-check text-[100px]"></i></div>
-                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Bulan Ini)</p>
-                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaBulanIni)}</h2>
-                                        
-                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
-                                            <div className="flex justify-between items-center">
-                                                <span className="opacity-70">Omset Global</span> 
-                                                <span className="text-sm font-black">{formatIDR(data.grandTotalBulanIni)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="opacity-70">Hak Terapis</span> 
-                                                <span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisBulanIni)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="opacity-70">Total Beban</span> 
-                                                <span className="text-sm font-black">- {formatIDR(data.expenseBulanIni)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <main className="max-w-xl mx-auto p-6 space-y-8 mt-2">
-                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30] text-lg"></i> Performa Cabang Harian</h3>
-                                    <div className="space-y-4">
-                                        {data.leaderboard && data.leaderboard.map((cabang, idx) => (
-                                            <BranchCard key={cabang.id} cabang={cabang} idx={idx} />
-                                        ))}
-                                    </div>
-                                </div>
-                            </main>
-                        </div>
-                    )}
-
-                    {/* TAB: LOGISTIK */}
-                    {activeTab === 'logistik' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
-                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Logistik</h2><p className="text-[10px] text-[#0A84FF] font-black uppercase tracking-widest mt-2">Supply Chain Management</p></div>
-                            <div className="bg-[#0A84FF]/10 p-8 rounded-[2.5rem] border border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.05)]">
-                                <HotelDateRangePicker value={filterLogistikOwner} onChange={setFilterLogistikOwner} title="Filter Periode Belanja" />
-                                <div className="space-y-3 mt-6">
-                                    {filteredLogistikOwner.length === 0 && <p className="text-center text-[10px] font-bold text-[#0A84FF]/50 py-4 uppercase tracking-widest">Tidak ada pengeluaran logistik</p>}
-                                    {filteredLogistikOwner.map((log, idx) => (
-                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-[#0A84FF]/20 flex justify-between items-center backdrop-blur-sm">
-                                            <div><span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${log.target === 'PUSAT' ? 'bg-[#1C1C1E] text-white border border-white/10' : 'bg-[#0A84FF] text-white'}`}>{log.target}</span><h5 className="font-black text-xs text-white uppercase mt-2 truncate max-w-[150px]">{log.nama}</h5><p className="text-[9px] text-gray-500 font-bold mt-1 tracking-widest">{log.tanggal}</p></div>
-                                            <p className="text-sm font-black text-[#FF3B30]">- {formatIDR(log.nominal)}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* TAB: AUDIT (PEMBATALAN) */}
-                    {activeTab === 'audit' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
-                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Audit</h2><p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-2">Log Pembatalan Transaksi</p></div>
-                            <div className="bg-[#2A0808] p-8 rounded-[2.5rem] border border-[#FF3B30]/30 shadow-[0_0_30px_rgba(255,59,48,0.15)]">
-                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#FF3B30] mb-6 flex items-center gap-3"><i className="fa-solid fa-triangle-exclamation text-lg"></i> 20 Transaksi Dibatalkan Terakhir</h3>
-                                <div className="space-y-3">
-                                    {data.cancelledOrders && data.cancelledOrders.length === 0 && <p className="text-center text-xs font-bold text-red-500/50 py-4 uppercase tracking-widest">Bersih! Tidak ada pembatalan.</p>}
-                                    {data.cancelledOrders && data.cancelledOrders.map((batal, idx) => (
-                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center backdrop-blur-sm">
-                                            <div><span className="text-[#FF3B30] font-black text-[8px] bg-red-950 px-2 py-1 rounded uppercase tracking-widest mr-2">{batal.CABANG_ID}</span><span className="text-xs font-black uppercase text-gray-300 line-through">{batal.NAMA_PASIEN}</span><p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1.5">{batal.TANGGAL}</p></div>
-                                            <i className="fa-solid fa-ban text-red-900 text-xl"></i>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/90 backdrop-blur-2xl border-t border-white/10 pb-8 pt-3 px-6 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-                        <div className="flex justify-between items-center">
-                            <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'dashboard' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-chart-pie text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Dasbor</span></button>
-                            <button onClick={() => setActiveTab('logistik')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'logistik' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-boxes-stacked text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Logistik</span></button>
-                            <button onClick={() => setActiveTab('audit')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'audit' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-shield-halved text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Audit</span></button>
-                            {/* TOMBOL KELUAR OWNER YANG HILANG SUDAH DIKEMBALIKAN */}
-                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1.5 transition-all text-gray-500 hover:text-white"><i className="fa-solid fa-power-off text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Keluar</span></button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const FinanceView = ({ onLogout }) => {
-            // ... (Kode FinanceView tetap sama persis tidak diubah) ...
-            const isoToday = new Date().toISOString().split('T')[0];
-            const [activeTab, setActiveTab] = useState('administrasi');
-            
-            // State Administrasi (Gaji & Konsolidasi)
-            const [reportSubTab, setReportSubTab] = useState('keuangan'); 
-            const [dataOwner, setDataOwner] = useState(null);
-            const [filterGajiGlobal, setFilterGajiGlobal] = useState({ start: isoToday, end: isoToday });
-            const [gajiGlobalData, setGajiGlobalData] = useState({});
-            const [loadingGajiGlobal, setLoadingGajiGlobal] = useState(false);
-
-            // State Log Order
-            const [filterLog, setFilterLog] = useState({ start: isoToday, end: isoToday, cabang: 'ALL' });
-            const [logData, setLogData] = useState([]);
-            const [loadingLog, setLoadingLog] = useState(false);
-
-            // Fetch Data Konsolidasi Bulan Ini
-            useEffect(() => {
-                const loadOwnerData = async () => {
-                    try {
-                        const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'owner_load' }) });
-                        const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
-                        if (finalData && finalData.json) finalData = finalData.json;
-                        setDataOwner(finalData || null);
-                    } catch (e) {}
-                };
-                if(activeTab === 'administrasi' && reportSubTab === 'keuangan' && !dataOwner) {
-                    loadOwnerData();
-                }
-            }, [activeTab, reportSubTab, dataOwner]);
-
-            const fetchGajiGlobal = async () => {
-                setLoadingGajiGlobal(true);
-                try {
-                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterGajiGlobal.start, endDate: filterGajiGlobal.end, cabang: 'ALL' }) });
-                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
-                    const rawList = (finalData?.data || finalData?.json?.data)?.daftarTerapis || [];
-                    
-                    const grouped = {};
-                    rawList.forEach(t => {
-                        const cab = t.cabang || 'UNKNOWN';
-                        if(!grouped[cab]) grouped[cab] = [];
-                        grouped[cab].push(t);
-                    });
-                    setGajiGlobalData(grouped);
-                } catch (e) {} setLoadingGajiGlobal(false);
-            };
-
-            const fetchLogOrder = async () => {
-                setLoadingLog(true);
-                try {
-                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'filter_report', startDate: filterLog.start, endDate: filterLog.end, cabang: filterLog.cabang }) });
-                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
-                    const rawTransactions = (finalData?.data || finalData?.json?.data)?.rawTransactions || [];
-                    setLogData(rawTransactions);
-                } catch (e) {} setLoadingLog(false);
-            };
-
-            const downloadLaporanBulanIni = async () => {
-                if(!dataOwner || !dataOwner.leaderboard) return;
-                const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a4' });
-                const logo = await getBase64Logo();
-                if (logo) doc.addImage(logo, 'PNG', 90, 15, 30, 30);
-                
-                doc.setFontSize(20); doc.setTextColor(255, 59, 48); doc.setFont(undefined, 'bold'); doc.text("BUGAR REFLEKSI", 105, 55, { align: "center" });
-                doc.setFontSize(12); doc.setTextColor(50, 50, 50); doc.text("LAPORAN KEUANGAN KONSOLIDASI", 105, 62, { align: "center" });
-                
-                doc.setLineWidth(0.5); doc.line(20, 70, 190, 70);
-                doc.setFontSize(10); doc.setTextColor(100, 100, 100); doc.setFont(undefined, 'normal');
-                const monthName = new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' });
-                doc.text(`Periode Laporan: Bulan ${monthName}`, 20, 80);
-                
-                let y = 95;
-                doc.setFontSize(12); doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'bold');
-                doc.text("RINCIAN PER CABANG", 20, y);
-                y += 10;
-                
-                doc.setFont(undefined, 'normal');
-                dataOwner.leaderboard.forEach(c => {
-                    doc.text(`${c.id}`, 20, y);
-                    doc.text(`Omset: ${formatIDR(c.omsetBulanIni)}  |  Beban: ${formatIDR(c.expenseBulanIni)}`, 190, y, { align: 'right' });
-                    y += 8;
-                });
-                
-                y += 5; doc.setLineWidth(0.2); doc.line(20, y, 190, y); y += 10;
-                
-                const totalBranchExpense = dataOwner.leaderboard.reduce((s, c) => s + c.expenseBulanIni, 0);
-                const logistikPusatBulanIni = dataOwner.expenseBulanIni - totalBranchExpense;
-                
-                doc.text("Pengeluaran Logistik Pusat (Global)", 20, y); doc.text(`${formatIDR(logistikPusatBulanIni)}`, 190, y, { align: 'right' });
-                y += 15;
-                
-                doc.setLineWidth(0.5); doc.line(20, y, 190, y); y += 10;
-                
-                doc.setFont(undefined, 'bold'); doc.setFontSize(14);
-                doc.text("TOTAL OMSET KESELURUHAN", 20, y); doc.text(`${formatIDR(dataOwner.grandTotalBulanIni)}`, 190, y, { align: 'right' });
-                y += 8;
-                doc.setTextColor(255, 59, 48);
-                doc.text("HAK KOMISI TERAPIS", 20, y); doc.text(`- ${formatIDR(dataOwner.grandBagiTerapisBulanIni)}`, 190, y, { align: 'right' });
-                y += 8;
-                doc.text("TOTAL BEBAN KESELURUHAN", 20, y); doc.text(`- ${formatIDR(dataOwner.expenseBulanIni)}`, 190, y, { align: 'right' });
-                y += 10;
-                
-                doc.setLineWidth(1); doc.line(20, y, 190, y); y += 15;
-                
-                doc.setTextColor(0, 0, 0); doc.setFontSize(18);
-                const labaBersih = dataOwner.globalLabaBulanIni;
-                if(labaBersih < 0) doc.setTextColor(255, 59, 48);
-                doc.text("LABA KOTOR PERUSAHAAN", 20, y); doc.text(`${formatIDR(labaBersih)}`, 190, y, { align: 'right' });
-                
-                doc.save(`Laporan_Keuangan_${monthName.replace(/\s+/g, '_')}.pdf`);
-            };
-
-            const downloadSlipTerapis = async (terapis) => {
-                const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a4' });
-                const logo = await getBase64Logo();
-                if (logo) doc.addImage(logo, 'PNG', 90, 15, 30, 30);
-                
-                doc.setFontSize(20); doc.setTextColor(255, 59, 48); doc.setFont(undefined, 'bold'); doc.text("BUGAR REFLEKSI", 105, 55, { align: "center" });
-                doc.setFontSize(12); doc.setTextColor(50, 50, 50); doc.setFont(undefined, 'normal'); doc.text("SLIP GAJI & KOMISI TERAPIS", 105, 62, { align: "center" });
-                
-                doc.setLineWidth(0.5); doc.line(20, 70, 190, 70);
-                
-                doc.setFontSize(12); doc.setTextColor(80, 80, 80);
-                doc.text(`Cabang      : ${terapis.cabang}`, 20, 85);
-                doc.text(`Nama Terapis: ${terapis.nama}`, 20, 95);
-                doc.text(`Periode     : ${filterGajiGlobal.start} s/d ${filterGajiGlobal.end}`, 20, 105);
-                
-                doc.setLineWidth(0.2); doc.setLineDash([2, 2], 0); doc.line(20, 115, 190, 115); doc.setLineDash([]);
-                
-                doc.setFontSize(14); doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'bold');
-                doc.text("Rincian Kinerja:", 20, 130);
-                doc.setFontSize(12); doc.setFont(undefined, 'normal');
-                doc.text(`Total Pasien Diselesaikan`, 20, 145); doc.text(`${terapis.totalPasien} Orang`, 190, 145, { align: 'right' });
-                doc.text(`Total Komisi (Hak Terapis)`, 20, 155); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 155, { align: 'right' });
-                
-                doc.setLineWidth(0.5); doc.line(20, 175, 190, 175);
-                
-                doc.setFontSize(20); doc.setFont(undefined, 'bold'); doc.setTextColor(52, 199, 89);
-                doc.text("TOTAL DITERIMA", 20, 195); doc.text(`${formatIDR(terapis.totalKomisi)}`, 190, 220, { align: 'right' });
-                
-                doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.setTextColor(150, 150, 150);
-                doc.text("Dokumen ini sah dan diterbitkan secara otomatis oleh Sistem Bugar Connect.", 105, 230, { align: "center" });
-                doc.text("Terima kasih atas dedikasi dan kerja keras Anda!", 105, 236, { align: "center" });
-                
-                doc.save(`Slip_Gaji_${terapis.nama.replace(/\s+/g, '_')}_${filterGajiGlobal.start}.pdf`);
-            };
-
-            return (
-                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
-                    <nav className="bg-[#1C1C1E] p-4 sticky top-0 z-40 shadow-lg border-b border-white/10">
-                        <div className="max-w-xl mx-auto flex justify-between items-center text-white"><div className="flex items-center gap-3"><i className="fa-solid fa-file-invoice-dollar text-[#0A84FF] text-2xl"></i><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Finance Center</p><h1 className="text-base font-black uppercase tracking-tight">Portal Keuangan</h1></div></div><button onClick={onLogout} className="text-white bg-white/10 px-5 py-2.5 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button></div>
-                    </nav>
-
-                    {activeTab === 'administrasi' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-6 space-y-6">
-                            <div className="flex bg-white p-1.5 rounded-2xl border border-gray-200 shadow-sm mb-4">
-                                <button onClick={() => setReportSubTab('keuangan')} className={`flex-1 py-3.5 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest ${reportSubTab === 'keuangan' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500 hover:text-black'}`}>Lap. Konsolidasi</button>
-                                <button onClick={() => setReportSubTab('gaji')} className={`flex-1 py-3.5 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest ${reportSubTab === 'gaji' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500 hover:text-black'}`}>Gaji Terapis</button>
-                            </div>
-
-                            {reportSubTab === 'keuangan' && dataOwner && (() => {
-                                const monthName = new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' });
-                                const totalBranchExpense = dataOwner.leaderboard.reduce((s, c) => s + c.expenseBulanIni, 0);
-                                const logistikPusatBulanIni = dataOwner.expenseBulanIni - totalBranchExpense;
-                                const labaBersih = dataOwner.globalLabaBulanIni;
-                                
-                                return (
-                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm animate-fade-in">
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#1C1C1E] flex items-center gap-3"><i className="fa-solid fa-chart-pie text-[#0A84FF]"></i> Laporan Bulan Ini</h3>
-                                            <button onClick={downloadLaporanBulanIni} className="bg-[#0A84FF] text-white p-3 rounded-xl hover:bg-blue-600 transition-all"><i className="fa-solid fa-download"></i></button>
-                                        </div>
-                                        
-                                        <div className="paper-slip p-8 rounded-3xl shadow-inner border border-gray-300 relative">
-                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-4 bg-white rounded-b-full"></div>
-                                            <h4 className="text-center font-black text-2xl text-[#FF3B30] mb-1 tracking-tighter uppercase">Bugar Refleksi</h4>
-                                            <p className="text-center font-bold text-[10px] uppercase border-b-2 border-dashed border-gray-400 pb-4 mb-5 tracking-[0.3em] text-gray-500">Laporan Konsolidasi</p>
-                                            
-                                            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 p-3 rounded-xl mb-6 text-center">Periode: {monthName}</p>
-                                            
-                                            <div className="space-y-4 mb-6 border-b border-gray-300 pb-6">
-                                                {dataOwner.leaderboard.map(c => (
-                                                    <div key={c.id} className="flex justify-between items-center text-xs">
-                                                        <span className="font-black text-gray-800 uppercase">{c.id}</span>
-                                                        <div className="text-right"><span className="text-gray-500 font-bold mr-2">Omset: {formatIDR(c.omsetBulanIni)}</span> <span className="text-red-500 font-bold">| Beban: {formatIDR(c.expenseBulanIni)}</span></div>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            <div className="flex justify-between items-center text-xs mb-6 border-b border-gray-300 pb-6">
-                                                <span className="font-black text-gray-800 uppercase">LOGISTIK PUSAT</span>
-                                                <span className="text-red-500 font-bold">- {formatIDR(logistikPusatBulanIni)}</span>
-                                            </div>
-                                            
-                                            <div className="border-t border-b border-gray-300 py-4 mb-6 space-y-3">
-                                                <div className="flex justify-between font-black text-base text-gray-800"><span>TOTAL OMSET</span> <span>{formatIDR(dataOwner.grandTotalBulanIni)}</span></div>
-                                                <div className="flex justify-between font-black text-base text-red-600"><span>HAK TERAPIS</span> <span>- {formatIDR(dataOwner.grandBagiTerapisBulanIni)}</span></div>
-                                                <div className="flex justify-between font-black text-base text-red-600"><span>TOTAL BEBAN</span> <span>- {formatIDR(dataOwner.expenseBulanIni)}</span></div>
-                                            </div>
-                                            <div className="flex justify-between font-black text-2xl text-black items-center"><span className="text-sm tracking-widest uppercase">LABA KOTOR</span> <span className={labaBersih < 0 ? "text-red-600" : ""}>{formatIDR(labaBersih)}</span></div>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-                            {reportSubTab === 'keuangan' && !dataOwner && <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div>}
-
-                            {reportSubTab === 'gaji' && (
-                                <div className="animate-fade-in space-y-6">
-                                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-                                        <HotelDateRangePicker value={filterGajiGlobal} onChange={setFilterGajiGlobal} title="Pilih Periode Penggajian" theme="light" />
-                                        <button onClick={fetchGajiGlobal} disabled={loadingGajiGlobal} className="w-full bg-[#0A84FF] text-white font-black py-5 rounded-2xl hover:bg-blue-600 active:scale-95 transition-all text-sm uppercase tracking-widest mt-6 shadow-[0_10px_20px_rgba(10,132,255,0.3)]">
-                                            {loadingGajiGlobal ? <i className="fa-solid fa-spinner fa-spin"></i> : "TARIK SEMUA CABANG"}
-                                        </button>
-                                    </div>
-
-                                    {Object.keys(gajiGlobalData).length > 0 && (
-                                        <div className="space-y-6">
-                                            {Object.entries(gajiGlobalData).sort(([a],[b])=>a.localeCompare(b)).map(([cabangName, terapisList]) => (
-                                                <div key={cabangName} className="bg-white rounded-[2.5rem] border border-gray-200 overflow-hidden shadow-sm animate-fade-in">
-                                                    <div className="bg-[#F2F2F7] p-5 border-b border-gray-200 flex items-center gap-3">
-                                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm"><i className="fa-solid fa-store text-gray-400"></i></div>
-                                                        <h4 className="font-black text-lg text-[#1C1C1E] uppercase tracking-tight">{cabangName}</h4>
-                                                    </div>
-                                                    <div className="p-4 space-y-3">
-                                                        {terapisList.map((t, idx) => (
-                                                            <div key={idx} className="bg-[#F2F2F7] p-5 rounded-2xl border border-gray-100">
-                                                                <div className="flex justify-between items-center">
-                                                                    <div><p className="font-black text-base uppercase text-[#1C1C1E] tracking-tight">{t.nama}</p><p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">{t.totalPasien} Pasien</p></div>
-                                                                    <div className="text-right">
-                                                                        <p className="text-base font-black text-[#0A84FF] leading-none mb-1">{formatIDR(t.totalKomisi)}</p>
-                                                                        <button onClick={() => downloadSlipTerapis(t)} className="mt-2 bg-white hover:bg-gray-50 text-gray-600 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm border border-gray-200"><i className="fa-solid fa-print mr-1"></i> PDF A4</button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {Object.keys(gajiGlobalData).length === 0 && !loadingGajiGlobal && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-10">Tarik data untuk melihat gaji.</p>}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* TAB: LOG ORDER BUKU BESAR */}
-                    {activeTab === 'log_order' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-6 space-y-6">
-                            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#1C1C1E] mb-6 flex items-center gap-3"><i className="fa-solid fa-book-open text-[#0A84FF] text-lg"></i> Buku Besar Transaksi</h3>
-                                <HotelDateRangePicker value={filterLog} onChange={(val)=>setFilterLog({...filterLog, start:val.start, end:val.end})} title="Filter Periode Waktu" theme="light" />
-                                <div className="mt-5 mb-6">
-                                    <label className="text-[10px] uppercase font-black tracking-widest mb-2 block text-gray-400">Pilih Cabang</label>
-                                    <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base border border-transparent appearance-none" value={filterLog.cabang} onChange={e => setFilterLog({...filterLog, cabang: e.target.value})}>
-                                        <option value="ALL">-- SEMUA CABANG --</option>
-                                        {Array.from({length: 12}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>BUGAR{i+1}</option>)}
-                                    </select>
-                                </div>
-                                <button onClick={fetchLogOrder} disabled={loadingLog} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-gray-800 active:scale-95 transition-all text-sm uppercase tracking-widest shadow-lg">
-                                    {loadingLog ? <i className="fa-solid fa-spinner fa-spin"></i> : "TARIK LOG ORDER"}
-                                </button>
-                            </div>
-
-                            <div className="space-y-3">
-                                {loadingLog ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
-                                {!loadingLog && logData.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-10">Tarik data untuk melihat log.</p>}
-                                {logData.map((item, idx) => {
-                                    const isBatal = Number(item.TAGIHAN) === 0;
-                                    return (
-                                        <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200 shadow-sm'}`}>
-                                            <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
-                                                <div>
-                                                    <span className="bg-[#1C1C1E] text-white text-[9px] px-2.5 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span>
-                                                    <span className="text-[10px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span>
-                                                </div>
-                                                {isBatal && <span className="text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}
-                                                {!isBatal && <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${item.METODE_BAYAR === 'TRANSFER' ? 'border-[#0A84FF] text-[#0A84FF]' : 'border-[#34C759] text-[#34C759]'}`}>{item.METODE_BAYAR}</span>}
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <div>
-                                                    <h5 className={`font-black text-base text-[#1C1C1E] uppercase tracking-tight ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5>
-                                                    <p className="text-[10px] text-gray-500 font-bold tracking-widest mt-1">{item.PAKET}</p>
-                                                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-2">Trp: {item.TERAPIS}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className={`text-lg font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#0A84FF]'}`}>{formatIDR(item.TAGIHAN)}</p>
-                                                    <p className="text-[9px] text-gray-400 font-bold mt-1 tracking-widest">Id: {item.id}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/90 backdrop-blur-2xl border-t border-white/10 pb-8 pt-3 px-6 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-                        <div className="flex justify-between items-center">
-                            <button onClick={() => setActiveTab('administrasi')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'administrasi' ? 'text-[#0A84FF]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-file-invoice-dollar text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Administrasi</span></button>
-                            <button onClick={() => setActiveTab('log_order')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'log_order' ? 'text-[#0A84FF]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-book-open text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Log Order</span></button>
-                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1.5 transition-all text-gray-600 hover:text-white"><i className="fa-solid fa-power-off text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Keluar</span></button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const App = () => {
-            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
-            const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || ''); 
-            const [activeCabang, setActiveCabang] = useState(localStorage.getItem('activeCabang') || '');
-            
-            const [loginData, setLoginData] = useState({ id: '', password: '' });
-            const [loading, setLoading] = useState(false);
-            const [shakeLogin, setShakeLogin] = useState(false);
-            const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-
-            const showToast = (message, type = 'success') => { setToast({ show: true, message, type }); setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000); };
-
-            const sendToN8N = async (action, payload = {}) => {
-                try {
-                    const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...payload }) });
-                    const text = await response.text(); if (!text) return {}; const rawData = JSON.parse(text);
-                    let unwrapped = Array.isArray(rawData) ? rawData[0] : rawData; return (unwrapped && unwrapped.json) ? unwrapped.json : unwrapped;
-                } catch (error) { showToast("Koneksi Error", 'error'); return { status: 'error' }; }
-            };
-
-            const handleLogin = async (e) => {
-                e.preventDefault(); setLoading(true); setShakeLogin(false);
-                const cleanId = loginData.id.trim().toUpperCase(); const cleanPass = loginData.password.trim();
-                const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
-                
-                if (res && res.status === 'success') {
-                    let detectedRole = 'CABANG';
-                    if (cleanId.includes('OWNER') || cleanId.includes('MASTER')) detectedRole = 'OWNER';
-                    if (cleanId.includes('SUPERVISOR')) detectedRole = 'SUPERVISOR';
-                    if (cleanId.includes('LOGISTIK')) detectedRole = 'LOGISTIK';
-                    if (cleanId.includes('KEUANGAN') || cleanId.includes('FINANCE')) detectedRole = 'KEUANGAN';
-                    
-                    localStorage.setItem('isLoggedIn', 'true'); localStorage.setItem('userRole', detectedRole); localStorage.setItem('activeCabang', cleanId);
-                    setUserRole(detectedRole); setActiveCabang(cleanId); setIsLoggedIn(true);
-                } else { setShakeLogin(true); showToast(res.message || 'ID atau Password Salah', 'error'); }
-                setLoading(false);
-            };
-
-            const handleLogout = () => { localStorage.clear(); setIsLoggedIn(false); setUserRole(''); setActiveCabang(''); };
-
-            if (!isLoggedIn) {
-                return (
-                    <div className="min-h-screen bg-[#111111] flex items-center justify-center p-6 pb-24 relative overflow-hidden">
-                        <div className="absolute top-10 left-10 w-72 h-72 bg-[#FF3B30]/10 rounded-full blur-3xl"></div>
-                        <div className="absolute bottom-10 right-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div>
-                        <div className={`bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
-                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Portal Management V5.11</p></div>
-                            <form onSubmit={handleLogin} className="space-y-5">
-                                <input type="text" placeholder="LOGIN ID" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
-                                <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
-                                <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase text-base hover:bg-[#E02020]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "MASUK SEKARANG"}</button>
-                            </form>
-                        </div>
-                        {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
-                    </div>
-                );
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LOAD DATA"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "insert",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INSERT ORDER"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "delete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DELETE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "owner_load",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "OWNER LOAD"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "insert_expense",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "EXPENSE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "filter_report",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FILTER REPORT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "supervisor_load",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SUPERVISOR LOAD"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "insert_logistik",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INSERT LOGISTIK"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "logistik_load",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LOGISTIK LOAD"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "update_order",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "UPDATE ORDER"
             }
-
-            return (
-                <div>
-                    {userRole === 'OWNER' && <OwnerView onLogout={handleLogout} />}
-                    {userRole === 'SUPERVISOR' && <SupervisorView onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
-                    {userRole === 'LOGISTIK' && <LogistikView onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
-                    {userRole === 'CABANG' && <CashierView activeCabang={activeCabang} onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
-                    {userRole === 'KEUANGAN' && <FinanceView onLogout={handleLogout} />}
-                    
-                    {toast.show && <div className={`fixed bottom-32 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        5808,
+        6608
+      ],
+      "id": "2e0ac1da-9614-4e39-af64-2861b23b93f9",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "8HildWnSkKq16oAy",
+          "mode": "list"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "LOGIN_ID",
+              "keyValue": "={{ $json.body.id }}"
+            }
+          ]
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6208,
+        6208
+      ],
+      "id": "3167b235-04be-44bc-89a9-2796c18dfd87",
+      "name": "GET BRANCH AUTH"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputDashboard = $('Webhook').item.json.body;\nif (items.length === 0) return [{ json: { status: \"error\", message: \"ID Akses tidak ditemukan!\" } }];\nconst dataDatabase = items[0].json;\nif (inputDashboard.id === dataDatabase.LOGIN_ID?.toString() && inputDashboard.password === dataDatabase.PASSWORD?.toString()) {\n  return [{ json: { status: \"success\", message: \"Login Berhasil\", cabang: dataDatabase.LOGIN_ID?.toString() } }];\n} else {\n  return [{ json: { status: \"error\", message: \"Password Salah!\" } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6400,
+        6208
+      ],
+      "id": "99f74ce1-6206-4245-a1b3-414caa3033c2",
+      "name": "Validasi Login"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6608,
+        6208
+      ],
+      "id": "feb99133-68a8-48b8-b582-eb87069c3d8f",
+      "name": "Respon Login"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "KDdKPnHoT8H7lwvZ",
+          "mode": "list"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6208,
+        6416
+      ],
+      "id": "96f78bfd-a0bd-4d15-8860-be332c8a33cd",
+      "name": "GET LOG DATA"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: \"anti-loop\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6384,
+        6416
+      ],
+      "id": "4e273fb9-d28b-4ce5-b297-22579bb23d68",
+      "name": "Anti Loop Kasir"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "PMdyZTFnEIl9dZnw",
+          "mode": "list"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6592,
+        6416
+      ],
+      "id": "51e7578d-a40b-4a5d-b159-49a4ef0aee78",
+      "name": "GET LOG EXPENSE KASIR",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawTx = $('GET LOG DATA').all().map(i => ({...i.json, db_id: i.id || i.json.id}));\nconst rawExp = $('GET LOG EXPENSE KASIR').all().map(i => ({...i.json, db_id: i.id || i.json.id}));\nconst wib = new Date(new Date().getTime() + (new Date().getTimezoneOffset() * 60000) + (3600000 * 7));\nconst today = wib.toISOString().split('T')[0];\nconst limitDate = new Date(wib.getTime() - (7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];\nconst currentMonth = today.substring(0, 7);\nconst targetCabang = $('Webhook').first().json.body.CABANG_ID || 'BUGAR1';\nlet hariIni = 0, bulanIni = 0, hariIniCash = 0, hariIniTransfer = 0, history = [], expenseHistory = [];\nconst getUnique = (arr) => {\n    const m = new Map();\n    arr.forEach(i => m.set(i.db_id, i));\n    return Array.from(m.values());\n}\ngetUnique(rawTx).forEach(row => {\n  if (row.CABANG_ID !== targetCabang) return;\n  const tagihan = Number(row.TAGIHAN) || 0;\n  const metode = (row.METODE_BAYAR || 'CASH').toUpperCase();\n  if (row.TANGGAL && row.TANGGAL.startsWith(currentMonth)) bulanIni += tagihan;\n  if (row.TANGGAL === today) { \n      hariIni += tagihan; \n      if (metode === 'TRANSFER') hariIniTransfer += tagihan;\n      else hariIniCash += tagihan;\n  }\n  if (row.TANGGAL >= limitDate) { history.push(row); }\n});\ngetUnique(rawExp).forEach(row => {\n  if (row.CABANG_ID !== targetCabang) return;\n  if (row.TANGGAL >= limitDate) { expenseHistory.push(row); }\n});\nhistory.sort((a,b) => b.TANGGAL.localeCompare(a.TANGGAL));\nexpenseHistory.sort((a,b) => b.TANGGAL.localeCompare(a.TANGGAL));\nreturn [{ json: { status: 'success', stats: { hariIni, bulanIni, hariIniCash, hariIniTransfer }, history, expenseHistory } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6784,
+        6416
+      ],
+      "id": "82232295-9ecc-46e3-9240-a628f6b64eae",
+      "name": "Format Data"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6992,
+        6416
+      ],
+      "id": "145c0b56-9a41-4b0b-afac-aaf16357e304",
+      "name": "Respon Load"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $node[\"Webhook\"].json.body;\nconst utc = new Date().getTime() + (new Date().getTimezoneOffset() * 60000);\nconst wib = new Date(utc + (3600000 * 7));\nconst jamMulai = wib.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });\nconst jam = wib.getHours();\nconst menit = wib.getMinutes();\n\nlet isShiftMalam = false;\nif ((jam === 22 && menit >= 40) || jam >= 23 || jam < 7) { isShiftMalam = true; }\n\nlet durasiMenit = 60;\nconst paketName = String(input.PAKET || \"\").toUpperCase();\n\nif (paketName.includes(\"90\")) durasiMenit = 90;\nif (paketName.includes(\"120\") || paketName.includes(\"2 JAM\") || paketName.includes(\"PAKET 8\") || paketName.includes(\"CHIROPRACTIC\")) durasiMenit = 120;\nif (paketName.includes(\"20 MENIT\") || paketName.includes(\"TOTOK\") || paketName.includes(\"KEPALA\")) durasiMenit = 20;\n\nconst waktuSelesai = new Date(wib.getTime() + durasiMenit * 60000);\nconst jamSelesai = waktuSelesai.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });\n\nconst cleanTagihan = Number(input.TAGIHAN) || 0;\nlet bagiTerapis = 0;\nlet bagiOwner = 0;\n\n// MURNI MENANGKAP PENGAJUAN DARI KASIR\nconst isRequestBonus = input.REQ_BONUS === true || input.REQ_BONUS === \"true\";\nconst alasanBonus = input.ALASAN_BONUS || \"-\";\nconst statusBonus = isRequestBonus ? \"PENDING\" : \"-\";\n\nif (paketName.includes(\"PAKET 8\") || paketName.includes(\"CHIROPRACTIC\")) { bagiTerapis = 100000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (paketName.includes(\"HERMES\")) { bagiTerapis = 54000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (paketName.includes(\"BODY MASSAGE (60 MENIT)\")) { bagiTerapis = 30000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (paketName.includes(\"REFLEKSI (60 MENIT)\")) { bagiTerapis = 30000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (paketName.includes(\"BEKAM BASAH\")) { bagiTerapis = 30000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (paketName.includes(\"LULUR\")) { bagiTerapis = 30000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (paketName.includes(\"TOTOK WAJAH\")) { bagiTerapis = 20000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (paketName.includes(\"PIJAT KEPALA\")) { bagiTerapis = 20000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (paketName.includes(\"TERAPI TELINGA\")) { bagiTerapis = 20000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (paketName.includes(\"BEKAM KERING\")) { bagiTerapis = 20000; bagiOwner = cleanTagihan - bagiTerapis; } \nelse if (!paketName.includes(\"PAKET\") && !paketName.includes(\"HOTEL\") && paketName !== \"\") { \n    bagiTerapis = cleanTagihan * 0.30; bagiOwner = cleanTagihan - bagiTerapis;\n} \nelse {\n    // DEFAULT 30% KECUALI LEMBUR. Sisanya akan di-Acc via Keuangan\n    let persenTerapis = isShiftMalam ? 0.40 : 0.30;\n    bagiTerapis = cleanTagihan * persenTerapis;\n    bagiOwner = cleanTagihan - bagiTerapis;\n}\n\nlet noWa = String(input.NOMOR_CUSTOMER || \"\").replace(/\\D/g, '');\nif (noWa.startsWith('0')) noWa = '62' + noWa.slice(1);\n\nreturn [{\n  json: {\n    CABANG_ID: input.CABANG_ID || \"BUGAR1\",\n    NAMA_PASIEN: input.NAMA_PASIEN || \"Umum\",\n    PAKET: input.PAKET || \"-\",\n    TAGIHAN: cleanTagihan,\n    TERAPIS: input.TERAPIS ? String(input.TERAPIS).trim().toUpperCase() : \"TANPA NAMA\",\n    TANGGAL: wib.toISOString().split('T')[0],\n    JAM_MULAI: jamMulai,\n    JAM_SELESAI: jamSelesai,\n    BAGI_TERAPIS: bagiTerapis,\n    BAGI_OWNER: bagiOwner,\n    NOMOR_CUSTOMER: noWa,\n    STATUS_ORDER: \"In Progress\",\n    METODE_BAYAR: input.METODE_BAYAR || \"CASH\",\n    STATUS_BONUS: statusBonus,\n    ALASAN_BONUS: alasanBonus\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6208,
+        6624
+      ],
+      "id": "ac1e4180-fc06-440a-b152-a642a044860f",
+      "name": "Code Insert"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "KDdKPnHoT8H7lwvZ",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "NAMA_PASIEN": "={{ $json.NAMA_PASIEN }}",
+            "PAKET": "={{ $json.PAKET }}",
+            "TAGIHAN": "={{ $json.TAGIHAN }}",
+            "TERAPIS": "={{ $json.TERAPIS }}",
+            "TANGGAL": "={{ $json.TANGGAL }}",
+            "CABANG_ID": "={{ $json.CABANG_ID}}",
+            "JAM_MULAI": "={{ $json.JAM_MULAI }}",
+            "JAM_SELESAI": "={{ $json.JAM_SELESAI }}",
+            "BAGI_TERAPIS": "={{ $json.BAGI_TERAPIS }}",
+            "BAGI_OWNER": "={{ $json.BAGI_OWNER }}",
+            "NOMOR_CUSTOMER": "={{ $json.NOMOR_CUSTOMER }}",
+            "METODE_BAYAR": "={{ $json.METODE_BAYAR }}",
+            "STATUS_BONUS": "={{ $json.STATUS_BONUS }}",
+            "ALASAN_BONUS": "={{ $json.ALASAN_BONUS }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6384,
+        6624
+      ],
+      "id": "8607eed8-ab1f-4171-8d98-0cd1681b3ddd",
+      "name": "INSERT ORDER"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6592,
+        6624
+      ],
+      "id": "f65ca9f1-d364-41b2-b6d6-4e0b46794cf3",
+      "name": "Respon Insert"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "KDdKPnHoT8H7lwvZ",
+          "mode": "list"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.body.id_database }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "NAMA_PASIEN": "=={{ $json.body.nama_pasien }} [BATAL]",
+            "TAGIHAN": "0",
+            "BAGI_OWNER": "0",
+            "BAGI_TERAPIS": "0"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6208,
+        6816
+      ],
+      "id": "70ba477b-2a5c-47be-8707-e2c6c16167ad",
+      "name": "DELETE ROW"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"message\": \"Data berhasil dihapus\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6400,
+        6816
+      ],
+      "id": "f2f687af-5b9f-47d6-ba46-768afca7763b",
+      "name": "Respon Delete"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "KDdKPnHoT8H7lwvZ",
+          "mode": "list"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6208,
+        7008
+      ],
+      "id": "eb166704-4045-4383-b4bd-bcef076852c0",
+      "name": "Owner Get Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: \"anti-loop\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6384,
+        7008
+      ],
+      "id": "79e9b003-d3cc-4096-819c-837227d53d48",
+      "name": "Anti Loop 1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "8HildWnSkKq16oAy",
+          "mode": "list"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6592,
+        7008
+      ],
+      "id": "d3b72657-6100-4a7f-8192-47a4c3601707",
+      "name": "Owner Get Settings"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: \"anti-loop\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6784,
+        7008
+      ],
+      "id": "e9cc2036-2b1a-4c4e-b525-c4240cc4f547",
+      "name": "Anti Loop 2"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "PMdyZTFnEIl9dZnw",
+          "mode": "list",
+          "cachedResultName": "BUGAR REFLEKSI EXPENSE LOG",
+          "cachedResultUrl": "/projects/hFqRknMTWXnMyfsU/datatables/PMdyZTFnEIl9dZnw"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6992,
+        7008
+      ],
+      "id": "b914819b-87be-435c-ab45-ab320fbd9d8f",
+      "name": "Owner Get Expense",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: \"anti-loop\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7184,
+        7008
+      ],
+      "id": "dd502f93-ff63-4ec8-b6bf-08fb406fa4c7",
+      "name": "Anti Loop 5"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "IpK7qyGRXKwZCiND",
+          "mode": "list"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        7392,
+        7008
+      ],
+      "id": "24959995-f6cc-49db-a3c4-e21d7877593d",
+      "name": "GET LOGISTIK OWNER",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawTx = $('Owner Get Data').all().map(i => i.json);\nconst rawSet = $('Owner Get Settings').all().map(i => i.json);\nconst rawExp = $('Owner Get Expense').all().map(i => i.json);\nconst rawLogistik = $('GET LOGISTIK OWNER').all().map(i => i.json);\n\nconst getUnique = (arr) => {\n    const map = new Map();\n    arr.forEach(obj => {\n        const id = obj.id || JSON.stringify(obj);\n        if (!map.has(id)) map.set(id, obj);\n    });\n    return Array.from(map.values());\n}\nconst cleanTx = getUnique(rawTx);\nconst cleanSet = getUnique(rawSet);\nconst cleanExp = getUnique(rawExp);\nconst cleanLogistik = getUnique(rawLogistik);\n\nconst wib = new Date(new Date().getTime() + (new Date().getTimezoneOffset() * 60000) + (3600000 * 7));\nconst localISOTime = wib.toISOString().slice(0, 10);\nconst currentMonthStr = localISOTime.substring(0, 7);\n\nconst summary = { \n    grandOmsetHariIni: 0, grandBagiOwnerHariIni: 0, grandBagiTerapisHariIni: 0,\n    grandTotalBulanIni: 0, grandBagiOwnerBulanIni: 0, grandBagiTerapisBulanIni: 0,\n    expenseHariIni: 0, expenseBulanIni: 0, \n    cabang: {}, trenHari: { 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 0:0 }, terapis: {} \n};\n\ncleanSet.forEach(s => {\n  const cid = s.LOGIN_ID || s.CABANG_ID;\n  if (cid && !cid.toUpperCase().includes('MASTER') && !cid.toUpperCase().includes('OWNER') && !cid.toUpperCase().includes('LOGISTIK') && !cid.toUpperCase().includes('SUPERVISOR')) {\n    summary.cabang[cid] = { id: cid, persenOwner: (Number(s.PERSEN_OWNER) || 60) / 100, omsetHariIni: 0, bagiOwnerHariIni: 0, omsetBulanIni: 0, bagiOwnerBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, batalHariIni: 0, paxHariIni: 0, lastTx: \"-\", terapisHariIni: {}, logsHariIni: [] };\n  }\n});\n\ncleanTx.forEach(tx => {\n  const cid = tx.CABANG_ID;\n  if (!cid || !summary.cabang[cid]) return;\n  const tagihan = Number(tx.TAGIHAN) || 0;\n  const bagiOwner = Number(tx.BAGI_OWNER) || 0;\n  const bagiTerapis = Number(tx.BAGI_TERAPIS) || 0;\n  const isBatal = tagihan === 0;\n  const tgl = tx.TANGGAL || tx.createdAt?.substring(0, 10) || \"\";\n  const namaTerapis = tx.TERAPIS ? String(tx.TERAPIS).trim().toUpperCase() : \"TANPA NAMA\";\n  const jam = tx.JAM_MULAI || \"-\";\n  \n  if (tgl === localISOTime) {\n    if (!isBatal) { \n        summary.cabang[cid].omsetHariIni += tagihan; \n        summary.cabang[cid].bagiOwnerHariIni += bagiOwner; \n        summary.grandOmsetHariIni += tagihan; \n        summary.grandBagiOwnerHariIni += bagiOwner; \n        summary.grandBagiTerapisHariIni += bagiTerapis; \n        summary.cabang[cid].paxHariIni += 1; \n        summary.cabang[cid].logsHariIni.push({ id: tx.id, jam: jam, nama: tx.NAMA_PASIEN, nominal: tagihan, type: 'income', terapis: namaTerapis }); \n        summary.cabang[cid].terapisHariIni[namaTerapis] = (summary.cabang[cid].terapisHariIni[namaTerapis] || 0) + 1; \n        if (summary.cabang[cid].lastTx === \"-\" || jam > summary.cabang[cid].lastTx) summary.cabang[cid].lastTx = jam; \n    } else { summary.cabang[cid].batalHariIni += 1; }\n  }\n  if (tgl.startsWith(currentMonthStr) && !isBatal) {\n    summary.cabang[cid].omsetBulanIni += tagihan; \n    summary.cabang[cid].bagiOwnerBulanIni += bagiOwner;\n    summary.grandTotalBulanIni += tagihan; \n    summary.grandBagiOwnerBulanIni += bagiOwner;\n    summary.grandBagiTerapisBulanIni += bagiTerapis;\n    summary.trenHari[new Date(tgl).getDay()] += 1; \n    summary.terapis[namaTerapis] = (summary.terapis[namaTerapis] || 0) + tagihan;\n  }\n});\n\ncleanExp.forEach(ex => {\n    const cid = ex.CABANG_ID; const tgl = ex.TANGGAL; const nominal = Number(ex.NOMINAL) || 0; const jam = ex.createdAt ? ex.createdAt.substring(11,16) : \"-\";\n    if (tgl === localISOTime) summary.expenseHariIni += nominal;\n    if (tgl && tgl.startsWith(currentMonthStr)) summary.expenseBulanIni += nominal;\n    if (cid && summary.cabang[cid]) {\n        if (tgl === localISOTime) { summary.cabang[cid].expenseHariIni += nominal; summary.cabang[cid].logsHariIni.push({ id: ex.id, jam: jam, nama: ex.NAMA_PENGELUARAN, nominal: nominal, type: 'expense', terapis: '' }); }\n        if (tgl && tgl.startsWith(currentMonthStr)) summary.cabang[cid].expenseBulanIni += nominal;\n    }\n});\n\ncleanLogistik.forEach(log => {\n    const tgl = log.TANGGAL; const target = log.TARGET_CABANG; const nominal = Number(log.NOMINAL) || 0;\n    if (tgl === localISOTime) summary.expenseHariIni += nominal;\n    if (tgl && tgl.startsWith(currentMonthStr)) summary.expenseBulanIni += nominal;\n    if (target && target !== 'PUSAT' && summary.cabang[target]) {\n        if (tgl === localISOTime) summary.cabang[target].expenseHariIni += nominal;\n        if (tgl && tgl.startsWith(currentMonthStr)) summary.cabang[target].expenseBulanIni += nominal;\n    }\n});\n\nconst leaderboard = Object.values(summary.cabang).map(c => {\n    c.logsHariIni.sort((a,b) => b.jam.localeCompare(a.jam));\n    let mvp = \"-\"; let maxPax = 0;\n    for (const [t, p] of Object.entries(c.terapisHariIni)) { if (p > maxPax) { maxPax = p; mvp = t; } }\n    c.mvp = maxPax > 0 ? `${mvp} (${maxPax} Pax)` : \"-\";\n    c.margin = c.omsetHariIni > 0 ? Math.round(((c.bagiOwnerHariIni - c.expenseHariIni) / c.omsetHariIni) * 100) : 0;\n    return {...c, labaHariIni: c.bagiOwnerHariIni - c.expenseHariIni, labaBulanIni: c.bagiOwnerBulanIni - c.expenseBulanIni};\n}).sort((a, b) => b.labaHariIni - a.labaHariIni);\n\nconst urutanHari = [1, 2, 3, 4, 5, 6, 0];\nconst namaHari = { 1:\"Senin\", 2:\"Selasa\", 3:\"Rabu\", 4:\"Kamis\", 5:\"Jumat\", 6:\"Sabtu\", 0:\"Minggu\" };\nconst trenData = urutanHari.map(index => ({ hari: namaHari[index], pasien: summary.trenHari[index] }));\nconst topTerapis = Object.entries(summary.terapis).map(([nama, omset]) => ({ nama, omset })).sort((a, b) => b.omset - a.omset).slice(0, 3);\nconst cancelledOrders = [];\ncleanTx.forEach(tx => { if (Number(tx.TAGIHAN) === 0 && tx.NAMA_PASIEN?.includes(\"[BATAL]\")) cancelledOrders.push(tx); });\ncancelledOrders.sort((a,b) => b.TANGGAL.localeCompare(a.TANGGAL));\n\nconst logistikLogs = cleanLogistik.map(l => ({ id: l.id, tanggal: l.TANGGAL, kategori: l.KATEGORI, target: l.TARGET_CABANG, nama: l.NAMA_BARANG, nominal: Number(l.NOMINAL) || 0, keterangan: l.KETERANGAN })).reverse();\n\nreturn [{ json: { \n    grandOmsetHariIni: summary.grandOmsetHariIni, \n    grandBagiTerapisHariIni: summary.grandBagiTerapisHariIni,\n    grandTotalBulanIni: summary.grandTotalBulanIni, \n    grandBagiTerapisBulanIni: summary.grandBagiTerapisBulanIni,\n    expenseHariIni: summary.expenseHariIni, \n    expenseBulanIni: summary.expenseBulanIni, \n    globalLabaHariIni: summary.grandBagiOwnerHariIni - summary.expenseHariIni, \n    globalLabaBulanIni: summary.grandBagiOwnerBulanIni - summary.expenseBulanIni, \n    leaderboard: leaderboard, \n    trenHari: trenData, \n    topTerapis: topTerapis, \n    cancelledOrders: cancelledOrders.slice(0, 20), \n    logistikLogs: logistikLogs \n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7584,
+        7008
+      ],
+      "id": "eb793adc-17ea-425d-b04b-81b9d4d8597a",
+      "name": "Kalkulasi Rekap Owner"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        7792,
+        7008
+      ],
+      "id": "f94a25db-fdb6-45d7-b495-99965dcabfcf",
+      "name": "Respon Owner"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').item.json.body;\nconst wib = new Date(new Date().getTime() + (new Date().getTimezoneOffset() * 60000) + (3600000 * 7));\nreturn [{ json: { CABANG_ID: input.CABANG_ID, TANGGAL: wib.toISOString().split('T')[0], NAMA_PENGELUARAN: input.NAMA_PENGELUARAN, NOMINAL: Number(input.NOMINAL) || 0, KETERANGAN: input.KETERANGAN || \"-\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6208,
+        7216
+      ],
+      "id": "cea3d66e-518a-4bdc-acd4-8754f0476eaf",
+      "name": "FORMAT EXPENSE"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "PMdyZTFnEIl9dZnw",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "CABANG_ID": "={{ $json.CABANG_ID }}",
+            "TANGGAL": "={{ $json.TANGGAL }}",
+            "NAMA_PENGELUARAN": "={{ $json.NAMA_PENGELUARAN }}",
+            "NOMINAL": "={{ $json.NOMINAL }}",
+            "KETERANGAN": "={{ $json.KETERANGAN }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6400,
+        7216
+      ],
+      "id": "f62f7e71-aba2-44e3-b21a-f4c8014147e9",
+      "name": "INSERT EXPENSE"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"success\", \"message\": \"Pengeluaran dicatat\" }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6608,
+        7216
+      ],
+      "id": "66c12040-0922-4d44-81bb-2f7ec025de77",
+      "name": "Respon Expense"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').item.json.body;\nconst wib = new Date(new Date().getTime() + (new Date().getTimezoneOffset() * 60000) + (3600000 * 7));\nreturn [{ json: { KATEGORI: input.TARGET_CABANG === 'PUSAT' ? 'PUSAT' : 'CABANG', TARGET_CABANG: input.TARGET_CABANG, TANGGAL: wib.toISOString().split('T')[0], NAMA_BARANG: input.NAMA_BARANG, NOMINAL: Number(input.NOMINAL) || 0, KETERANGAN: input.KETERANGAN || \"-\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6208,
+        7408
+      ],
+      "id": "6ccf402c-1ff3-4f28-ba7c-c11b01d88e71",
+      "name": "Format Logistik"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "IpK7qyGRXKwZCiND",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "KATEGORI": "={{ $json.KATEGORI }}",
+            "TARGET_CABANG": "={{ $json.TARGET_CABANG }}",
+            "TANGGAL": "={{ $json.TANGGAL }}",
+            "NAMA_BARANG": "={{ $json.NAMA_BARANG }}",
+            "NOMINAL": "={{ $json.NOMINAL }}",
+            "KETERANGAN": "={{ $json.KETERANGAN }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6400,
+        7408
+      ],
+      "id": "389b211b-1cda-458a-8cb6-49713f49eb76",
+      "name": "INSERT LOGISTIK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"success\", \"message\": \"Logistik dicatat\" }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6608,
+        7408
+      ],
+      "id": "dae3a24d-824d-4039-b57d-8959cd888594",
+      "name": "Respon Logistik"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "KDdKPnHoT8H7lwvZ",
+          "mode": "list"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6208,
+        7600
+      ],
+      "id": "bc4ee26a-7477-48de-b827-735673457c87",
+      "name": "GET FILTER LOG"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: \"anti-loop\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6384,
+        7600
+      ],
+      "id": "05f02a25-c9d2-4a3c-b9c9-3b1399443b14",
+      "name": "Anti Loop 3"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "PMdyZTFnEIl9dZnw",
+          "mode": "list"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6592,
+        7600
+      ],
+      "id": "c05c542b-fa49-4dcd-8025-08f0314ca98f",
+      "name": "GET FILTER EXPENSE",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const allTx = $('GET FILTER LOG').all().map(i => i.json);\nconst allExp = $('GET FILTER EXPENSE').all().map(i => i.json);\nconst filter = $('Webhook').item.json.body;\nconst startDate = filter.startDate;\nconst endDate = filter.endDate;\nconst targetCabang = filter.cabang || 'ALL';\n\nlet report = { omset: 0, bagiOwner: 0, expense: 0, laba: 0, terapis: {}, rawTransactions: [] };\n\nallTx.forEach(tx => {\n    if (tx.TANGGAL >= startDate && tx.TANGGAL <= endDate) {\n        if (targetCabang === 'ALL' || tx.CABANG_ID === targetCabang) {\n            const tagihan = Number(tx.TAGIHAN) || 0;\n            const bagiOwner = Number(tx.BAGI_OWNER) || 0;\n            const bagiTerapis = Number(tx.BAGI_TERAPIS) || 0;\n            \n            const db_id = tx.id || tx.ID || tx.db_id;\n            report.rawTransactions.push({...tx, db_id: db_id});\n\n            if (tagihan > 0) {\n                report.omset += tagihan;\n                report.bagiOwner += bagiOwner;\n                \n                const rawTerapis = tx.TERAPIS ? String(tx.TERAPIS).trim().toUpperCase() : \"TANPA NAMA\";\n                const cid = tx.CABANG_ID || \"UNKNOWN\";\n                const key = cid + \"_\" + rawTerapis;\n                \n                if (!report.terapis[key]) report.terapis[key] = { cabang: cid, nama: rawTerapis, totalPasien: 0, totalKomisi: 0 };\n                report.terapis[key].totalPasien += 1;\n                report.terapis[key].totalKomisi += bagiTerapis;\n            }\n        }\n    }\n});\n\nallExp.forEach(ex => {\n    if (ex.TANGGAL >= startDate && ex.TANGGAL <= endDate) {\n        if (targetCabang === 'ALL' || ex.CABANG_ID === targetCabang) {\n            report.expense += (Number(ex.NOMINAL) || 0);\n        }\n    }\n});\n\nreport.laba = report.bagiOwner - report.expense;\nreport.daftarTerapis = Object.values(report.terapis).sort((a,b)=>b.totalKomisi - a.totalKomisi);\n\nreport.rawTransactions.sort((a,b) => {\n    const dateA = a.TANGGAL + \" \" + (a.JAM_MULAI || \"\");\n    const dateB = b.TANGGAL + \" \" + (b.JAM_MULAI || \"\");\n    return dateB.localeCompare(dateA);\n});\n\nreturn [{ json: { status: \"success\", data: report } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6784,
+        7600
+      ],
+      "id": "dd8efd53-58cb-4eb2-8350-599466e9242b",
+      "name": "HITUNG REPORT"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6992,
+        7600
+      ],
+      "id": "95e279df-eca7-4c98-b4d2-83920a97ea71",
+      "name": "Respon Filter"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "KDdKPnHoT8H7lwvZ",
+          "mode": "list"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6208,
+        7824
+      ],
+      "id": "e3ba0b2a-7df5-49fc-962c-18af61e8fa7d",
+      "name": "GET SUPERVISOR LOG"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allData = $('GET SUPERVISOR LOG').all().map(i => ({...i.json, db_id: i.json.id || i.id}));\nconst wib = new Date(new Date().getTime() + (new Date().getTimezoneOffset() * 60000) + (3600000 * 7));\nconst limitDate = new Date(wib.getTime() - (15 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];\nconst filtered = allData.filter(tx => tx.TANGGAL >= limitDate).reverse();\nreturn [{ json: { status: 'success', data: filtered } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6432,
+        7824
+      ],
+      "id": "cc4e879b-ab1e-4203-a52f-cec0c74f288f",
+      "name": "Supervisor Filter"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6640,
+        7824
+      ],
+      "id": "2bf4b986-fa19-4ace-bf6f-bf13718e1874",
+      "name": "Respon Supervisor"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "IpK7qyGRXKwZCiND",
+          "mode": "list"
+        },
+        "limit": 3000
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6208,
+        8016
+      ],
+      "id": "63c890a2-33f0-4bdc-9f42-5171b6b8b225",
+      "name": "GET LOGISTIK LOAD"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allData = $('GET LOGISTIK LOAD').all().map(i => ({...i.json, db_id: i.json.id || i.id}));\nconst wib = new Date(new Date().getTime() + (new Date().getTimezoneOffset() * 60000) + (3600000 * 7));\nconst limitDate = new Date(wib.getTime() - (35 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];\nconst filtered = allData.filter(tx => tx.TANGGAL >= limitDate).reverse();\nreturn [{ json: { status: 'success', data: filtered } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6432,
+        8016
+      ],
+      "id": "f884364f-0ed3-4ab9-82a6-2be6679b86d6",
+      "name": "Logistik Filter Load"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6640,
+        8016
+      ],
+      "id": "807250a3-feaf-4679-8e54-1fbe75cfd463",
+      "name": "Respon Logistik Load"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Webhook').item.json.body;\nreturn [{\n    json: {\n        id_database: input.id_database,\n        NAMA_PASIEN: input.NAMA_PASIEN,\n        TERAPIS: input.TERAPIS ? String(input.TERAPIS).trim().toUpperCase() : \"TANPA NAMA\",\n        TAGIHAN: Number(input.TAGIHAN) || 0,\n        BAGI_TERAPIS: Number(input.BAGI_TERAPIS) || 0,\n        BAGI_OWNER: Number(input.BAGI_OWNER) || 0,\n        STATUS_BONUS: input.STATUS_BONUS || \"APPROVED\"\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6208,
+        8200
+      ],
+      "id": "e9a11111-2222-3333-4444-555566667777",
+      "name": "Format Update Order"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "KDdKPnHoT8H7lwvZ",
+          "mode": "list"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.id_database }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "NAMA_PASIEN": "={{ $json.NAMA_PASIEN }}",
+            "TERAPIS": "={{ $json.TERAPIS }}",
+            "TAGIHAN": "={{ $json.TAGIHAN }}",
+            "BAGI_TERAPIS": "={{ $json.BAGI_TERAPIS }}",
+            "BAGI_OWNER": "={{ $json.BAGI_OWNER }}",
+            "STATUS_BONUS": "={{ $json.STATUS_BONUS }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6400,
+        8200
+      ],
+      "id": "f8b22222-3333-4444-5555-666677778888",
+      "name": "EXECUTE UPDATE"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"message\": \"Data Order berhasil diperbarui!\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6600,
+        8200
+      ],
+      "id": "a7c33333-4444-5555-6666-777788889999",
+      "name": "Respon Edit"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "GET BRANCH AUTH",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GET LOG DATA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code Insert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DELETE ROW",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Owner Get Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FORMAT EXPENSE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GET FILTER LOG",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GET SUPERVISOR LOG",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Logistik",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GET LOGISTIK LOAD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Update Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET BRANCH AUTH": {
+      "main": [
+        [
+          {
+            "node": "Validasi Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validasi Login": {
+      "main": [
+        [
+          {
+            "node": "Respon Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET LOG DATA": {
+      "main": [
+        [
+          {
+            "node": "Anti Loop Kasir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anti Loop Kasir": {
+      "main": [
+        [
+          {
+            "node": "GET LOG EXPENSE KASIR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET LOG EXPENSE KASIR": {
+      "main": [
+        [
+          {
+            "node": "Format Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Data": {
+      "main": [
+        [
+          {
+            "node": "Respon Load",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Insert": {
+      "main": [
+        [
+          {
+            "node": "INSERT ORDER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT ORDER": {
+      "main": [
+        [
+          {
+            "node": "Respon Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DELETE ROW": {
+      "main": [
+        [
+          {
+            "node": "Respon Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Owner Get Data": {
+      "main": [
+        [
+          {
+            "node": "Anti Loop 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anti Loop 1": {
+      "main": [
+        [
+          {
+            "node": "Owner Get Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Owner Get Settings": {
+      "main": [
+        [
+          {
+            "node": "Anti Loop 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anti Loop 2": {
+      "main": [
+        [
+          {
+            "node": "Owner Get Expense",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Owner Get Expense": {
+      "main": [
+        [
+          {
+            "node": "Anti Loop 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anti Loop 5": {
+      "main": [
+        [
+          {
+            "node": "GET LOGISTIK OWNER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET LOGISTIK OWNER": {
+      "main": [
+        [
+          {
+            "node": "Kalkulasi Rekap Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kalkulasi Rekap Owner": {
+      "main": [
+        [
+          {
+            "node": "Respon Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FORMAT EXPENSE": {
+      "main": [
+        [
+          {
+            "node": "INSERT EXPENSE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT EXPENSE": {
+      "main": [
+        [
+          {
+            "node": "Respon Expense",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Logistik": {
+      "main": [
+        [
+          {
+            "node": "INSERT LOGISTIK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT LOGISTIK": {
+      "main": [
+        [
+          {
+            "node": "Respon Logistik",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET FILTER LOG": {
+      "main": [
+        [
+          {
+            "node": "Anti Loop 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anti Loop 3": {
+      "main": [
+        [
+          {
+            "node": "GET FILTER EXPENSE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET FILTER EXPENSE": {
+      "main": [
+        [
+          {
+            "node": "HITUNG REPORT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HITUNG REPORT": {
+      "main": [
+        [
+          {
+            "node": "Respon Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET SUPERVISOR LOG": {
+      "main": [
+        [
+          {
+            "node": "Supervisor Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supervisor Filter": {
+      "main": [
+        [
+          {
+            "node": "Respon Supervisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET LOGISTIK LOAD": {
+      "main": [
+        [
+          {
+            "node": "Logistik Filter Load",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Logistik Filter Load": {
+      "main": [
+        [
+          {
+            "node": "Respon Logistik Load",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Update Order": {
+      "main": [
+        [
+          {
+            "node": "EXECUTE UPDATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EXECUTE UPDATE": {
+      "main": [
+        [
+          {
+            "node": "Respon Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "a0d1d83f9335cbfc4f2c35854b6f89c84062f3aaed41916032ecce5bfd8b2630"
+  }
+}
