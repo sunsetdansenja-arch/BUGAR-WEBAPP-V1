@@ -1,1 +1,852 @@
-maintenance
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bugar Connect V5.12 - Core System</title>
+    
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { animation: { 'slide-up': 'slideUp 0.4s ease-out', 'fade-in': 'fadeIn 0.3s ease-out' }, keyframes: { slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }, fadeIn: { 'from': { opacity: '0' }, 'to': { opacity: '1' } } } } } }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        input, select, textarea { font-size: 16px !important; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-[#111111] text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useCallback, useEffect, useMemo, useRef } = React;
+
+        const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
+        const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
+        
+        const PAKET_STANDAR = ["Paket 1 (70 Menit) - Rp 100.000", "Paket 2 (90 Menit) - Rp 120.000", "Paket 3 (120 Menit) - Rp 140.000", "Paket 4 (120 Menit) - Rp 150.000", "Paket 5 (120 Menit) - Rp 150.000", "Paket 6 (120 Menit) - Rp 170.000", "Paket 7 (120 Menit) - Rp 200.000", "Paket 8 - Rp 300.000: Chiropractic"];
+        const PAKET_LHOKSEUMAWE = ["Paket 1 (1.5 Jam) - Rp 100.000", "Paket 2 (2 Jam) - Rp 120.000", "Paket 3 (2 Jam) - Rp 130.000", "Paket 4 (2 Jam) - Rp 150.000", "Paket 5 (2.5 Jam) - Rp 200.000", "Paket 6 (2 Jam) - Rp 150.000", "Paket 7 - Rp 300.000: Chiropractic", "Paket 8 (2.5 Jam) - Rp 200.000", "Paket 9 (2.5 Jam) - Rp 200.000", "Paket 10 (3 Jam) - Rp 350.000"];
+        const PAKET_HOTEL = ["Paket Hotel Hermes - Rp 180.000", "Paket Hotel Kriyad - Rp 200.000", "Paket Hotel Plum Lading - Rp 160.000", "Paket Hotel The Pade - Rp 180.000", "Paket Premium (Hotel) - Rp 220.000", "Paket Reguler (Hotel) - Rp 200.000", "Paket Standart (Hotel) - Rp 180.000"];
+        const PAKET_NON = ["BODY MASSAGE (60 Menit) - Rp 80.000", "REFLEKSI (60 Menit) - Rp 80.000", "BEKAM BASAH (60 Menit) - Rp 80.000", "LULUR - Rp 80.000", "TOTOK WAJAH (20 Menit) - Rp 60.000", "PIJAT KEPALA (20 Menit) - Rp 60.000", "TERAPI TELINGA - Rp 60.000", "BEKAM KERING - Rp 50.000"];
+        
+        const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
+
+        const HotelDateRangePicker = ({ value, onChange, title, theme = "dark" }) => {
+            const [step, setStep] = useState(0); const [showModal, setShowModal] = useState(false);
+            const days = useMemo(() => {
+                const arr = []; const today = new Date(); today.setHours(0,0,0,0);
+                const getLocalIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                for(let i=34; i>=0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); arr.push({ date: d, iso: getLocalIso(d), dayStr: d.getDate(), isToday: i===0 }); } return arr;
+            }, []);
+            const handleDayClick = (iso) => { if (step === 0 || iso < value.start) { onChange({ start: iso, end: iso }); setStep(1); } else { onChange({ ...value, end: iso }); setStep(0); setShowModal(false); } };
+            const formatDateStr = (iso) => { if(!iso) return "-"; const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}); };
+
+            const isDark = theme === "dark";
+            const boxClass = isDark ? "bg-[#1C1C1E] border border-white/10 text-white hover:border-white/20 shadow-inner" : "bg-[#F2F2F7] border border-gray-200 text-[#1C1C1E] shadow-sm";
+            const titleClass = isDark ? "text-gray-500" : "text-gray-400";
+
+            return (
+                <div className="w-full">
+                    <label className={`text-[10px] uppercase font-black tracking-widest mb-2 block ${titleClass}`}>{title || "Pilih Rentang Waktu"}</label>
+                    <div onClick={() => {setShowModal(true); setStep(0);}} className={`${boxClass} rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all`}>
+                        <div className="flex gap-4 items-center"><i className="fa-regular fa-calendar text-[#0A84FF] text-xl"></i><div><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Mulai</p><p className="text-base font-black">{formatDateStr(value.start)}</p></div></div>
+                        <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-gray-300'}`}></div>
+                        <div className="text-right"><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Selesai</p><p className="text-base font-black">{formatDateStr(value.end)}</p></div>
+                    </div>
+                    {showModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                            <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/10 animate-slide-up relative overflow-hidden">
+                                <div className="text-center mb-6"><h3 className="text-lg font-black uppercase tracking-tight text-white">{step === 0 ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai"}</h3><p className="text-[10px] text-[#0A84FF] font-bold uppercase tracking-widest mt-1">Maksimal 35 Hari Ke Belakang</p></div>
+                                <div className="grid grid-cols-7 gap-2 mb-2">{['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d=><div key={d} className="text-center text-[9px] font-black text-gray-500 uppercase">{d}</div>)}</div>
+                                <div className="grid grid-cols-7 gap-y-2 gap-x-0 relative">
+                                    {Array.from({length: days[0].date.getDay()}).map((_,i) => <div key={`blank-${i}`} />)}
+                                    {days.map((d, i) => {
+                                        const isStart = d.iso === value.start; const isEnd = d.iso === value.end; const inRange = d.iso > value.start && d.iso < value.end;
+                                        let bgClass = "bg-transparent text-gray-300";
+                                        if (isStart || isEnd) bgClass = "bg-[#0A84FF] text-white shadow-[0_0_15px_rgba(10,132,255,0.5)] z-10 scale-110 rounded-full";
+                                        else if (inRange) bgClass = "bg-[#0A84FF]/20 text-[#0A84FF] rounded-none";
+                                        else if (d.isToday) bgClass = "bg-white/10 text-white border border-white/20 rounded-full";
+                                        let wrapperClass = "flex justify-center items-center h-10 w-full relative cursor-pointer";
+                                        if(isStart && value.start !== value.end) wrapperClass += " rounded-l-full bg-[#0A84FF]/20";
+                                        if(isEnd && value.start !== value.end) wrapperClass += " rounded-r-full bg-[#0A84FF]/20";
+                                        return (<div key={i} className={wrapperClass} onClick={() => handleDayClick(d.iso)}><div className={`w-8 h-8 flex items-center justify-center font-bold text-sm transition-all ${bgClass}`}>{d.dayStr}</div></div>)
+                                    })}
+                                </div>
+                                <button onClick={()=>setShowModal(false)} className="mt-8 w-full py-4 bg-white/10 text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 text-base hover:bg-white/20 transition-all">Batalkan</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )
+        };
+
+        const BranchCard = ({ cabang, idx }) => {
+            const [expanded, setExpanded] = useState(false);
+            return (
+                <div className="bg-black rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-300 shadow-lg">
+                    <div className="p-5 sm:p-6 cursor-pointer active:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
+                        <div className="flex justify-between items-start sm:items-center mb-5 gap-2">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className={`shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-black text-sm sm:text-lg ${idx === 0 ? 'bg-gradient-to-br from-[#FF3B30] to-[#E02020] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/5'}`}>{idx + 1}</div>
+                                <h4 className="font-black text-lg sm:text-2xl tracking-tighter uppercase text-white leading-none truncate max-w-[120px] sm:max-w-none">{cabang.id}</h4>
+                            </div>
+                            <div className="text-right shrink-0">
+                                <p className="text-[8px] sm:text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1.5 whitespace-nowrap">Laba Hak Owner</p>
+                                <p className="text-lg sm:text-2xl font-black text-[#FF3B30] leading-none whitespace-nowrap">{formatIDR(cabang.labaHariIni)}</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-[#111111] p-3 sm:p-4 rounded-xl border border-white/5">
+                            <div><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Omset Total</p><p className="text-xs sm:text-sm font-black text-white">{formatIDR(cabang.omsetHariIni)}</p></div>
+                            <div className="text-right"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Pengeluaran</p><p className="text-xs sm:text-sm font-black text-gray-300">{formatIDR(cabang.expenseHariIni)}</p></div>
+                        </div>
+                    </div>
+
+                    <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
+                        <div className="grid grid-cols-3 gap-px bg-white/5 border-b border-white/5">
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Pasien</p><p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni}</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Margin</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Trp MVP</p><p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p></div>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-3 px-1">Rincian Transaksi Hari Ini</p>
+                            {cabang.logsHariIni && cabang.logsHariIni.length === 0 && <p className="text-center text-xs font-bold text-gray-600 py-4">Belum ada aktivitas</p>}
+                            {cabang.logsHariIni && cabang.logsHariIni.map((log, i) => (
+                                <div key={i} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
+                                    <div className="flex gap-3 items-center min-w-0"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div className="min-w-0"><p className={`text-xs font-bold uppercase truncate max-w-[120px] sm:max-w-[180px] ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
+                                    <p className={`text-xs font-black shrink-0 ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div onClick={() => setExpanded(!expanded)} className="bg-black text-center py-3 border-t border-white/5 cursor-pointer hover:bg-white/5 transition-all text-gray-500 hover:text-white"><span className="text-[9px] font-black uppercase tracking-widest">{expanded ? 'Tutup Rincian ▲' : 'Lihat Rincian Hari Ini ▾'}</span></div>
+                </div>
+            )
+        }
+
+        const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
+            const [mode, setMode] = useState('pemasukan'); 
+            const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
+            const [history, setHistory] = useState([]);
+            const [expenseHistory, setExpenseHistory] = useState([]);
+            
+            const [formData, setFormData] = useState({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '', METODE_BAYAR: 'CASH' });
+            const [expenseData, setExpenseData] = useState({ NAMA_PENGELUARAN: '', NOMINAL: '', KETERANGAN: '' });
+
+            // FITUR BARU: STATE PENGAJUAN BONUS
+            const [reqBonus, setReqBonus] = useState(false);
+            const [alasanBonus, setAlasanBonus] = useState('Pasien Ke-4 (40%)');
+
+            const [loading, setLoading] = useState(false);
+            const [fetching, setFetching] = useState(false);
+            
+            const [kategoriMenu, setKategoriMenu] = useState('REGULER');
+            const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+            const dropdownRef = useRef(null);
+
+            const isoToday = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            const [filterRekap, setFilterRekap] = useState({ start: isoToday, end: isoToday });
+
+            const loadDashboardData = useCallback(async (isInitial = false) => {
+                if (isInitial) setFetching(true);
+                const res = await sendToN8N('load_data', { CABANG_ID: activeCabang });
+                if (res && (res.status === 'success' || res.history)) {
+                    setStats(res.stats || { hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
+                    setHistory(res.history || []);
+                    setExpenseHistory(res.expenseHistory || []); 
+                    const arrDates = (res.history || []).map(h => h.TANGGAL).sort();
+                    if(arrDates.length > 0) setFilterRekap({ start: arrDates[0], end: isoToday });
+                }
+                if (isInitial) setFetching(false);
+            }, [activeCabang]);
+
+            useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
+
+            // Tutup dropdown saat klik di luar
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                        setIsDropdownOpen(false);
+                    }
+                };
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, [dropdownRef]);
+
+            const expenseHariIniKasir = expenseHistory.filter(e => e.TANGGAL === isoToday).reduce((sum, item) => sum + (Number(item.NOMINAL)||0), 0);
+            const targetSetoran = stats.hariIniCash - expenseHariIniKasir;
+
+            const rekapTerapis = useMemo(() => {
+                const recapMap = {};
+                history.forEach(item => {
+                    if (item.TANGGAL < filterRekap.start || item.TANGGAL > filterRekap.end) return;
+                    if (Number(item.TAGIHAN) === 0) return;
+                    const namaTrp = item.TERAPIS || "Tanpa Nama";
+                    if (!recapMap[namaTrp]) recapMap[namaTrp] = { nama: namaTrp, pasien: 0, komisi: 0, riwayat: [] };
+                    recapMap[namaTrp].pasien += 1;
+                    recapMap[namaTrp].komisi += Number(item.BAGI_TERAPIS) || 0;
+                    recapMap[namaTrp].riwayat.push(item);
+                });
+                return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
+            }, [history, filterRekap]);
+
+            const isLhokseumawe = activeCabang.includes('LSM') || activeCabang === 'LHOKSEUMAWE';
+
+            // MIRRORING LOGIC (Untuk Live Card Estimasi)
+            const estimasiBagiHasil = useMemo(() => {
+                if (!formData.TAGIHAN || formData.TAGIHAN <= 0) return null;
+                
+                const wib = new Date(new Date().getTime() + (new Date().getTimezoneOffset() * 60000) + (3600000 * 7));
+                const jam = wib.getHours();
+                const menit = wib.getMinutes();
+                let isShiftMalam = false;
+                if ((jam === 22 && menit >= 40) || jam >= 23 || jam < 7) { isShiftMalam = true; }
+
+                const cleanTagihan = Number(formData.TAGIHAN);
+                const paketName = String(formData.PAKET || "").toUpperCase();
+
+                let bagiTerapis = 0;
+                let bagiOwner = 0;
+                let tipeHitungan = "Persentase 30%";
+
+                if (paketName.includes("PAKET 8") || paketName.includes("CHIROPRACTIC")) {
+                    bagiTerapis = 100000;
+                    bagiOwner = cleanTagihan - bagiTerapis;
+                    tipeHitungan = "Flat Paket Khusus";
+                } 
+                else if (paketName.includes("HERMES")) {
+                    bagiTerapis = 54000;
+                    bagiOwner = cleanTagihan - bagiTerapis; 
+                    tipeHitungan = "Flat Hotel Hermes";
+                }
+                else if (paketName.includes("BODY MASSAGE (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("REFLEKSI (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("BEKAM BASAH")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("LULUR")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("TOTOK WAJAH")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("PIJAT KEPALA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("TERAPI TELINGA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (paketName.includes("BEKAM KERING")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (!paketName.includes("PAKET") && !paketName.includes("HOTEL") && paketName !== "") { 
+                    bagiTerapis = cleanTagihan * 0.30; tipeHitungan = "Ala Carte (30%)"; bagiOwner = cleanTagihan - bagiTerapis;
+                } else {
+                    let persenTerapis = isShiftMalam ? 0.40 : 0.30;
+
+                    bagiTerapis = cleanTagihan * persenTerapis;
+                    bagiOwner = cleanTagihan - bagiTerapis;
+                    
+                    let labelPersen = persenTerapis * 100;
+                    tipeHitungan = isShiftMalam ? `Lembur/Overtime (${labelPersen}%)` : `Reguler (${labelPersen}%)`;
+                    if (reqBonus) tipeHitungan += " + Request ACC";
+                }
+
+                return { bagiOwner, bagiTerapis, tipeHitungan };
+            }, [formData.TAGIHAN, formData.PAKET, reqBonus]);
+
+            const handleSelectPaket = (selectedPaket) => {
+                let autoHarga = formData.TAGIHAN;
+                if (selectedPaket && !selectedPaket.includes("Ala Carte")) { 
+                    const match = selectedPaket.match(/Rp\s*([\d.]+)/); 
+                    if (match && match[1]) autoHarga = match[1].replace(/\./g, ''); 
+                } else if (selectedPaket.includes("Ala Carte")) { autoHarga = ""; }
+                
+                setFormData({ ...formData, PAKET: selectedPaket, TAGIHAN: autoHarga });
+                setIsDropdownOpen(false);
+            };
+
+            const activeListPaket = useMemo(() => {
+                if (kategoriMenu === 'REGULER') return isLhokseumawe ? PAKET_LHOKSEUMAWE : PAKET_STANDAR;
+                if (kategoriMenu === 'HOTEL') return PAKET_HOTEL;
+                return PAKET_NON;
+            }, [kategoriMenu, isLhokseumawe]);
+
+            const handleOrderSubmit = async (e) => {
+                e.preventDefault(); setLoading(true);
+                
+                // Hitung pasien ke berapa HANYA UNTUK LOG/CATATAN
+                const terapisName = formData.TERAPIS.trim().toUpperCase();
+                const pasienHariIni = history.filter(h => h.TANGGAL === isoToday && (h.TERAPIS || "").toUpperCase() === terapisName && Number(h.TAGIHAN) > 0).length;
+                const pasienKe = pasienHariIni + 1;
+
+                const payload = { 
+                    ...formData, 
+                    CABANG_ID: activeCabang, 
+                    PASIEN_KE: pasienKe,
+                    REQ_BONUS: reqBonus,
+                    ALASAN_BONUS: reqBonus ? alasanBonus : "-"
+                };
+
+                const res = await sendToN8N('insert', payload);
+                if (res && (res.id || res.status === 'success')) {
+                    setFormData({ NAMA_PASIEN: '', NOMOR_CUSTOMER: '', PAKET: '', TAGIHAN: '', TERAPIS: '', METODE_BAYAR: 'CASH' });
+                    setReqBonus(false); setAlasanBonus('Pasien Ke-4 (40%)');
+                    showToast(reqBonus ? 'Order Disimpan & Bonus Diajukan!' : 'Pasien Berhasil Disimpan'); 
+                    await loadDashboardData();
+                } else { showToast('Gagal Menyimpan', 'error'); }
+                setLoading(false);
+            };
+
+            const handleExpenseSubmit = async (e) => {
+                e.preventDefault(); setLoading(true);
+                const res = await sendToN8N('insert_expense', { ...expenseData, CABANG_ID: activeCabang });
+                if (res && res.status === 'success') {
+                    setExpenseData({ NAMA_PENGELUARAN: '', NOMINAL: '', KETERANGAN: '' });
+                    showToast('Pengeluaran Berhasil Dicatat'); await loadDashboardData();
+                } else { showToast('Gagal Mencatat', 'error'); }
+                setLoading(false);
+            };
+
+            const TerapisAccordion = ({ t }) => {
+                const [expanded, setExpanded] = useState(false);
+                return (
+                    <div className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm overflow-hidden mb-3">
+                        <div className="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-all" onClick={() => setExpanded(!expanded)}>
+                            <div><p className="font-black text-lg uppercase text-[#1C1C1E] tracking-tight leading-none">{t.nama}</p><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1.5">{t.pasien} Pasien Diselesaikan</p></div>
+                            <div className="text-right"><p className="text-xl font-black text-[#0A84FF] leading-none">{formatIDR(t.komisi)}</p><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-2">Rincian {expanded ? '▲' : '▼'}</p></div>
+                        </div>
+                        {expanded && (
+                            <div className="bg-[#F2F2F7] p-5 border-t border-gray-100 space-y-3 animate-fade-in">
+                                {t.riwayat.map((r, i) => (
+                                    <div key={i} className="flex justify-between items-center border-b border-gray-200 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
+                                        <div><p className="text-sm font-black uppercase text-[#1C1C1E] tracking-tight">{r.NAMA_PASIEN}</p><p className="text-[9px] font-bold text-gray-500 uppercase mt-1 tracking-widest">{r.TANGGAL} | {r.PAKET}</p></div>
+                                        <div className="text-right"><p className="text-sm font-black text-[#0A84FF]">{formatIDR(r.BAGI_TERAPIS)}</p><span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded mt-1 inline-block ${r.METODE_BAYAR === 'TRANSFER' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'bg-[#34C759]/10 text-[#34C759]'}`}>{r.METODE_BAYAR || 'CASH'}</span></div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )
+            };
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
+                        <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm"><div className="flex items-center gap-3 text-[#1C1C1E]"><img src={LOGO_URL} alt="Logo" className="h-8 w-8 object-contain drop-shadow-md" /> <div><p className="text-[8px] text-gray-400 tracking-widest leading-none mb-0.5">PORTAL KASIR</p><span className="text-[#1C1C1E] text-sm tracking-tight">{activeCabang}</span></div></div><button onClick={onLogout} className="text-[#FF3B30] bg-[#FF3B30]/10 px-5 py-2.5 rounded-full text-[10px] flex items-center gap-2 hover:bg-[#FF3B30]/20 active:scale-95 transition-all tracking-widest"><i className="fa-solid fa-right-from-bracket"></i> KELUAR</button></div>
+                    </nav>
+
+                    <main className="max-w-xl mx-auto p-4 space-y-6 mt-4">
+                        <div className="flex bg-gray-200 p-1.5 rounded-full shadow-inner">
+                            <button onClick={() => setMode('pemasukan')} className={`flex-1 py-3.5 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pemasukan' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Pemasukan</button>
+                            <button onClick={() => setMode('pengeluaran')} className={`flex-1 py-3.5 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pengeluaran' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Laci Keluar</button>
+                        </div>
+
+                        {mode === 'pemasukan' && (
+                            <div className="animate-slide-up space-y-6">
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border border-gray-800">
+                                    <div className="absolute top-0 right-0 p-6 opacity-5"><i className="fa-solid fa-vault text-[120px]"></i></div>
+                                    <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1 relative z-10">Wajib Setor Laci (Hari Ini)</p>
+                                    <h3 className="text-5xl font-black tracking-tighter relative z-10 text-[#34C759]">{formatIDR(targetSetoran)}</h3>
+                                    <div className="flex justify-between items-center mt-6 relative z-10 text-[10px] font-bold uppercase border-t border-white/10 pt-4">
+                                        <div><span className="text-gray-500 block mb-1">Omset Cash</span> <span className="text-base text-white">{formatIDR(stats.hariIniCash)}</span></div>
+                                        <div className="text-right"><span className="text-gray-500 block mb-1">Laci Keluar</span> <span className="text-base text-[#FF3B30]">- {formatIDR(expenseHariIniKasir)}</span></div>
+                                    </div>
+                                    <p className="text-center text-[9px] text-[#0A84FF] font-black uppercase tracking-widest mt-5 bg-[#0A84FF]/10 py-2.5 rounded-xl border border-[#0A84FF]/20">Omset Transfer: {formatIDR(stats.hariIniTransfer)}</p>
+                                </div>
+
+                                <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
+                                    <h4 className="font-black text-xs text-[#1C1C1E] mb-6 tracking-widest uppercase flex items-center gap-2"><i className="fa-solid fa-user-plus text-[#0A84FF] text-lg"></i> Input Pasien Baru</h4>
+                                    <form onSubmit={handleOrderSubmit} className="space-y-4">
+                                        <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
+                                        <input type="tel" placeholder="WhatsApp (08...)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
+                                        
+                                        <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
+                                            <button type="button" onClick={()=>{setKategoriMenu('REGULER'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'REGULER' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Reguler</button>
+                                            <button type="button" onClick={()=>{setKategoriMenu('HOTEL'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'HOTEL' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Hotel</button>
+                                            <button type="button" onClick={()=>{setKategoriMenu('NON'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'NON' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Satuan</button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {/* CUSTOM PREMIUM DROPDOWN */}
+                                            <div className="relative" ref={dropdownRef}>
+                                                <div 
+                                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                                    className={`w-full p-4 rounded-2xl outline-none font-bold text-base transition-all border flex justify-between items-center cursor-pointer ${isDropdownOpen ? 'bg-white border-[#0A84FF] ring-2 ring-[#0A84FF]/20' : 'bg-[#F2F2F7] border-transparent hover:bg-white text-[#1C1C1E]'}`}
+                                                >
+                                                    <span className={formData.PAKET ? 'text-[#1C1C1E]' : 'text-gray-400'}>
+                                                        {formData.PAKET || "-- Pilih Layanan --"}
+                                                    </span>
+                                                    <i className={`fa-solid fa-chevron-down text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}></i>
+                                                </div>
+
+                                                {/* Dropdown Options Container (Glassmorphism) */}
+                                                {isDropdownOpen && (
+                                                    <div className="absolute z-50 w-full mt-2 bg-white/90 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden animate-slide-up">
+                                                        <div className="max-h-64 overflow-y-auto no-scrollbar py-2">
+                                                            {activeListPaket.map((p, i) => (
+                                                                <div 
+                                                                    key={i} 
+                                                                    onClick={() => handleSelectPaket(p)}
+                                                                    className="px-5 py-3 hover:bg-[#0A84FF]/10 hover:text-[#0A84FF] cursor-pointer text-sm font-bold text-gray-700 transition-colors border-b border-gray-100 last:border-0"
+                                                                >
+                                                                    {p}
+                                                                </div>
+                                                            ))}
+                                                            <div 
+                                                                onClick={() => handleSelectPaket("Paket Non-Paket (Ala Carte)")}
+                                                                className="px-5 py-4 bg-gray-50 hover:bg-gray-200 cursor-pointer text-xs font-black uppercase tracking-widest text-gray-600 transition-colors border-t border-gray-200"
+                                                            >
+                                                                <i className="fa-solid fa-pen-to-square mr-2"></i>Lainnya / Ketik Manual
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <input type="number" placeholder="Total Tagihan Rp (Cth: 150000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
+                                        </div>
+
+                                        <input type="text" placeholder="Nama Terapis (Cth: RANI)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF] uppercase" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value.toUpperCase()})} />
+                                        
+                                        {/* FITUR BARU: PENGAJUAN BONUS */}
+                                        <div className="mt-4 bg-[#FFCC00]/10 border border-[#FFCC00]/30 p-4 rounded-2xl">
+                                            <label className="flex items-center gap-3 cursor-pointer">
+                                                <input type="checkbox" className="w-5 h-5 rounded accent-[#FFCC00]" checked={reqBonus} onChange={e => setReqBonus(e.target.checked)} />
+                                                <span className="text-[11px] font-black text-[#FFCC00] uppercase tracking-widest mt-0.5">Ajukan Bonus Extra Terapis?</span>
+                                            </label>
+                                            {reqBonus && (
+                                                <div className="mt-4 animate-fade-in">
+                                                    <select className="w-full p-4 bg-white/50 text-[#1C1C1E] rounded-xl outline-none font-bold text-xs uppercase tracking-widest border border-[#FFCC00]/50 focus:bg-white appearance-none" value={alasanBonus} onChange={e => setAlasanBonus(e.target.value)}>
+                                                        <option value="Pasien Ke-4 (40%)">Pasien Ke-4 (40%)</option>
+                                                        <option value="Pasien Ke-5 (45%)">Pasien Ke-5 (45%)</option>
+                                                        <option value="Pasien Ke-6+ (50%)">Pasien Ke-6+ (50%)</option>
+                                                        <option value="Lembur Overtime (40%)">Lembur Overtime (40%)</option>
+                                                        <option value="Lainnya">Alasan Lainnya</option>
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* LIVE ESTIMASI CARD */}
+                                        {estimasiBagiHasil && (
+                                            <div className="bg-[#0A84FF]/5 border border-[#0A84FF]/20 p-4 rounded-2xl animate-fade-in relative overflow-hidden mt-2">
+                                                <div className="absolute top-0 right-0 p-3 opacity-10"><i className="fa-solid fa-calculator text-5xl text-[#0A84FF]"></i></div>
+                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#0A84FF] mb-3 relative z-10 flex items-center gap-1"><i className="fa-solid fa-bolt"></i> Live Estimasi Sistem</p>
+                                                <div className="flex justify-between items-center mb-2 relative z-10">
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hak Bugar (Owner)</span>
+                                                    <span className="text-sm font-black text-[#1C1C1E]">{formatIDR(estimasiBagiHasil.bagiOwner)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center relative z-10">
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hak Terapis</span>
+                                                    <div className="text-right">
+                                                        <span className="text-sm font-black text-[#34C759] block">{formatIDR(estimasiBagiHasil.bagiTerapis)}</span>
+                                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">({estimasiBagiHasil.tipeHitungan})</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="pt-3">
+                                            <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
+                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'CASH'})} className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'CASH' ? 'bg-white text-[#34C759] shadow-sm border border-gray-100' : 'text-gray-400 hover:text-black'}`}><i className="fa-solid fa-money-bill-wave"></i> CASH</button>
+                                                <button type="button" onClick={()=>setFormData({...formData, METODE_BAYAR: 'TRANSFER'})} className={`flex-1 py-4 rounded-xl text-[11px] font-black uppercase transition-all tracking-widest flex justify-center items-center gap-2 ${formData.METODE_BAYAR === 'TRANSFER' ? 'bg-white text-[#0A84FF] shadow-sm border border-gray-100' : 'text-gray-400 hover:text-black'}`}><i className="fa-solid fa-building-columns"></i> TRANSFER</button>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" disabled={loading} className="w-full bg-[#1C1C1E] text-white font-black py-5 rounded-2xl hover:bg-[#0A84FF] active:scale-[0.98] transition-all mt-4 tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(0,0,0,0.2)]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN TRANSAKSI"}</button>
+                                    </form>
+                                </div>
+
+                                <div className="space-y-4 pt-6 border-t border-gray-200">
+                                    <div className="flex justify-between items-end px-1 mb-2"><div><h4 className="font-black text-lg text-[#1C1C1E] tracking-tight uppercase"><i className="fa-solid fa-users text-[#0A84FF] mr-2"></i> Rekap Terapis</h4><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Transparansi Kinerja Cabang</p></div></div>
+                                    <HotelDateRangePicker value={filterRekap} onChange={setFilterRekap} title="Filter Tanggal Rekap" theme="light" />
+                                    {rekapTerapis.length === 0 && <div className="bg-white p-8 rounded-[2rem] text-center border border-gray-100 shadow-sm mt-4"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada data</p></div>}
+                                    <div className="space-y-3 mt-4">
+                                        {rekapTerapis.map((t, idx) => (
+                                            <TerapisAccordion key={idx} t={t} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {mode === 'pengeluaran' && (
+                            <div className="space-y-6 animate-slide-up">
+                                <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
+                                    <div className="text-center mb-8"><div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><i className="fa-solid fa-receipt text-[#FF3B30] text-3xl"></i></div><h4 className="font-black text-xl text-[#1C1C1E] tracking-tight uppercase">Catat Laci Keluar</h4><p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-2">Mengurangi Kewajiban Setoran</p></div>
+                                    <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                                        <input type="text" placeholder="Nama Pengeluaran" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#FF3B30]/20 focus:bg-white transition-all border border-transparent focus:border-[#FF3B30]" value={expenseData.NAMA_PENGELUARAN} onChange={e => setExpenseData({...expenseData, NAMA_PENGELUARAN: e.target.value})} />
+                                        <input type="number" placeholder="Nominal Rp (Cth: 20000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#FF3B30]/20 focus:bg-white transition-all border border-transparent focus:border-[#FF3B30]" value={expenseData.NOMINAL} onChange={e => setExpenseData({...expenseData, NOMINAL: e.target.value})} />
+                                        <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#FF3B30]/20 focus:bg-white transition-all border border-transparent focus:border-[#FF3B30] resize-none" value={expenseData.KETERANGAN} onChange={e => setExpenseData({...expenseData, KETERANGAN: e.target.value})}></textarea>
+                                        <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 rounded-2xl hover:bg-red-600 active:scale-[0.98] transition-all mt-4 tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(255,59,48,0.3)]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN PENGELUARAN"}</button>
+                                    </form>
+                                </div>
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1"><i className="fa-solid fa-list-check text-[#FF3B30] mr-1"></i> Log Laci Keluar (7 Hari Terakhir)</p>
+                                    {expenseHistory.length === 0 && <div className="bg-white p-8 rounded-[2rem] text-center border border-gray-100 shadow-sm"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada pengeluaran</p></div>}
+                                    {expenseHistory.map((exp, idx) => (
+                                        <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
+                                            <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-xl bg-red-50 text-[#FF3B30] flex items-center justify-center text-lg"><i className="fa-solid fa-arrow-down"></i></div><div><h5 className="font-black text-base text-[#1C1C1E] uppercase tracking-tight">{exp.NAMA_PENGELUARAN}</h5><p className="text-[10px] text-gray-400 font-bold uppercase mt-1 truncate max-w-[150px] tracking-widest">{exp.TANGGAL} | {exp.KETERANGAN || '-'}</p></div></div>
+                                            <p className="text-base font-black text-[#FF3B30]">- {formatIDR(exp.NOMINAL)}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+        const SupervisorView = ({ onLogout, sendToN8N, showToast }) => {
+            const [logs, setLogs] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday, search: '' });
+            const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
+            const [isDeleting, setIsDeleting] = useState(null);
+
+            const fetchLogs = useCallback(async () => { setLoading(true); const res = await sendToN8N('supervisor_load'); if (res && res.data) setLogs(res.data); setLoading(false); }, []);
+            useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+            const executeCancel = async () => {
+                const item = confirmModal.item; const targetId = item.db_id || item.id || item.ID;
+                setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
+                await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
+                showToast('Order Berhasil Dibatalkan'); await fetchLogs(); setIsDeleting(null);
+            };
+
+            const filteredLogs = logs.filter(log => {
+                const matchDate = log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end;
+                const matchSearch = filterDate.search === '' || log.NAMA_PASIEN?.toLowerCase().includes(filterDate.search.toLowerCase()) || log.CABANG_ID?.toLowerCase().includes(filterDate.search.toLowerCase());
+                return matchDate && matchSearch;
+            });
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-[#1C1C1E] p-4 sticky top-0 z-40 shadow-lg border-b border-white/10">
+                        <div className="max-w-xl mx-auto flex justify-between items-center text-white"><div className="flex items-center gap-3"><i className="fa-solid fa-shield-halved text-[#FF3B30] text-2xl"></i><div><p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p><h1 className="text-base font-black uppercase tracking-tight">Supervisor Portal</h1></div></div><button onClick={onLogout} className="text-white bg-white/10 px-5 py-2.5 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button></div>
+                    </nav>
+                    <main className="max-w-xl mx-auto p-4 space-y-6 mt-4">
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                            <HotelDateRangePicker value={filterDate} onChange={(val)=>setFilterDate({...filterDate, start:val.start, end:val.end})} title="Filter Rentang Waktu (Maks 35 Hari)" theme="light" />
+                            <input type="text" placeholder="Cari Nama / Cabang..." className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all mt-5 border border-transparent" value={filterDate.search} onChange={e => setFilterDate({...filterDate, search: e.target.value})} />
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-end px-2"><p className="text-[11px] font-black text-[#1C1C1E] uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p><button onClick={fetchLogs} className="text-[#0A84FF] text-[10px] font-black uppercase tracking-widest p-2"><i className="fa-solid fa-rotate-right"></i> Refresh</button></div>
+                            {loading ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
+                            {filteredLogs.map((item, idx) => {
+                                const currentId = item.db_id || item.id || item.ID; const isBatal = Number(item.TAGIHAN) === 0;
+                                return (
+                                    <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 shadow-sm'}`}>
+                                        <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3"><div><span className="bg-[#1C1C1E] text-white text-[9px] px-2.5 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span><span className="text-[10px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span></div>{isBatal && <span className="text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}</div>
+                                        <div className="flex justify-between items-center"><div><h5 className={`font-black text-base text-[#1C1C1E] uppercase tracking-tight ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[10px] text-gray-500 font-bold tracking-widest mt-1">{item.PAKET}</p></div><div className="flex items-center gap-4"><div className="text-right"><p className={`text-base font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">Trp: {item.TERAPIS}</p></div><button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isBatal ? 'opacity-0' : 'bg-[#F2F2F7] text-gray-400 hover:bg-[#FF3B30] hover:text-white active:scale-90 text-lg'}`}>{isDeleting === currentId ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-ban"></i>}</button></div></div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </main>
+                    {confirmModal.show && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"><div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div><div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up"><i className="fa-solid fa-triangle-exclamation text-[#FF3B30] text-[50px] mb-5"></i><h3 className="text-2xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batalkan Order?</h3><p className="text-[11px] text-gray-500 font-bold mb-6 uppercase tracking-widest leading-relaxed">Tindakan ini akan meng-Nol-kan nominal tagihan untuk audit.</p><div className="bg-[#F2F2F7] p-5 rounded-2xl mb-6 text-left border border-gray-200"><p className="text-sm font-black uppercase text-[#1C1C1E]">{confirmModal.item.NAMA_PASIEN}</p><p className="text-[10px] font-bold uppercase text-gray-500 mt-1">{confirmModal.item.CABANG_ID} • {formatIDR(confirmModal.item.TAGIHAN)}</p></div><button onClick={executeCancel} className="w-full py-5 bg-[#FF3B30] text-white font-black rounded-2xl mb-3 active:scale-95 transition-all tracking-widest uppercase text-sm shadow-lg">YA, EKSEKUSI</button><button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-5 bg-gray-200 text-[#1C1C1E] font-black rounded-2xl active:scale-95 transition-all tracking-widest uppercase text-sm">KEMBALI</button></div></div>
+                    )}
+                </div>
+            );
+        };
+
+        const LogistikView = ({ onLogout, sendToN8N, showToast }) => {
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [formData, setFormData] = useState({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
+            const [loading, setLoading] = useState(false);
+            const [logs, setLogs] = useState([]);
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday });
+            const [loadingLogs, setLoadingLogs] = useState(true);
+
+            const fetchLogs = useCallback(async () => {
+                setLoadingLogs(true);
+                const res = await sendToN8N('logistik_load');
+                if (res && res.data) setLogs(res.data);
+                setLoadingLogs(false);
+            }, []);
+
+            useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault(); setLoading(true);
+                const res = await sendToN8N('insert_logistik', formData);
+                if (res && res.status === 'success') {
+                    setFormData({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
+                    showToast('Data Logistik Berhasil Dicatat!'); await fetchLogs();
+                } else { showToast('Gagal Mencatat Logistik', 'error'); }
+                setLoading(false);
+            };
+
+            const filteredLogs = logs.filter(log => log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end);
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
+                        <div className="max-w-xl mx-auto flex justify-between items-center"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#0A84FF]/10 rounded-full flex items-center justify-center"><i className="fa-solid fa-boxes-stacked text-[#0A84FF] text-lg"></i></div><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Supply Chain</p><h1 className="text-base font-black uppercase tracking-tight text-[#1C1C1E]">Portal Logistik</h1></div></div><button onClick={onLogout} className="text-gray-500 hover:text-[#FF3B30] transition-all text-xl p-2"><i className="fa-solid fa-power-off"></i></button></div>
+                    </nav>
+                    <main className="max-w-xl mx-auto p-4 mt-4 space-y-6">
+                        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
+                            <h2 className="font-black text-xl text-[#1C1C1E] uppercase tracking-tight mb-1">Catat Pembelian</h2>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Input kebutuhan cabang & pusat</p>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Dialokasikan Untuk</label>
+                                    <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent appearance-none" value={formData.TARGET_CABANG} onChange={e => setFormData({...formData, TARGET_CABANG: e.target.value})}>
+                                        <option value="PUSAT">Pusat (Global)</option>
+                                        {Array.from({length: 12}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>Cabang BUGAR{i+1}</option>)}
+                                    </select>
+                                </div>
+                                <input type="text" placeholder="Nama Barang (Cth: Krim 5kg, Servis AC)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NAMA_BARANG} onChange={e => setFormData({...formData, NAMA_BARANG: e.target.value})} />
+                                <input type="number" placeholder="Nominal (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NOMINAL} onChange={e => setFormData({...formData, NOMINAL: e.target.value})} />
+                                <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent resize-none" value={formData.KETERANGAN} onChange={e => setFormData({...formData, KETERANGAN: e.target.value})}></textarea>
+                                <button type="submit" disabled={loading} className="w-full bg-[#0A84FF] text-white font-black py-5 rounded-2xl hover:bg-blue-600 active:scale-95 transition-all tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(10,132,255,0.3)] mt-4">
+                                    {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN LOGISTIK"}
+                                </button>
+                            </form>
+                        </div>
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                            <HotelDateRangePicker value={filterDate} onChange={setFilterDate} title="Filter Riwayat Logistik" theme="light" />
+                            <div className="mt-8 space-y-3">
+                                {loadingLogs ? <div className="text-center py-6"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-2xl"></i></div> : null}
+                                {!loadingLogs && filteredLogs.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-4">Tidak ada data di rentang ini</p>}
+                                {filteredLogs.map((log, idx) => (
+                                    <div key={idx} className="bg-[#F2F2F7] p-5 rounded-2xl flex justify-between items-center border border-gray-200">
+                                        <div><span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded text-white shadow-sm ${log.TARGET_CABANG === 'PUSAT' ? 'bg-[#1C1C1E]' : 'bg-[#0A84FF]'}`}>{log.TARGET_CABANG}</span><h5 className="font-black text-base text-[#1C1C1E] uppercase mt-3 tracking-tight">{log.NAMA_BARANG}</h5><p className="text-[10px] text-gray-500 font-bold mt-1 tracking-widest">{log.TANGGAL}</p></div>
+                                        <div className="text-right"><p className="text-base font-black text-[#FF3B30]">- {formatIDR(log.NOMINAL)}</p></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const OwnerView = ({ onLogout }) => {
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [activeTab, setActiveTab] = useState('dashboard');
+            
+            const [data, setData] = useState({ grandOmsetHariIni: 0, grandBagiTerapisHariIni: 0, grandTotalBulanIni: 0, grandBagiTerapisBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [], logistikLogs: [] });
+            const [loading, setLoading] = useState(true);
+            const [refreshing, setRefreshing] = useState(false);
+            const [filterLogistikOwner, setFilterLogistikOwner] = useState({ start: isoToday, end: isoToday });
+
+            const loadOwnerData = async (isRefresh = false) => {
+                if (isRefresh) setRefreshing(true); else setLoading(true);
+                try {
+                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'owner_load' }) });
+                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
+                    if (finalData && finalData.json) finalData = finalData.json;
+                    setData(finalData || {});
+                } catch (e) {} setLoading(false); setRefreshing(false);
+            };
+
+            useEffect(() => { loadOwnerData(); }, []);
+
+            if (loading) return <div className="min-h-screen bg-[#111111] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl drop-shadow-[0_0_15px_rgba(255,59,48,0.5)]"></i></div>;
+            const filteredLogistikOwner = (data.logistikLogs || []).filter(l => l.tanggal >= filterLogistikOwner.start && l.tanggal <= filterLogistikOwner.end);
+
+            return (
+                <div className="min-h-screen bg-[#111111] text-white font-sans animate-fade-in pb-28">
+                    
+                    {/* TAB: DASBOR UTAMA */}
+                    {activeTab === 'dashboard' && (
+                        <div className="animate-slide-up">
+                            <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF3B30]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                                <div className="max-w-xl mx-auto relative z-10">
+                                    <div className="flex justify-between items-start mb-10">
+                                        <div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Bugar Analytics</h1></div></div>
+                                        <button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#FF3B30]' : 'text-gray-300'}`}></i></button>
+                                    </div>
+                                    
+                                    {/* CARD HARI INI (MERAH) */}
+                                    <div className="bg-gradient-to-br from-[#FF3B30] to-[#E02020] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.4)] relative overflow-hidden border border-white/20">
+                                        <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-chart-line text-[100px]"></i></div>
+                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Hari Ini)</p>
+                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
+                                        
+                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Omset Global</span> 
+                                                <span className="text-sm font-black">{formatIDR(data.grandOmsetHariIni)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Hak Terapis</span> 
+                                                <span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisHariIni)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Pengeluaran / Laci Keluar</span> 
+                                                <span className="text-sm font-black">- {formatIDR(data.expenseHariIni)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* CARD BULAN INI (BIRU PREMIUM) */}
+                                    <div className="bg-gradient-to-br from-[#0A84FF] to-[#0040DD] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(10,132,255,0.4)] relative overflow-hidden border border-white/20 mt-6">
+                                        <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-calendar-check text-[100px]"></i></div>
+                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Bulan Ini)</p>
+                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaBulanIni)}</h2>
+                                        
+                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Omset Global</span> 
+                                                <span className="text-sm font-black">{formatIDR(data.grandTotalBulanIni)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Hak Terapis</span> 
+                                                <span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisBulanIni)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="opacity-70">Total Beban</span> 
+                                                <span className="text-sm font-black">- {formatIDR(data.expenseBulanIni)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <main className="max-w-xl mx-auto p-6 space-y-8 mt-2">
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30] text-lg"></i> Performa Cabang Harian</h3>
+                                    <div className="space-y-4">
+                                        {data.leaderboard && data.leaderboard.map((cabang, idx) => (
+                                            <BranchCard key={cabang.id} cabang={cabang} idx={idx} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </main>
+                        </div>
+                    )}
+
+                    {/* TAB: LOGISTIK */}
+                    {activeTab === 'logistik' && (
+                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
+                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Logistik</h2><p className="text-[10px] text-[#0A84FF] font-black uppercase tracking-widest mt-2">Supply Chain Management</p></div>
+                            <div className="bg-[#0A84FF]/10 p-8 rounded-[2.5rem] border border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.05)]">
+                                <HotelDateRangePicker value={filterLogistikOwner} onChange={setFilterLogistikOwner} title="Filter Periode Belanja" />
+                                <div className="space-y-3 mt-6">
+                                    {filteredLogistikOwner.length === 0 && <p className="text-center text-[10px] font-bold text-[#0A84FF]/50 py-4 uppercase tracking-widest">Tidak ada pengeluaran logistik</p>}
+                                    {filteredLogistikOwner.map((log, idx) => (
+                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-[#0A84FF]/20 flex justify-between items-center backdrop-blur-sm">
+                                            <div><span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${log.target === 'PUSAT' ? 'bg-[#1C1C1E] text-white border border-white/10' : 'bg-[#0A84FF] text-white'}`}>{log.target}</span><h5 className="font-black text-xs text-white uppercase mt-2 truncate max-w-[150px]">{log.nama}</h5><p className="text-[9px] text-gray-500 font-bold mt-1 tracking-widest">{log.tanggal}</p></div>
+                                            <p className="text-sm font-black text-[#FF3B30]">- {formatIDR(log.nominal)}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB: AUDIT (PEMBATALAN) */}
+                    {activeTab === 'audit' && (
+                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
+                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Audit</h2><p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-2">Log Pembatalan Transaksi</p></div>
+                            <div className="bg-[#2A0808] p-8 rounded-[2.5rem] border border-[#FF3B30]/30 shadow-[0_0_30px_rgba(255,59,48,0.15)]">
+                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#FF3B30] mb-6 flex items-center gap-3"><i className="fa-solid fa-triangle-exclamation text-lg"></i> 20 Transaksi Dibatalkan Terakhir</h3>
+                                <div className="space-y-3">
+                                    {data.cancelledOrders && data.cancelledOrders.length === 0 && <p className="text-center text-xs font-bold text-red-500/50 py-4 uppercase tracking-widest">Bersih! Tidak ada pembatalan.</p>}
+                                    {data.cancelledOrders && data.cancelledOrders.map((batal, idx) => (
+                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center backdrop-blur-sm">
+                                            <div><span className="text-[#FF3B30] font-black text-[8px] bg-red-950 px-2 py-1 rounded uppercase tracking-widest mr-2">{batal.CABANG_ID}</span><span className="text-xs font-black uppercase text-gray-300 line-through">{batal.NAMA_PASIEN}</span><p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1.5">{batal.TANGGAL}</p></div>
+                                            <i className="fa-solid fa-ban text-red-900 text-xl"></i>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/90 backdrop-blur-2xl border-t border-white/10 pb-8 pt-3 px-6 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+                        <div className="flex justify-between items-center">
+                            <button onClick={() => setActiveTab('dashboard')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'dashboard' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-chart-pie text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Dasbor</span></button>
+                            <button onClick={() => setActiveTab('logistik')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'logistik' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-boxes-stacked text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Logistik</span></button>
+                            <button onClick={() => setActiveTab('audit')} className={`flex-1 py-2 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'audit' ? 'text-[#FF3B30]' : 'text-gray-500 hover:text-gray-300'}`}><i className="fa-solid fa-shield-halved text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Audit</span></button>
+                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1.5 transition-all text-gray-500 hover:text-white"><i className="fa-solid fa-power-off text-2xl mb-1"></i><span className="text-[9px] font-black uppercase tracking-widest">Keluar</span></button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
+            const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || ''); 
+            const [activeCabang, setActiveCabang] = useState(localStorage.getItem('activeCabang') || '');
+            
+            const [loginData, setLoginData] = useState({ id: '', password: '' });
+            const [loading, setLoading] = useState(false);
+            const [shakeLogin, setShakeLogin] = useState(false);
+            const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+            const showToast = (message, type = 'success') => { setToast({ show: true, message, type }); setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000); };
+
+            const sendToN8N = async (action, payload = {}) => {
+                try {
+                    const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...payload }) });
+                    const text = await response.text(); if (!text) return {}; const rawData = JSON.parse(text);
+                    let unwrapped = Array.isArray(rawData) ? rawData[0] : rawData; return (unwrapped && unwrapped.json) ? unwrapped.json : unwrapped;
+                } catch (error) { showToast("Koneksi Error", 'error'); return { status: 'error' }; }
+            };
+
+            const handleLogin = async (e) => {
+                e.preventDefault(); setLoading(true); setShakeLogin(false);
+                const cleanId = loginData.id.trim().toUpperCase(); const cleanPass = loginData.password.trim();
+                
+                // MENCEGAH KEUANGAN LOGIN DI SINI
+                if (cleanId.includes('KEUANGAN') || cleanId.includes('FINANCE')) {
+                    setShakeLogin(true); 
+                    showToast('Akses Ditolak. Silakan buka Portal Keuangan.', 'error');
+                    setLoading(false);
+                    return;
+                }
+
+                const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
+                
+                if (res && res.status === 'success') {
+                    let detectedRole = 'CABANG';
+                    if (cleanId.includes('OWNER') || cleanId.includes('MASTER')) detectedRole = 'OWNER';
+                    if (cleanId.includes('SUPERVISOR')) detectedRole = 'SUPERVISOR';
+                    if (cleanId.includes('LOGISTIK')) detectedRole = 'LOGISTIK';
+                    
+                    localStorage.setItem('isLoggedIn', 'true'); localStorage.setItem('userRole', detectedRole); localStorage.setItem('activeCabang', cleanId);
+                    setUserRole(detectedRole); setActiveCabang(cleanId); setIsLoggedIn(true);
+                } else { setShakeLogin(true); showToast(res.message || 'ID atau Password Salah', 'error'); }
+                setLoading(false);
+            };
+
+            const handleLogout = () => { localStorage.clear(); setIsLoggedIn(false); setUserRole(''); setActiveCabang(''); };
+
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen bg-[#111111] flex items-center justify-center p-6 pb-24 relative overflow-hidden">
+                        <div className="absolute top-10 left-10 w-72 h-72 bg-[#FF3B30]/10 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-10 right-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div>
+                        <div className={`bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Portal Management V5.12</p></div>
+                            <form onSubmit={handleLogin} className="space-y-5">
+                                <input type="text" placeholder="LOGIN ID" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
+                                <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
+                                <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase text-base hover:bg-[#E02020]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "MASUK SEKARANG"}</button>
+                            </form>
+                        </div>
+                        {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                    </div>
+                );
+            }
+
+            return (
+                <div>
+                    {userRole === 'OWNER' && <OwnerView onLogout={handleLogout} />}
+                    {userRole === 'SUPERVISOR' && <SupervisorView onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
+                    {userRole === 'LOGISTIK' && <LogistikView onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
+                    {userRole === 'CABANG' && <CashierView activeCabang={activeCabang} onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
+                    
+                    {toast.show && <div className={`fixed bottom-32 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
