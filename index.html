@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bugar Connect V5.12 - Core System</title>
+    <title>Bugar Connect V5.13 - Core System</title>
     
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -194,7 +194,8 @@
                 return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
             }, [history, filterRekap]);
 
-            const isLhokseumawe = activeCabang.includes('LSM') || activeCabang === 'LHOKSEUMAWE';
+            // IDENTIFIKASI CABANG LHOKSEUMAWE YANG BENAR (BUGAR8)
+            const isLhokseumawe = activeCabang === 'BUGAR8';
 
             const estimasiBagiHasil = useMemo(() => {
                 if (!formData.TAGIHAN || formData.TAGIHAN <= 0) return null;
@@ -212,7 +213,15 @@
                 let bagiOwner = 0;
                 let tipeHitungan = "Persentase 30%";
 
-                if (paketName.includes("PAKET 8") || paketName.includes("CHIROPRACTIC")) {
+                // LOGIKA KHUSUS CHIROPRACTIC
+                let isChiropractic = false;
+                if (activeCabang === 'BUGAR8') {
+                    if (paketName.includes("PAKET 7") || paketName.includes("CHIROPRACTIC")) isChiropractic = true;
+                } else {
+                    if (paketName.includes("PAKET 8") || paketName.includes("CHIROPRACTIC")) isChiropractic = true;
+                }
+
+                if (isChiropractic) {
                     bagiTerapis = 100000;
                     bagiOwner = cleanTagihan - bagiTerapis;
                     tipeHitungan = "Flat Paket Khusus";
@@ -244,7 +253,7 @@
                 }
 
                 return { bagiOwner, bagiTerapis, tipeHitungan };
-            }, [formData.TAGIHAN, formData.PAKET, reqBonus]);
+            }, [formData.TAGIHAN, formData.PAKET, reqBonus, activeCabang]);
 
             const handleSelectPaket = (selectedPaket) => {
                 let autoHarga = formData.TAGIHAN;
@@ -470,9 +479,133 @@
             );
         };
 
-        // =================================================================
-        // OWNER VIEW - NEW: DUAL DASHBOARD (DAILY & MONTHLY)
-        // =================================================================
+        const SupervisorView = ({ onLogout, sendToN8N, showToast }) => {
+            const [logs, setLogs] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday, search: '' });
+            const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
+            const [isDeleting, setIsDeleting] = useState(null);
+
+            const fetchLogs = useCallback(async () => { setLoading(true); const res = await sendToN8N('supervisor_load'); if (res && res.data) setLogs(res.data); setLoading(false); }, []);
+            useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+            const executeCancel = async () => {
+                const item = confirmModal.item; const targetId = item.db_id || item.id || item.ID;
+                setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
+                await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
+                showToast('Order Berhasil Dibatalkan'); await fetchLogs(); setIsDeleting(null);
+            };
+
+            const filteredLogs = logs.filter(log => {
+                const matchDate = log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end;
+                const matchSearch = filterDate.search === '' || log.NAMA_PASIEN?.toLowerCase().includes(filterDate.search.toLowerCase()) || log.CABANG_ID?.toLowerCase().includes(filterDate.search.toLowerCase());
+                return matchDate && matchSearch;
+            });
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-[#1C1C1E] p-4 sticky top-0 z-40 shadow-lg border-b border-white/10">
+                        <div className="max-w-xl mx-auto flex justify-between items-center text-white"><div className="flex items-center gap-3"><i className="fa-solid fa-shield-halved text-[#FF3B30] text-2xl"></i><div><p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p><h1 className="text-base font-black uppercase tracking-tight">Supervisor Portal</h1></div></div><button onClick={onLogout} className="text-white bg-white/10 px-5 py-2.5 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button></div>
+                    </nav>
+                    <main className="max-w-xl mx-auto p-4 space-y-6 mt-4">
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                            <HotelDateRangePicker value={filterDate} onChange={(val)=>setFilterDate({...filterDate, start:val.start, end:val.end})} title="Filter Rentang Waktu (Maks 35 Hari)" theme="light" />
+                            <input type="text" placeholder="Cari Nama / Cabang..." className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all mt-5 border border-transparent" value={filterDate.search} onChange={e => setFilterDate({...filterDate, search: e.target.value})} />
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-end px-2"><p className="text-[11px] font-black text-[#1C1C1E] uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p><button onClick={fetchLogs} className="text-[#0A84FF] text-[10px] font-black uppercase tracking-widest p-2"><i className="fa-solid fa-rotate-right"></i> Refresh</button></div>
+                            {loading ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
+                            {filteredLogs.map((item, idx) => {
+                                const currentId = item.db_id || item.id || item.ID; const isBatal = Number(item.TAGIHAN) === 0;
+                                return (
+                                    <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 shadow-sm'}`}>
+                                        <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3"><div><span className="bg-[#1C1C1E] text-white text-[9px] px-2.5 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span><span className="text-[10px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span></div>{isBatal && <span className="text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}</div>
+                                        <div className="flex justify-between items-center"><div><h5 className={`font-black text-base text-[#1C1C1E] uppercase tracking-tight ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[10px] text-gray-500 font-bold tracking-widest mt-1">{item.PAKET}</p></div><div className="flex items-center gap-4"><div className="text-right"><p className={`text-base font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">Trp: {item.TERAPIS}</p></div><button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isBatal ? 'opacity-0' : 'bg-[#F2F2F7] text-gray-400 hover:bg-[#FF3B30] hover:text-white active:scale-90 text-lg'}`}>{isDeleting === currentId ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-ban"></i>}</button></div></div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </main>
+                    {confirmModal.show && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"><div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div><div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up"><i className="fa-solid fa-triangle-exclamation text-[#FF3B30] text-[50px] mb-5"></i><h3 className="text-2xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batalkan Order?</h3><p className="text-[11px] text-gray-500 font-bold mb-6 uppercase tracking-widest leading-relaxed">Tindakan ini akan meng-Nol-kan nominal tagihan untuk audit.</p><div className="bg-[#F2F2F7] p-5 rounded-2xl mb-6 text-left border border-gray-200"><p className="text-sm font-black uppercase text-[#1C1C1E]">{confirmModal.item.NAMA_PASIEN}</p><p className="text-[10px] font-bold uppercase text-gray-500 mt-1">{confirmModal.item.CABANG_ID} • {formatIDR(confirmModal.item.TAGIHAN)}</p></div><button onClick={executeCancel} className="w-full py-5 bg-[#FF3B30] text-white font-black rounded-2xl mb-3 active:scale-95 transition-all tracking-widest uppercase text-sm shadow-lg">YA, EKSEKUSI</button><button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-5 bg-gray-200 text-[#1C1C1E] font-black rounded-2xl active:scale-95 transition-all tracking-widest uppercase text-sm">KEMBALI</button></div></div>
+                    )}
+                </div>
+            );
+        };
+
+        const LogistikView = ({ onLogout, sendToN8N, showToast }) => {
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [formData, setFormData] = useState({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
+            const [loading, setLoading] = useState(false);
+            const [logs, setLogs] = useState([]);
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday });
+            const [loadingLogs, setLoadingLogs] = useState(true);
+
+            const fetchLogs = useCallback(async () => {
+                setLoadingLogs(true);
+                const res = await sendToN8N('logistik_load');
+                if (res && res.data) setLogs(res.data);
+                setLoadingLogs(false);
+            }, []);
+
+            useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault(); setLoading(true);
+                const res = await sendToN8N('insert_logistik', formData);
+                if (res && res.status === 'success') {
+                    setFormData({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
+                    showToast('Data Logistik Berhasil Dicatat!'); await fetchLogs();
+                } else { showToast('Gagal Mencatat Logistik', 'error'); }
+                setLoading(false);
+            };
+
+            const filteredLogs = logs.filter(log => log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end);
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
+                        <div className="max-w-xl mx-auto flex justify-between items-center"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#0A84FF]/10 rounded-full flex items-center justify-center"><i className="fa-solid fa-boxes-stacked text-[#0A84FF] text-lg"></i></div><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Supply Chain</p><h1 className="text-base font-black uppercase tracking-tight text-[#1C1C1E]">Portal Logistik</h1></div></div><button onClick={onLogout} className="text-gray-500 hover:text-[#FF3B30] transition-all text-xl p-2"><i className="fa-solid fa-power-off"></i></button></div>
+                    </nav>
+                    <main className="max-w-xl mx-auto p-4 mt-4 space-y-6">
+                        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
+                            <h2 className="font-black text-xl text-[#1C1C1E] uppercase tracking-tight mb-1">Catat Pembelian</h2>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Input kebutuhan cabang & pusat</p>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Dialokasikan Untuk</label>
+                                    <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent appearance-none" value={formData.TARGET_CABANG} onChange={e => setFormData({...formData, TARGET_CABANG: e.target.value})}>
+                                        <option value="PUSAT">Pusat (Global)</option>
+                                        {Array.from({length: 12}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>Cabang BUGAR{i+1}</option>)}
+                                    </select>
+                                </div>
+                                <input type="text" placeholder="Nama Barang (Cth: Krim 5kg, Servis AC)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NAMA_BARANG} onChange={e => setFormData({...formData, NAMA_BARANG: e.target.value})} />
+                                <input type="number" placeholder="Nominal (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NOMINAL} onChange={e => setFormData({...formData, NOMINAL: e.target.value})} />
+                                <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent resize-none" value={formData.KETERANGAN} onChange={e => setFormData({...formData, KETERANGAN: e.target.value})}></textarea>
+                                <button type="submit" disabled={loading} className="w-full bg-[#0A84FF] text-white font-black py-5 rounded-2xl hover:bg-blue-600 active:scale-95 transition-all tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(10,132,255,0.3)] mt-4">
+                                    {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN LOGISTIK"}
+                                </button>
+                            </form>
+                        </div>
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                            <HotelDateRangePicker value={filterDate} onChange={setFilterDate} title="Filter Riwayat Logistik" theme="light" />
+                            <div className="mt-8 space-y-3">
+                                {loadingLogs ? <div className="text-center py-6"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-2xl"></i></div> : null}
+                                {!loadingLogs && filteredLogs.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-4">Tidak ada data di rentang ini</p>}
+                                {filteredLogs.map((log, idx) => (
+                                    <div key={idx} className="bg-[#F2F2F7] p-5 rounded-2xl flex justify-between items-center border border-gray-200">
+                                        <div><span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded text-white shadow-sm ${log.TARGET_CABANG === 'PUSAT' ? 'bg-[#1C1C1E]' : 'bg-[#0A84FF]'}`}>{log.TARGET_CABANG}</span><h5 className="font-black text-base text-[#1C1C1E] uppercase mt-3 tracking-tight">{log.NAMA_BARANG}</h5><p className="text-[10px] text-gray-500 font-bold mt-1 tracking-widest">{log.TANGGAL}</p></div>
+                                        <div className="text-right"><p className="text-base font-black text-[#FF3B30]">- {formatIDR(log.NOMINAL)}</p></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
         const OwnerView = ({ onLogout }) => {
             const isoToday = new Date().toISOString().split('T')[0];
             const [activeTab, setActiveTab] = useState('daily');
@@ -587,7 +720,6 @@
                                     <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2"><i className="fa-solid fa-chart-simple text-[#34C759]"></i> Kepadatan Pasien Per Hari</h3>
                                     <div className="flex justify-between items-end h-32 gap-1 sm:gap-2">
                                         {data.trenHari && data.trenHari.map((tren, idx) => {
-                                            // Mencari nilai tertinggi untuk tinggi bar relatif
                                             const maxPasien = Math.max(...data.trenHari.map(t => t.pasien), 1); 
                                             const heightPct = Math.round((tren.pasien / maxPasien) * 100);
                                             return (
@@ -734,7 +866,7 @@
                         <div className="absolute top-10 left-10 w-72 h-72 bg-[#FF3B30]/10 rounded-full blur-3xl"></div>
                         <div className="absolute bottom-10 right-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div>
                         <div className={`bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
-                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Portal Management V5.12</p></div>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Portal Management V5.13</p></div>
                             <form onSubmit={handleLogin} className="space-y-5">
                                 <input type="text" placeholder="LOGIN ID" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
                                 <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
