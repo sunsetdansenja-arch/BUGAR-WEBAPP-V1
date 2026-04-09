@@ -767,10 +767,11 @@
             );
         };
 
-        const App = () => {
-            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
-            const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || ''); 
-            const [activeCabang, setActiveCabang] = useState(localStorage.getItem('activeCabang') || '');
+const App = () => {
+            // MENGGUNAKAN MEMORI KHUSUS "CORE"
+            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('core_isLoggedIn') === 'true');
+            const [userRole, setUserRole] = useState(localStorage.getItem('core_userRole') || ''); 
+            const [activeCabang, setActiveCabang] = useState(localStorage.getItem('core_activeCabang') || '');
             
             const [loginData, setLoginData] = useState({ id: '', password: '' });
             const [loading, setLoading] = useState(false);
@@ -791,7 +792,6 @@
                 e.preventDefault(); setLoading(true); setShakeLogin(false);
                 const cleanId = loginData.id.trim().toUpperCase(); const cleanPass = loginData.password.trim();
                 
-                // MENCEGAH KEUANGAN LOGIN DI SINI
                 if (cleanId.includes('KEUANGAN') || cleanId.includes('FINANCE')) {
                     setShakeLogin(true); 
                     showToast('Akses Ditolak. Silakan buka Portal Keuangan.', 'error');
@@ -807,13 +807,22 @@
                     if (cleanId.includes('SUPERVISOR')) detectedRole = 'SUPERVISOR';
                     if (cleanId.includes('LOGISTIK')) detectedRole = 'LOGISTIK';
                     
-                    localStorage.setItem('isLoggedIn', 'true'); localStorage.setItem('userRole', detectedRole); localStorage.setItem('activeCabang', cleanId);
+                    // SIMPAN KE MEMORI "CORE"
+                    localStorage.setItem('core_isLoggedIn', 'true'); 
+                    localStorage.setItem('core_userRole', detectedRole); 
+                    localStorage.setItem('core_activeCabang', cleanId);
                     setUserRole(detectedRole); setActiveCabang(cleanId); setIsLoggedIn(true);
                 } else { setShakeLogin(true); showToast(res.message || 'ID atau Password Salah', 'error'); }
                 setLoading(false);
             };
 
-            const handleLogout = () => { localStorage.clear(); setIsLoggedIn(false); setUserRole(''); setActiveCabang(''); };
+            // HAPUS HANYA MEMORI "CORE" (TIDAK MENGGANGGU KEUANGAN)
+            const handleLogout = () => { 
+                localStorage.removeItem('core_isLoggedIn');
+                localStorage.removeItem('core_userRole');
+                localStorage.removeItem('core_activeCabang');
+                setIsLoggedIn(false); setUserRole(''); setActiveCabang(''); 
+            };
 
             if (!isLoggedIn) {
                 return (
