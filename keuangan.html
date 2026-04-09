@@ -490,17 +490,25 @@
             );
         };
 
-        const App = () => {
-            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
-            const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || ''); 
+       const App = () => {
+            // MENGGUNAKAN MEMORI KHUSUS "FINANCE"
+            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('finance_isLoggedIn') === 'true');
+            const [userRole, setUserRole] = useState(localStorage.getItem('finance_userRole') || ''); 
             const [loginData, setLoginData] = useState({ id: '', password: '' });
             const [loading, setLoading] = useState(false);
             const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
             const showToast = (message, type = 'success') => { setToast({ show: true, message, type }); setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000); };
-            const handleLogout = () => { localStorage.clear(); setIsLoggedIn(false); setUserRole(''); };
+            
+            // HAPUS HANYA MEMORI "FINANCE" (TIDAK MENGGANGGU APP UTAMA)
+            const handleLogout = () => { 
+                localStorage.removeItem('finance_isLoggedIn');
+                localStorage.removeItem('finance_userRole');
+                localStorage.removeItem('finance_activeCabang');
+                setIsLoggedIn(false); setUserRole(''); 
+            };
 
-            // Cegah Akun Selain Keuangan Masuk ke Portal Ini
+            // CEK ROLE
             useEffect(() => { if (isLoggedIn && userRole !== 'KEUANGAN') handleLogout(); }, [isLoggedIn, userRole]);
 
             const sendToN8N = async (action, payload = {}) => {
@@ -517,9 +525,12 @@
                 const res = await sendToN8N('login', { id: cleanId, password: loginData.password });
                 if (res && res.status === 'success') {
                     if (cleanId === 'KEUANGAN' || cleanId.includes('FINANCE')) {
-                        localStorage.setItem('isLoggedIn', 'true'); localStorage.setItem('userRole', 'KEUANGAN'); localStorage.setItem('activeCabang', cleanId);
+                        // SIMPAN KE MEMORI KHUSUS FINANCE
+                        localStorage.setItem('finance_isLoggedIn', 'true'); 
+                        localStorage.setItem('finance_userRole', 'KEUANGAN'); 
+                        localStorage.setItem('finance_activeCabang', cleanId);
                         setUserRole('KEUANGAN'); setIsLoggedIn(true);
-                    } else { showToast('Akses Ditolak: Khusus Keuangan', 'error'); }
+                    } else { showToast('Khusus Akun Keuangan!', 'error'); }
                 } else { showToast('ID/Password Salah', 'error'); }
                 setLoading(false);
             };
@@ -528,7 +539,7 @@
                 return (
                     <div className="min-h-screen flex items-center justify-center p-6 bg-[#111111] relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#0A84FF]/10 to-[#34C759]/10"></div>
-                        <div className="bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 z-10">
+                        <div className="bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 z-10 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
                             <div className="text-center mb-8"><img src={LOGO_URL} className="h-20 mx-auto mb-4 drop-shadow-[0_0_20px_rgba(10,132,255,0.4)]" /><h1 className="text-3xl font-black uppercase text-white">Bugar Finance</h1><p className="text-[10px] font-black text-[#0A84FF] tracking-[0.3em] mt-1">RECONCILIATION PORTAL</p></div>
                             <form onSubmit={handleLogin} className="space-y-4">
                                 <input type="text" placeholder="ID KEUANGAN" required className="w-full p-5 rounded-2xl bg-black border border-white/5 text-center font-bold uppercase text-white outline-none focus:border-[#0A84FF]" value={loginData.id} onChange={(e)=>setLoginData({...loginData, id: e.target.value})} />
