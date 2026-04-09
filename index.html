@@ -194,7 +194,6 @@
                 return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
             }, [history, filterRekap]);
 
-            // IDENTIFIKASI CABANG LHOKSEUMAWE YANG BENAR (BUGAR8)
             const isLhokseumawe = activeCabang === 'BUGAR8';
 
             const estimasiBagiHasil = useMemo(() => {
@@ -213,7 +212,6 @@
                 let bagiOwner = 0;
                 let tipeHitungan = "Persentase 30%";
 
-                // LOGIKA KHUSUS CHIROPRACTIC
                 let isChiropractic = false;
                 if (activeCabang === 'BUGAR8') {
                     if (paketName.includes("PAKET 7") || paketName.includes("CHIROPRACTIC")) isChiropractic = true;
@@ -671,7 +669,7 @@
                         </div>
                     )}
 
-                    {/* TAB BARU: DASBOR BULANAN */}
+                    {/* TAB: DASBOR BULANAN */}
                     {activeTab === 'monthly' && (
                         <div className="animate-slide-up">
                             <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
@@ -793,13 +791,14 @@
                         </div>
                     )}
 
-                    {/* NEW BOTTOM NAV (4 TABS) */}
-                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/95 backdrop-blur-3xl border-t border-white/5 pb-8 pt-3 px-2 sm:px-6 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+                    {/* NEW BOTTOM NAV (5 TABS) */}
+                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/95 backdrop-blur-3xl border-t border-white/5 pb-8 pt-3 px-1 sm:px-4 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
                         <div className="flex justify-between items-center">
                             <button onClick={() => setActiveTab('daily')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'daily' ? 'text-[#FF3B30] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-bolt text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Harian</span></button>
                             <button onClick={() => setActiveTab('monthly')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'monthly' ? 'text-[#0A84FF] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-calendar-check text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Bulan</span></button>
                             <button onClick={() => setActiveTab('logistik')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'logistik' ? 'text-white scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-boxes-stacked text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Logistik</span></button>
                             <button onClick={() => setActiveTab('audit')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'audit' ? 'text-white scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-shield-halved text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Audit</span></button>
+                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1 transition-all text-gray-600 hover:text-[#FF3B30]"><i className="fa-solid fa-power-off text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Keluar</span></button>
                         </div>
                     </div>
                 </div>
