@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bugar Connect V5.14 - Executive Portal</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { animation: { 'slide-up': 'slideUp 0.4s ease-out', 'fade-in': 'fadeIn 0.3s ease-out' }, keyframes: { slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }, fadeIn: { 'from': { opacity: '0' }, 'to': { opacity: '1' } } } } } }</script>
+    <style> .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; } ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; } input, select, textarea { font-size: 16px !important; } </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-[#111111] text-white">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useCallback, useEffect, useMemo } = React;
+        const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
+        const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
+        const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
+
+        const HotelDateRangePicker = ({ value, onChange, title, theme = "dark" }) => {
+            const [step, setStep] = useState(0); const [showModal, setShowModal] = useState(false);
+            const days = useMemo(() => {
+                const arr = []; const today = new Date(); today.setHours(0,0,0,0);
+                const getLocalIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                for(let i=34; i>=0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); arr.push({ date: d, iso: getLocalIso(d), dayStr: d.getDate(), isToday: i===0 }); } return arr;
+            }, []);
+            const handleDayClick = (iso) => { if (step === 0 || iso < value.start) { onChange({ start: iso, end: iso }); setStep(1); } else { onChange({ ...value, end: iso }); setStep(0); setShowModal(false); } };
+            const formatDateStr = (iso) => { if(!iso) return "-"; const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}); };
+            const isDark = theme === "dark"; const boxClass = isDark ? "bg-[#1C1C1E] border border-white/10 text-white hover:border-white/20" : "bg-[#F2F2F7] border border-gray-200 text-[#1C1C1E]"; const titleClass = isDark ? "text-gray-500" : "text-gray-400";
+            return (
+                <div className="w-full">
+                    <label className={`text-[10px] uppercase font-black tracking-widest mb-2 block ${titleClass}`}>{title || "Pilih Rentang Waktu"}</label>
+                    <div onClick={() => {setShowModal(true); setStep(0);}} className={`${boxClass} rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all shadow-inner`}>
+                        <div className="flex gap-4 items-center"><i className="fa-regular fa-calendar text-[#0A84FF] text-xl"></i><div><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Mulai</p><p className="text-base font-black">{formatDateStr(value.start)}</p></div></div>
+                        <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-gray-300'}`}></div>
+                        <div className="text-right"><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Selesai</p><p className="text-base font-black">{formatDateStr(value.end)}</p></div>
+                    </div>
+                    {showModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                            <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/10 animate-slide-up relative overflow-hidden">
+                                <div className="text-center mb-6"><h3 className="text-lg font-black uppercase tracking-tight text-white">{step === 0 ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai"}</h3></div>
+                                <div className="grid grid-cols-7 gap-y-2 gap-x-0 relative">
+                                    {Array.from({length: days[0].date.getDay()}).map((_,i) => <div key={`blank-${i}`} />)}
+                                    {days.map((d, i) => {
+                                        const isStart = d.iso === value.start; const isEnd = d.iso === value.end; const inRange = d.iso > value.start && d.iso < value.end;
+                                        let bgClass = "bg-transparent text-gray-300"; let wrapperClass = "flex justify-center items-center h-10 w-full relative cursor-pointer";
+                                        if (isStart || isEnd) bgClass = "bg-[#0A84FF] text-white shadow-[0_0_15px_rgba(10,132,255,0.5)] z-10 scale-110 rounded-full"; else if (inRange) bgClass = "bg-[#0A84FF]/20 text-[#0A84FF] rounded-none"; else if (d.isToday) bgClass = "bg-white/10 text-white border border-white/20 rounded-full";
+                                        if(isStart && value.start !== value.end) wrapperClass += " rounded-l-full bg-[#0A84FF]/20"; if(isEnd && value.start !== value.end) wrapperClass += " rounded-r-full bg-[#0A84FF]/20";
+                                        return (<div key={i} className={wrapperClass} onClick={() => handleDayClick(d.iso)}><div className={`w-8 h-8 flex items-center justify-center font-bold text-sm transition-all ${bgClass}`}>{d.dayStr}</div></div>)
+                                    })}
+                                </div>
+                                <button onClick={()=>setShowModal(false)} className="mt-8 w-full py-4 bg-white/10 text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 text-base hover:bg-white/20 transition-all">Batalkan</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )
+        };
+
+        const BranchCard = ({ cabang, idx }) => {
+            const [expanded, setExpanded] = useState(false);
+            return (
+                <div className="bg-black rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-300 shadow-lg">
+                    <div className="p-5 sm:p-6 cursor-pointer active:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
+                        <div className="flex justify-between items-start sm:items-center mb-5 gap-2">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className={`shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-black text-sm sm:text-lg ${idx === 0 ? 'bg-gradient-to-br from-[#FF3B30] to-[#E02020] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/5'}`}>{idx + 1}</div>
+                                <h4 className="font-black text-lg sm:text-2xl tracking-tighter uppercase text-white leading-none truncate max-w-[120px] sm:max-w-none">{cabang.id}</h4>
+                            </div>
+                            <div className="text-right shrink-0"><p className="text-[8px] sm:text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1.5">Laba Hak Owner</p><p className="text-lg sm:text-2xl font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-[#111111] p-3 sm:p-4 rounded-xl border border-white/5">
+                            <div><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Omset Total</p><p className="text-xs sm:text-sm font-black text-white">{formatIDR(cabang.omsetHariIni)}</p></div>
+                            <div className="text-right"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Pengeluaran</p><p className="text-xs sm:text-sm font-black text-gray-300">{formatIDR(cabang.expenseHariIni)}</p></div>
+                        </div>
+                    </div>
+                    <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
+                        <div className="grid grid-cols-3 gap-px bg-white/5 border-b border-white/5">
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Pasien</p><p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni}</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Margin</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
+                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Trp MVP</p><p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p></div>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-3 px-1">Rincian Hari Ini</p>
+                            {cabang.logsHariIni && cabang.logsHariIni.length === 0 && <p className="text-center text-xs font-bold text-gray-600 py-4">Belum ada aktivitas</p>}
+                            {cabang.logsHariIni && cabang.logsHariIni.map((log, i) => (
+                                <div key={i} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
+                                    <div className="flex gap-3 items-center min-w-0"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div className="min-w-0"><p className={`text-xs font-bold uppercase truncate max-w-[120px] sm:max-w-[180px] ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
+                                    <p className={`text-xs font-black shrink-0 ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+
+        const OwnerView = ({ onLogout }) => {
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [activeTab, setActiveTab] = useState('daily');
+            const [data, setData] = useState({ grandOmsetHariIni: 0, grandBagiTerapisHariIni: 0, grandTotalBulanIni: 0, grandBagiTerapisBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [], logistikLogs: [] });
+            const [loading, setLoading] = useState(true);
+            const [refreshing, setRefreshing] = useState(false);
+            const [filterLogistikOwner, setFilterLogistikOwner] = useState({ start: isoToday, end: isoToday });
+
+            const loadOwnerData = async (isRefresh = false) => {
+                if (isRefresh) setRefreshing(true); else setLoading(true);
+                try {
+                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'owner_load' }) });
+                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
+                    if (finalData && finalData.json) finalData = finalData.json;
+                    setData(finalData || {});
+                } catch (e) {} setLoading(false); setRefreshing(false);
+            };
+
+            useEffect(() => { loadOwnerData(); }, []);
+
+            if (loading) return <div className="min-h-screen bg-[#111111] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl drop-shadow-[0_0_15px_rgba(255,59,48,0.5)]"></i></div>;
+            const filteredLogistikOwner = (data.logistikLogs || []).filter(l => l.tanggal >= filterLogistikOwner.start && l.tanggal <= filterLogistikOwner.end);
+
+            return (
+                <div className="min-h-screen bg-[#111111] text-white font-sans animate-fade-in pb-28">
+                    {activeTab === 'daily' && (
+                        <div className="animate-slide-up">
+                            <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF3B30]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                                <div className="max-w-xl mx-auto relative z-10">
+                                    <div className="flex justify-between items-start mb-10"><div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Daily Recap</h1></div></div><button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#FF3B30]' : 'text-gray-300'}`}></i></button></div>
+                                    <div className="bg-gradient-to-br from-[#FF3B30] to-[#E02020] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.4)] relative overflow-hidden border border-white/20">
+                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Hari Ini)</p>
+                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
+                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDR(data.grandOmsetHariIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisHariIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Pengeluaran</span><span className="text-sm font-black">- {formatIDR(data.expenseHariIni)}</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <main className="max-w-xl mx-auto p-6 space-y-8 mt-2">
+                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
+                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30] text-lg"></i> Performa Cabang</h3>
+                                    <div className="space-y-4">{data.leaderboard && data.leaderboard.map((cabang, idx) => <BranchCard key={cabang.id} cabang={cabang} idx={idx} />)}</div>
+                                </div>
+                            </main>
+                        </div>
+                    )}
+
+                    {activeTab === 'monthly' && (
+                        <div className="animate-slide-up">
+                            <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#0A84FF]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                                <div className="max-w-xl mx-auto relative z-10">
+                                    <div className="flex justify-between items-start mb-10"><div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#0A84FF] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Monthly Recap</h1></div></div><button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#0A84FF]' : 'text-gray-300'}`}></i></button></div>
+                                    <div className="bg-gradient-to-br from-[#0A84FF] to-[#0040DD] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(10,132,255,0.4)] relative overflow-hidden border border-white/20">
+                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Bulan Ini)</p>
+                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaBulanIni)}</h2>
+                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDR(data.grandTotalBulanIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisBulanIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Total Beban</span><span className="text-sm font-black">- {formatIDR(data.expenseBulanIni)}</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
+                                <div className="bg-[#1C1C1E] p-6 rounded-[2rem] border border-white/5 shadow-lg"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-star text-[#FFCC00]"></i> Top 3 Terapis Bulan Ini</h3><div className="space-y-3">{data.topTerapis && data.topTerapis.length === 0 && <p className="text-xs text-gray-600 font-bold">Belum ada data</p>}{data.topTerapis && data.topTerapis.map((t, idx) => (<div key={idx} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5"><div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${idx===0 ? 'bg-[#FFCC00] text-black' : idx===1 ? 'bg-gray-300 text-black' : 'bg-[#CD7F32] text-white'}`}>{idx+1}</div><span className="font-black text-sm uppercase">{t.nama}</span></div><span className="text-[#0A84FF] font-black text-sm">{formatIDR(t.omset)}</span></div>))}</div></div>
+                                <div className="bg-[#1C1C1E] p-6 rounded-[2rem] border border-white/5 shadow-lg"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2"><i className="fa-solid fa-chart-simple text-[#34C759]"></i> Kepadatan Pasien Per Hari</h3><div className="flex justify-between items-end h-32 gap-1 sm:gap-2">{data.trenHari && data.trenHari.map((tren, idx) => { const maxPasien = Math.max(...data.trenHari.map(t => t.pasien), 1); const heightPct = Math.round((tren.pasien / maxPasien) * 100); return (<div key={idx} className="flex flex-col items-center flex-1"><span className="text-[9px] font-bold text-gray-400 mb-1">{tren.pasien}</span><div className="w-full bg-[#34C759] rounded-t-sm" style={{height: `${heightPct}%`, minHeight: '2px', opacity: heightPct===100 ? '1' : '0.5'}}></div><span className="text-[8px] sm:text-[10px] font-black uppercase mt-2 text-gray-500">{tren.hari.substring(0,3)}</span></div>) })}</div></div>
+                                <div className="bg-[#1C1C1E] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-building text-white"></i> Laba Cabang (Bulan Ini)</h3><div className="space-y-3">{data.leaderboard && data.leaderboard.map((cabang) => (<div key={cabang.id} className="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center"><div><h4 className="font-black text-sm uppercase text-white">{cabang.id}</h4><p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Omset: {formatIDR(cabang.omsetBulanIni)}</p></div><div className="text-right"><p className="text-base font-black text-[#FF3B30]">{formatIDR(cabang.labaBulanIni)}</p><p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Beban: {formatIDR(cabang.expenseBulanIni)}</p></div></div>))}</div></div>
+                            </main>
+                        </div>
+                    )}
+
+                    {activeTab === 'logistik' && (
+                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
+                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Logistik</h2><p className="text-[10px] text-[#0A84FF] font-black uppercase tracking-widest mt-2">Pantauan Supply Chain</p></div>
+                            <div className="bg-[#0A84FF]/10 p-8 rounded-[2.5rem] border border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.05)]">
+                                <HotelDateRangePicker value={filterLogistikOwner} onChange={setFilterLogistikOwner} title="Filter Periode Belanja" />
+                                <div className="space-y-3 mt-6">
+                                    {filteredLogistikOwner.length === 0 && <p className="text-center text-[10px] font-bold text-[#0A84FF]/50 py-4 uppercase tracking-widest">Tidak ada pengeluaran logistik</p>}
+                                    {filteredLogistikOwner.map((log, idx) => (
+                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-[#0A84FF]/20 flex justify-between items-center backdrop-blur-sm"><div><span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${log.target === 'PUSAT' ? 'bg-[#1C1C1E] text-white border border-white/10' : 'bg-[#0A84FF] text-white'}`}>{log.target}</span><h5 className="font-black text-xs text-white uppercase mt-2 truncate max-w-[150px]">{log.nama}</h5><p className="text-[9px] text-gray-500 font-bold mt-1 tracking-widest">{log.tanggal}</p></div><p className="text-sm font-black text-[#FF3B30]">- {formatIDR(log.nominal)}</p></div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'audit' && (
+                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
+                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Audit</h2><p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-2">Log Pembatalan Transaksi</p></div>
+                            <div className="bg-[#2A0808] p-8 rounded-[2.5rem] border border-[#FF3B30]/30 shadow-[0_0_30px_rgba(255,59,48,0.15)]">
+                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#FF3B30] mb-6 flex items-center gap-3"><i className="fa-solid fa-triangle-exclamation text-lg"></i> 20 Transaksi Dibatalkan</h3>
+                                <div className="space-y-3">
+                                    {data.cancelledOrders && data.cancelledOrders.length === 0 && <p className="text-center text-xs font-bold text-red-500/50 py-4 uppercase tracking-widest">Bersih! Tidak ada pembatalan.</p>}
+                                    {data.cancelledOrders && data.cancelledOrders.map((batal, idx) => (
+                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center backdrop-blur-sm"><div><span className="text-[#FF3B30] font-black text-[8px] bg-red-950 px-2 py-1 rounded uppercase tracking-widest mr-2">{batal.CABANG_ID}</span><span className="text-xs font-black uppercase text-gray-300 line-through">{batal.NAMA_PASIEN}</span><p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1.5">{batal.TANGGAL}</p></div><i className="fa-solid fa-ban text-red-900 text-xl"></i></div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/95 backdrop-blur-3xl border-t border-white/5 pb-8 pt-3 px-1 sm:px-4 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+                        <div className="flex justify-between items-center">
+                            <button onClick={() => setActiveTab('daily')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'daily' ? 'text-[#FF3B30] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-bolt text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Harian</span></button>
+                            <button onClick={() => setActiveTab('monthly')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'monthly' ? 'text-[#0A84FF] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-calendar-check text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Bulan</span></button>
+                            <button onClick={() => setActiveTab('logistik')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'logistik' ? 'text-white scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-boxes-stacked text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Logistik</span></button>
+                            <button onClick={() => setActiveTab('audit')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'audit' ? 'text-white scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-shield-halved text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Audit</span></button>
+                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1 transition-all text-gray-600 hover:text-[#FF3B30]"><i className="fa-solid fa-power-off text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Keluar</span></button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('owner_isLoggedIn') === 'true');
+            const [loginData, setLoginData] = useState({ id: '', password: '' });
+            const [loading, setLoading] = useState(false); const [shakeLogin, setShakeLogin] = useState(false); const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+            const showToast = (message, type = 'success') => { setToast({ show: true, message, type }); setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000); };
+
+            const sendToN8N = async (action, payload = {}) => {
+                try {
+                    const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...payload }) });
+                    const text = await response.text(); if (!text) return {}; const rawData = JSON.parse(text);
+                    let unwrapped = Array.isArray(rawData) ? rawData[0] : rawData; return (unwrapped && unwrapped.json) ? unwrapped.json : unwrapped;
+                } catch (error) { return { status: 'error' }; }
+            };
+
+            const handleLogin = async (e) => {
+                e.preventDefault(); setLoading(true); setShakeLogin(false);
+                const cleanId = loginData.id.trim().toUpperCase(); const cleanPass = loginData.password.trim();
+                
+                // KUNCI PINTU HANYA UNTUK OWNER
+                if (!cleanId.includes('OWNER') && !cleanId.includes('MASTER')) {
+                    setShakeLogin(true); showToast('Akses Ditolak! Portal ini khusus akun Owner.', 'error'); setLoading(false); return;
+                }
+
+                const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
+                if (res && res.status === 'success') {
+                    localStorage.setItem('owner_isLoggedIn', 'true'); setIsLoggedIn(true);
+                } else { setShakeLogin(true); showToast(res.message || 'ID atau Password Salah', 'error'); }
+                setLoading(false);
+            };
+
+            const handleLogout = () => { localStorage.removeItem('owner_isLoggedIn'); setIsLoggedIn(false); };
+
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen bg-[#111111] flex items-center justify-center p-6 pb-24 relative overflow-hidden">
+                        <div className="absolute top-10 left-10 w-72 h-72 bg-[#FF3B30]/10 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-10 right-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div>
+                        <div className={`bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Executive</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Owner Portal V5</p></div>
+                            <form onSubmit={handleLogin} className="space-y-5">
+                                <input type="text" placeholder="OWNER ID" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
+                                <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
+                                <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase text-base hover:bg-[#E02020]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "LOGIN OWNER"}</button>
+                            </form>
+                        </div>
+                        {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                    </div>
+                );
+            }
+            return <div><OwnerView onLogout={handleLogout} /></div>;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
