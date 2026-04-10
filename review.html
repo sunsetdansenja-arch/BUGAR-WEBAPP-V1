@@ -11,10 +11,8 @@
     </script>
     <style>
         body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #111111; color: white; }
-        .star-rating i { cursor: pointer; transition: color 0.2s, transform 0.1s; }
-        .star-rating i:active { transform: scale(0.8); }
+        .star-rating i { cursor: pointer; transition: all 0.2s; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -31,156 +29,141 @@
         const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
 
         const ReviewApp = () => {
-            const [urlParams, setUrlParams] = useState({ id: '', cabang: '', terapis: '' });
+            const [txData, setTxData] = useState(null);
+            const [txId, setTxId] = useState('');
             const [rating, setRating] = useState(0);
-            const [hoverRating, setHoverRating] = useState(0);
             const [komplain, setKomplain] = useState('');
             const [saran, setSaran] = useState('');
             
-            const [loading, setLoading] = useState(false);
+            const [loading, setLoading] = useState(true);
+            const [submitting, setSubmitting] = useState(false);
             const [submitted, setSubmitted] = useState(false);
             const [error, setError] = useState('');
 
-            // AMBIL DATA DARI URL & CEK ANTI-SPAM
+            // LOAD DATA TRANSAKSI SAAT WEB DIBUKA
             useEffect(() => {
                 const params = new URLSearchParams(window.location.search);
-                const txId = params.get('id') || '';
-                const cab = params.get('cabang') || 'BUGAR';
-                const trp = params.get('terapis') || 'Terapis Kami';
-                
-                setUrlParams({ id: txId, cabang: cab, terapis: trp });
-
-                // CEK LOKAL APAKAH SUDAH PERNAH SUBMIT ID INI
-                if (txId && localStorage.getItem(`review_submitted_${txId}`)) {
-                    setSubmitted(true);
+                const id = params.get('id');
+                if (!id) {
+                    setError('Link tidak valid. Mohon gunakan link dari WhatsApp Resmi Bugar.');
+                    setLoading(false);
+                    return;
                 }
+                setTxId(id);
+
+                // CEK ANTI-SPAM LOKAL
+                if (localStorage.getItem(`review_done_${id}`)) {
+                    setSubmitted(true);
+                    setLoading(false);
+                    return;
+                }
+
+                fetchData(id);
             }, []);
+
+            const fetchData = async (id) => {
+                try {
+                    const res = await fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'get_review_data', id_transaksi: id })
+                    });
+                    const result = await res.json();
+                    const final = Array.isArray(result) ? result[0] : result;
+                    const cleanData = final.json ? final.json.data : final.data;
+
+                    if (cleanData) {
+                        setTxData(cleanData);
+                    } else {
+                        setError('Data kunjungan tidak ditemukan.');
+                    }
+                } catch (e) {
+                    setError('Gagal menyambung ke server.');
+                }
+                setLoading(false);
+            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                if (rating === 0) return setError('Mohon berikan bintang (1-5) terlebih dahulu ya Kak.');
+                if (rating === 0) return alert('Pilih bintang dulu ya Kak!');
                 
-                setLoading(true);
-                setError('');
-
+                setSubmitting(true);
                 try {
-                    const response = await fetch(WEBHOOK_URL, {
+                    await fetch(WEBHOOK_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             action: 'submit_review',
-                            id_transaksi: urlParams.id,
-                            cabang: urlParams.cabang,
-                            terapis: urlParams.terapis,
+                            id_transaksi: txId,
+                            cabang: txData.cabang,
+                            terapis: txData.terapis,
                             rating: rating,
                             komplain: komplain || "-",
                             saran: saran || "-"
                         })
                     });
-
-                    const res = await response.json();
-                    let data = Array.isArray(res) ? res[0] : res;
-                    if(data && data.json) data = data.json;
-
-                    if (data.status === 'success') {
-                        setSubmitted(true);
-                        if (urlParams.id) localStorage.setItem(`review_submitted_${urlParams.id}`, 'true'); // KUNCI SPAM
-                    } else if (data.status === 'duplicate') {
-                        setSubmitted(true);
-                        setError('Ulasan untuk kunjungan ini sudah kami terima sebelumnya.');
-                    } else {
-                        setError('Terjadi kesalahan sistem. Mohon coba lagi.');
-                    }
-                } catch (err) {
-                    setError('Gagal mengirim ulasan. Pastikan koneksi internet stabil.');
+                    localStorage.setItem(`review_done_${txId}`, 'true');
+                    setSubmitted(true);
+                } catch (e) {
+                    alert('Gagal mengirim ulasan.');
                 }
-                setLoading(false);
+                setSubmitting(false);
             };
 
-            // TAMPILAN JIKA SUDAH SUBMIT (Atau terdeteksi Spam)
-            if (submitted) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center p-6 bg-[#111111] relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#34C759]/10 to-[#0A84FF]/10"></div>
-                        <div className="bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] text-center relative z-10 animate-slide-up">
-                            <div className="w-24 h-24 bg-[#34C759]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <i className="fa-solid fa-heart text-[#34C759] text-4xl"></i>
-                            </div>
-                            <h2 className="text-2xl font-black uppercase tracking-tight text-white mb-3">Terima Kasih!</h2>
-                            <p className="text-sm text-gray-400 mb-6 leading-relaxed">Ulasan Kakak sangat berharga bagi kami. {error ? error : "Sampai jumpa di relaksasi selanjutnya bersama Bugar Refleksi."}</p>
-                        </div>
+            if (loading) return <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#111111]"><i className="fa-solid fa-circle-notch fa-spin text-[#0A84FF] text-4xl mb-4"></i><p className="text-xs font-black uppercase tracking-widest text-gray-500">Mencari data kunjungan Kakak...</p></div>;
+
+            if (error) return <div className="min-h-screen flex items-center justify-center p-6 bg-[#111111] text-center"><div className="bg-[#1C1C1E] p-8 rounded-[2rem] border border-red-500/20"><i className="fa-solid fa-triangle-exclamation text-red-500 text-4xl mb-4"></i><p className="text-sm font-bold text-gray-300">{error}</p></div></div>;
+
+            if (submitted) return (
+                <div className="min-h-screen flex items-center justify-center p-6 bg-[#111111] animate-fade-in">
+                    <div className="bg-[#1C1C1E] p-10 rounded-[3rem] w-full max-w-md border border-white/10 text-center shadow-2xl">
+                        <div className="w-20 h-20 bg-[#34C759]/20 rounded-full flex items-center justify-center mx-auto mb-6"><i className="fa-solid fa-check text-[#34C759] text-3xl"></i></div>
+                        <h2 className="text-2xl font-black uppercase text-white mb-2">Terima Kasih!</h2>
+                        <p className="text-sm text-gray-400">Ulasan Kakak sudah kami terima. Masukan Kakak sangat berarti bagi kami untuk terus meningkatkan layanan.</p>
                     </div>
-                );
-            }
+                </div>
+            );
 
             return (
-                <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-[#111111] relative overflow-hidden">
-                    <div className="absolute top-10 left-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-10 right-10 w-72 h-72 bg-[#34C759]/10 rounded-full blur-3xl"></div>
-                    
-                    <div className="bg-[#1C1C1E]/80 backdrop-blur-2xl p-6 sm:p-10 rounded-[2.5rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 animate-fade-in">
-                        <div className="text-center mb-8">
-                            <img src={LOGO_URL} alt="Bugar Logo" className="h-16 mx-auto mb-4 drop-shadow-lg" />
-                            <h1 className="text-2xl font-black text-white tracking-tighter uppercase leading-none mb-2">Penilaian Layanan</h1>
-                            <div className="inline-block bg-white/10 px-3 py-1 rounded-full border border-white/5">
-                                <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">
-                                    <i className="fa-solid fa-location-dot mr-1"></i> {urlParams.cabang}
-                                </p>
+                <div className="min-h-screen p-6 bg-[#111111] flex flex-col items-center justify-center font-sans overflow-x-hidden">
+                    <div className="w-full max-w-md animate-slide-up">
+                        {/* STRUK DIGITAL CARD */}
+                        <div className="bg-white text-black p-6 rounded-t-[2.5rem] relative overflow-hidden shadow-xl">
+                            <div className="absolute top-0 right-0 p-4 opacity-5"><i className="fa-solid fa-spa text-7xl"></i></div>
+                            <img src={LOGO_URL} className="h-10 mb-4" />
+                            <h2 className="text-xs font-black uppercase text-gray-400 tracking-widest mb-4">Detail Relaksasi</h2>
+                            <div className="space-y-3">
+                                <div className="flex justify-between border-b border-gray-100 pb-2"><span className="text-[10px] font-bold text-gray-400 uppercase">Pelanggan</span><span className="text-sm font-black uppercase">{txData.nama}</span></div>
+                                <div className="flex justify-between border-b border-gray-100 pb-2"><span className="text-[10px] font-bold text-gray-400 uppercase">Layanan</span><span className="text-sm font-black uppercase">{txData.paket}</span></div>
+                                <div className="flex justify-between"><span className="text-[10px] font-bold text-gray-400 uppercase">Terapis</span><span className="text-sm font-black text-[#0A84FF] uppercase">{txData.terapis}</span></div>
                             </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* WIDGET BINTANG */}
-                            <div className="bg-black/50 p-6 rounded-3xl border border-white/5 text-center shadow-inner">
-                                <p className="text-xs font-bold text-gray-400 mb-4">Bagaimana pijatan <strong className="text-white uppercase">{urlParams.terapis}</strong> hari ini?</p>
-                                <div className="flex justify-center gap-2 star-rating text-3xl sm:text-4xl">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                        <i 
-                                            key={star}
-                                            className={`fa-star ${star <= (hoverRating || rating) ? 'fa-solid text-[#FFCC00] drop-shadow-[0_0_10px_rgba(255,204,0,0.5)]' : 'fa-regular text-gray-600'}`}
-                                            onMouseEnter={() => setHoverRating(star)}
-                                            onMouseLeave={() => setHoverRating(0)}
-                                            onClick={() => { setRating(star); setError(''); }}
-                                        ></i>
-                                    ))}
+                        {/* FORM ULASAN */}
+                        <div className="bg-[#1C1C1E] p-8 rounded-b-[2.5rem] border-t-4 border-dashed border-[#111111] shadow-2xl">
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <div className="text-center">
+                                    <p className="text-sm font-bold text-gray-300 mb-4 tracking-tight">Bagaimana pengalaman Kakak hari ini?</p>
+                                    <div className="flex justify-center gap-3 text-4xl">
+                                        {[1,2,3,4,5].map(s => (
+                                            <i key={s} onClick={()=>setRating(s)} className={`fa-star ${s <= rating ? 'fa-solid text-[#FFCC00] drop-shadow-[0_0_8px_rgba(255,204,0,0.5)]' : 'fa-regular text-gray-700'} cursor-pointer active:scale-75 transition-all`}></i>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest mt-4 text-[#FFCC00]">
+                                        {rating === 1 ? "Sangat Kurang" : rating === 2 ? "Kurang Pas" : rating === 3 ? "Biasa Saja" : rating === 4 ? "Sangat Nyaman" : rating === 5 ? "Luar Biasa!" : ""}
+                                    </p>
                                 </div>
-                                <div className="h-4 mt-3">
-                                    {rating === 1 && <span className="text-[10px] font-black text-[#FF3B30] uppercase tracking-widest animate-fade-in">Sangat Kurang</span>}
-                                    {rating === 2 && <span className="text-[10px] font-black text-[#FF9500] uppercase tracking-widest animate-fade-in">Kurang Pas</span>}
-                                    {rating === 3 && <span className="text-[10px] font-black text-[#FFCC00] uppercase tracking-widest animate-fade-in">Biasa Saja</span>}
-                                    {rating === 4 && <span className="text-[10px] font-black text-[#34C759] uppercase tracking-widest animate-fade-in">Enak & Nyaman</span>}
-                                    {rating === 5 && <span className="text-[10px] font-black text-[#0A84FF] uppercase tracking-widest animate-fade-in">Luar Biasa Memuaskan!</span>}
-                                </div>
-                            </div>
 
-                            {/* WIDGET TEXTAREA */}
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block ml-1">Komplain / Keluhan (Opsional)</label>
-                                    <textarea 
-                                        placeholder="Ada yang kurang nyaman? Beritahu kami agar bisa diperbaiki..." 
-                                        rows="2" 
-                                        className="w-full p-4 bg-black text-white rounded-2xl outline-none font-bold text-sm focus:ring-2 focus:ring-[#FF3B30]/30 transition-all border border-white/5 focus:border-[#FF3B30] resize-none"
-                                        value={komplain} onChange={e => setKomplain(e.target.value)}
-                                    ></textarea>
+                                <div className="space-y-4 pt-4">
+                                    <textarea placeholder="Keluhan / Komplain (Jika ada)..." className="w-full p-4 bg-black text-white rounded-2xl text-sm font-bold outline-none border border-white/5 focus:border-red-500/50 transition-all resize-none" rows="2" value={komplain} onChange={e=>setKomplain(e.target.value)}></textarea>
+                                    <textarea placeholder="Saran & Masukan untuk Bugar..." className="w-full p-4 bg-black text-white rounded-2xl text-sm font-bold outline-none border border-white/5 focus:border-[#0A84FF]/50 transition-all resize-none" rows="2" value={saran} onChange={e=>setSaran(e.target.value)}></textarea>
                                 </div>
-                                <div>
-                                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block ml-1">Saran / Pujian (Opsional)</label>
-                                    <textarea 
-                                        placeholder="Punya saran untuk Bugar? Atau mau titip pesan untuk terapis?" 
-                                        rows="2" 
-                                        className="w-full p-4 bg-black text-white rounded-2xl outline-none font-bold text-sm focus:ring-2 focus:ring-[#0A84FF]/30 transition-all border border-white/5 focus:border-[#0A84FF] resize-none"
-                                        value={saran} onChange={e => setSaran(e.target.value)}
-                                    ></textarea>
-                                </div>
-                            </div>
 
-                            {error && <div className="text-center p-3 bg-red-500/10 border border-red-500/30 rounded-xl animate-fade-in"><p className="text-xs font-bold text-red-400">{error}</p></div>}
-
-                            <button type="submit" disabled={loading} className={`w-full font-black py-5 rounded-2xl shadow-lg active:scale-95 transition-all uppercase tracking-widest text-sm ${rating === 0 ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-[#0A84FF] text-white hover:bg-blue-600 shadow-[0_10px_30px_rgba(10,132,255,0.3)]'}`}>
-                                {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "KIRIM ULASAN"}
-                            </button>
-                        </form>
+                                <button type="submit" disabled={submitting || rating === 0} className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${rating > 0 ? 'bg-[#0A84FF] text-white shadow-[0_10px_30px_rgba(10,132,255,0.3)] active:scale-95' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+                                    {submitting ? <i className="fa-solid fa-spinner fa-spin"></i> : "Kirim Ulasan Sekarang"}
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             );
