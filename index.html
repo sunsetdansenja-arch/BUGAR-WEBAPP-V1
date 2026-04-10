@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bugar Connect V5.13 - Core System</title>
+    <title>Bugar Connect V5.14 - Cashier Portal</title>
     
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -87,49 +87,7 @@
             )
         };
 
-        const BranchCard = ({ cabang, idx }) => {
-            const [expanded, setExpanded] = useState(false);
-            return (
-                <div className="bg-black rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-300 shadow-lg">
-                    <div className="p-5 sm:p-6 cursor-pointer active:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
-                        <div className="flex justify-between items-start sm:items-center mb-5 gap-2">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className={`shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-black text-sm sm:text-lg ${idx === 0 ? 'bg-gradient-to-br from-[#FF3B30] to-[#E02020] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/5'}`}>{idx + 1}</div>
-                                <h4 className="font-black text-lg sm:text-2xl tracking-tighter uppercase text-white leading-none truncate max-w-[120px] sm:max-w-none">{cabang.id}</h4>
-                            </div>
-                            <div className="text-right shrink-0">
-                                <p className="text-[8px] sm:text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1.5 whitespace-nowrap">Laba Hak Owner</p>
-                                <p className="text-lg sm:text-2xl font-black text-[#FF3B30] leading-none whitespace-nowrap">{formatIDR(cabang.labaHariIni)}</p>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-[#111111] p-3 sm:p-4 rounded-xl border border-white/5">
-                            <div><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Omset Total</p><p className="text-xs sm:text-sm font-black text-white">{formatIDR(cabang.omsetHariIni)}</p></div>
-                            <div className="text-right"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1 truncate">Pengeluaran</p><p className="text-xs sm:text-sm font-black text-gray-300">{formatIDR(cabang.expenseHariIni)}</p></div>
-                        </div>
-                    </div>
-
-                    <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
-                        <div className="grid grid-cols-3 gap-px bg-white/5 border-b border-white/5">
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Pasien</p><p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni}</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Margin</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Trp MVP</p><p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p></div>
-                        </div>
-                        <div className="p-4 space-y-2">
-                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-3 px-1">Rincian Transaksi Hari Ini</p>
-                            {cabang.logsHariIni && cabang.logsHariIni.length === 0 && <p className="text-center text-xs font-bold text-gray-600 py-4">Belum ada aktivitas</p>}
-                            {cabang.logsHariIni && cabang.logsHariIni.map((log, i) => (
-                                <div key={i} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
-                                    <div className="flex gap-3 items-center min-w-0"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div className="min-w-0"><p className={`text-xs font-bold uppercase truncate max-w-[120px] sm:max-w-[180px] ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
-                                    <p className={`text-xs font-black shrink-0 ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <div onClick={() => setExpanded(!expanded)} className="bg-black text-center py-3 border-t border-white/5 cursor-pointer hover:bg-white/5 transition-all text-gray-500 hover:text-white"><span className="text-[9px] font-black uppercase tracking-widest">{expanded ? 'Tutup Rincian ▲' : 'Lihat Rincian Hari Ini ▾'}</span></div>
-                </div>
-            )
-        }
-
+        // KOMPONEN KASIR
         const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
             const [mode, setMode] = useState('pemasukan'); 
             const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
@@ -194,6 +152,7 @@
                 return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
             }, [history, filterRekap]);
 
+            // KONDISI CABANG LHOKSEUMAWE = BUGAR8
             const isLhokseumawe = activeCabang === 'BUGAR8';
 
             const estimasiBagiHasil = useMemo(() => {
@@ -477,338 +436,10 @@
             );
         };
 
-        const SupervisorView = ({ onLogout, sendToN8N, showToast }) => {
-            const [logs, setLogs] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const isoToday = new Date().toISOString().split('T')[0];
-            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday, search: '' });
-            const [confirmModal, setConfirmModal] = useState({ show: false, item: null });
-            const [isDeleting, setIsDeleting] = useState(null);
-
-            const fetchLogs = useCallback(async () => { setLoading(true); const res = await sendToN8N('supervisor_load'); if (res && res.data) setLogs(res.data); setLoading(false); }, []);
-            useEffect(() => { fetchLogs(); }, [fetchLogs]);
-
-            const executeCancel = async () => {
-                const item = confirmModal.item; const targetId = item.db_id || item.id || item.ID;
-                setConfirmModal({ show: false, item: null }); setIsDeleting(targetId);
-                await sendToN8N('delete', { id_database: targetId, nama_pasien: item.NAMA_PASIEN });
-                showToast('Order Berhasil Dibatalkan'); await fetchLogs(); setIsDeleting(null);
-            };
-
-            const filteredLogs = logs.filter(log => {
-                const matchDate = log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end;
-                const matchSearch = filterDate.search === '' || log.NAMA_PASIEN?.toLowerCase().includes(filterDate.search.toLowerCase()) || log.CABANG_ID?.toLowerCase().includes(filterDate.search.toLowerCase());
-                return matchDate && matchSearch;
-            });
-
-            return (
-                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
-                    <nav className="bg-[#1C1C1E] p-4 sticky top-0 z-40 shadow-lg border-b border-white/10">
-                        <div className="max-w-xl mx-auto flex justify-between items-center text-white"><div className="flex items-center gap-3"><i className="fa-solid fa-shield-halved text-[#FF3B30] text-2xl"></i><div><p className="text-[9px] text-[#FF3B30] font-black tracking-widest uppercase">Audit Center</p><h1 className="text-base font-black uppercase tracking-tight">Supervisor Portal</h1></div></div><button onClick={onLogout} className="text-white bg-white/10 px-5 py-2.5 rounded-full text-[10px] font-black hover:bg-[#FF3B30] transition-all tracking-widest">KELUAR</button></div>
-                    </nav>
-                    <main className="max-w-xl mx-auto p-4 space-y-6 mt-4">
-                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-                            <HotelDateRangePicker value={filterDate} onChange={(val)=>setFilterDate({...filterDate, start:val.start, end:val.end})} title="Filter Rentang Waktu (Maks 35 Hari)" theme="light" />
-                            <input type="text" placeholder="Cari Nama / Cabang..." className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#FF3B30] transition-all mt-5 border border-transparent" value={filterDate.search} onChange={e => setFilterDate({...filterDate, search: e.target.value})} />
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-end px-2"><p className="text-[11px] font-black text-[#1C1C1E] uppercase tracking-widest">Hasil Audit ({filteredLogs.length})</p><button onClick={fetchLogs} className="text-[#0A84FF] text-[10px] font-black uppercase tracking-widest p-2"><i className="fa-solid fa-rotate-right"></i> Refresh</button></div>
-                            {loading ? <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div> : null}
-                            {filteredLogs.map((item, idx) => {
-                                const currentId = item.db_id || item.id || item.ID; const isBatal = Number(item.TAGIHAN) === 0;
-                                return (
-                                    <div key={idx} className={`p-5 rounded-2xl border transition-all ${isBatal ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 shadow-sm'}`}>
-                                        <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3"><div><span className="bg-[#1C1C1E] text-white text-[9px] px-2.5 py-1 rounded font-black tracking-widest uppercase">{item.CABANG_ID}</span><span className="text-[10px] text-gray-400 font-bold ml-2">{item.TANGGAL} ({item.JAM_MULAI})</span></div>{isBatal && <span className="text-[9px] text-[#FF3B30] font-black border border-[#FF3B30] px-2 py-0.5 rounded tracking-widest uppercase bg-red-100">Dibatalkan</span>}</div>
-                                        <div className="flex justify-between items-center"><div><h5 className={`font-black text-base text-[#1C1C1E] uppercase tracking-tight ${isBatal ? 'line-through opacity-60' : ''}`}>{item.NAMA_PASIEN}</h5><p className="text-[10px] text-gray-500 font-bold tracking-widest mt-1">{item.PAKET}</p></div><div className="flex items-center gap-4"><div className="text-right"><p className={`text-base font-black ${isBatal ? 'text-[#FF3B30]' : 'text-[#1C1C1E]'}`}>{formatIDR(item.TAGIHAN)}</p><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">Trp: {item.TERAPIS}</p></div><button onClick={() => setConfirmModal({ show: true, item })} disabled={isBatal || isDeleting === currentId} className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isBatal ? 'opacity-0' : 'bg-[#F2F2F7] text-gray-400 hover:bg-[#FF3B30] hover:text-white active:scale-90 text-lg'}`}>{isDeleting === currentId ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-ban"></i>}</button></div></div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </main>
-                    {confirmModal.show && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"><div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div><div className="bg-white p-8 rounded-[2.5rem] shadow-2xl relative z-10 w-full max-w-xs text-center animate-slide-up"><i className="fa-solid fa-triangle-exclamation text-[#FF3B30] text-[50px] mb-5"></i><h3 className="text-2xl font-black mb-2 uppercase text-[#1C1C1E] tracking-tight">Batalkan Order?</h3><p className="text-[11px] text-gray-500 font-bold mb-6 uppercase tracking-widest leading-relaxed">Tindakan ini akan meng-Nol-kan nominal tagihan untuk audit.</p><div className="bg-[#F2F2F7] p-5 rounded-2xl mb-6 text-left border border-gray-200"><p className="text-sm font-black uppercase text-[#1C1C1E]">{confirmModal.item.NAMA_PASIEN}</p><p className="text-[10px] font-bold uppercase text-gray-500 mt-1">{confirmModal.item.CABANG_ID} • {formatIDR(confirmModal.item.TAGIHAN)}</p></div><button onClick={executeCancel} className="w-full py-5 bg-[#FF3B30] text-white font-black rounded-2xl mb-3 active:scale-95 transition-all tracking-widest uppercase text-sm shadow-lg">YA, EKSEKUSI</button><button onClick={() => setConfirmModal({ show: false, item: null })} className="w-full py-5 bg-gray-200 text-[#1C1C1E] font-black rounded-2xl active:scale-95 transition-all tracking-widest uppercase text-sm">KEMBALI</button></div></div>
-                    )}
-                </div>
-            );
-        };
-
-        const LogistikView = ({ onLogout, sendToN8N, showToast }) => {
-            const isoToday = new Date().toISOString().split('T')[0];
-            const [formData, setFormData] = useState({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
-            const [loading, setLoading] = useState(false);
-            const [logs, setLogs] = useState([]);
-            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday });
-            const [loadingLogs, setLoadingLogs] = useState(true);
-
-            const fetchLogs = useCallback(async () => {
-                setLoadingLogs(true);
-                const res = await sendToN8N('logistik_load');
-                if (res && res.data) setLogs(res.data);
-                setLoadingLogs(false);
-            }, []);
-
-            useEffect(() => { fetchLogs(); }, [fetchLogs]);
-
-            const handleSubmit = async (e) => {
-                e.preventDefault(); setLoading(true);
-                const res = await sendToN8N('insert_logistik', formData);
-                if (res && res.status === 'success') {
-                    setFormData({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
-                    showToast('Data Logistik Berhasil Dicatat!'); await fetchLogs();
-                } else { showToast('Gagal Mencatat Logistik', 'error'); }
-                setLoading(false);
-            };
-
-            const filteredLogs = logs.filter(log => log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end);
-
-            return (
-                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
-                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
-                        <div className="max-w-xl mx-auto flex justify-between items-center"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#0A84FF]/10 rounded-full flex items-center justify-center"><i className="fa-solid fa-boxes-stacked text-[#0A84FF] text-lg"></i></div><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Supply Chain</p><h1 className="text-base font-black uppercase tracking-tight text-[#1C1C1E]">Portal Logistik</h1></div></div><button onClick={onLogout} className="text-gray-500 hover:text-[#FF3B30] transition-all text-xl p-2"><i className="fa-solid fa-power-off"></i></button></div>
-                    </nav>
-                    <main className="max-w-xl mx-auto p-4 mt-4 space-y-6">
-                        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
-                            <h2 className="font-black text-xl text-[#1C1C1E] uppercase tracking-tight mb-1">Catat Pembelian</h2>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Input kebutuhan cabang & pusat</p>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Dialokasikan Untuk</label>
-                                    <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent appearance-none" value={formData.TARGET_CABANG} onChange={e => setFormData({...formData, TARGET_CABANG: e.target.value})}>
-                                        <option value="PUSAT">Pusat (Global)</option>
-                                        {Array.from({length: 12}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>Cabang BUGAR{i+1}</option>)}
-                                    </select>
-                                </div>
-                                <input type="text" placeholder="Nama Barang (Cth: Krim 5kg, Servis AC)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NAMA_BARANG} onChange={e => setFormData({...formData, NAMA_BARANG: e.target.value})} />
-                                <input type="number" placeholder="Nominal (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NOMINAL} onChange={e => setFormData({...formData, NOMINAL: e.target.value})} />
-                                <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent resize-none" value={formData.KETERANGAN} onChange={e => setFormData({...formData, KETERANGAN: e.target.value})}></textarea>
-                                <button type="submit" disabled={loading} className="w-full bg-[#0A84FF] text-white font-black py-5 rounded-2xl hover:bg-blue-600 active:scale-95 transition-all tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(10,132,255,0.3)] mt-4">
-                                    {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN LOGISTIK"}
-                                </button>
-                            </form>
-                        </div>
-                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-                            <HotelDateRangePicker value={filterDate} onChange={setFilterDate} title="Filter Riwayat Logistik" theme="light" />
-                            <div className="mt-8 space-y-3">
-                                {loadingLogs ? <div className="text-center py-6"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-2xl"></i></div> : null}
-                                {!loadingLogs && filteredLogs.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-4">Tidak ada data di rentang ini</p>}
-                                {filteredLogs.map((log, idx) => (
-                                    <div key={idx} className="bg-[#F2F2F7] p-5 rounded-2xl flex justify-between items-center border border-gray-200">
-                                        <div><span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded text-white shadow-sm ${log.TARGET_CABANG === 'PUSAT' ? 'bg-[#1C1C1E]' : 'bg-[#0A84FF]'}`}>{log.TARGET_CABANG}</span><h5 className="font-black text-base text-[#1C1C1E] uppercase mt-3 tracking-tight">{log.NAMA_BARANG}</h5><p className="text-[10px] text-gray-500 font-bold mt-1 tracking-widest">{log.TANGGAL}</p></div>
-                                        <div className="text-right"><p className="text-base font-black text-[#FF3B30]">- {formatIDR(log.NOMINAL)}</p></div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </main>
-                </div>
-            );
-        };
-
-        const OwnerView = ({ onLogout }) => {
-            const isoToday = new Date().toISOString().split('T')[0];
-            const [activeTab, setActiveTab] = useState('daily');
-            
-            const [data, setData] = useState({ grandOmsetHariIni: 0, grandBagiTerapisHariIni: 0, grandTotalBulanIni: 0, grandBagiTerapisBulanIni: 0, expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [], logistikLogs: [] });
-            const [loading, setLoading] = useState(true);
-            const [refreshing, setRefreshing] = useState(false);
-            const [filterLogistikOwner, setFilterLogistikOwner] = useState({ start: isoToday, end: isoToday });
-
-            const loadOwnerData = async (isRefresh = false) => {
-                if (isRefresh) setRefreshing(true); else setLoading(true);
-                try {
-                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'owner_load' }) });
-                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
-                    if (finalData && finalData.json) finalData = finalData.json;
-                    setData(finalData || {});
-                } catch (e) {} setLoading(false); setRefreshing(false);
-            };
-
-            useEffect(() => { loadOwnerData(); }, []);
-
-            if (loading) return <div className="min-h-screen bg-[#111111] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl drop-shadow-[0_0_15px_rgba(255,59,48,0.5)]"></i></div>;
-            const filteredLogistikOwner = (data.logistikLogs || []).filter(l => l.tanggal >= filterLogistikOwner.start && l.tanggal <= filterLogistikOwner.end);
-
-            return (
-                <div className="min-h-screen bg-[#111111] text-white font-sans animate-fade-in pb-28">
-                    
-                    {/* TAB: DASBOR HARIAN */}
-                    {activeTab === 'daily' && (
-                        <div className="animate-slide-up">
-                            <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF3B30]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-                                <div className="max-w-xl mx-auto relative z-10">
-                                    <div className="flex justify-between items-start mb-10">
-                                        <div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Daily Recap</h1></div></div>
-                                        <button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#FF3B30]' : 'text-gray-300'}`}></i></button>
-                                    </div>
-                                    
-                                    <div className="bg-gradient-to-br from-[#FF3B30] to-[#E02020] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.4)] relative overflow-hidden border border-white/20">
-                                        <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-bolt text-[100px]"></i></div>
-                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Hari Ini)</p>
-                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
-                                        
-                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDR(data.grandOmsetHariIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisHariIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Pengeluaran / Laci Keluar</span><span className="text-sm font-black">- {formatIDR(data.expenseHariIni)}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <main className="max-w-xl mx-auto p-6 space-y-8 mt-2">
-                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30] text-lg"></i> Performa Cabang (Hari Ini)</h3>
-                                    <div className="space-y-4">
-                                        {data.leaderboard && data.leaderboard.map((cabang, idx) => (
-                                            <BranchCard key={cabang.id} cabang={cabang} idx={idx} />
-                                        ))}
-                                    </div>
-                                </div>
-                            </main>
-                        </div>
-                    )}
-
-                    {/* TAB: DASBOR BULANAN */}
-                    {activeTab === 'monthly' && (
-                        <div className="animate-slide-up">
-                            <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#0A84FF]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-                                <div className="max-w-xl mx-auto relative z-10">
-                                    <div className="flex justify-between items-start mb-10">
-                                        <div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#0A84FF] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Monthly Recap</h1></div></div>
-                                        <button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#0A84FF]' : 'text-gray-300'}`}></i></button>
-                                    </div>
-                                    
-                                    <div className="bg-gradient-to-br from-[#0A84FF] to-[#0040DD] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(10,132,255,0.4)] relative overflow-hidden border border-white/20">
-                                        <div className="absolute top-0 right-0 p-6 opacity-20 transform translate-x-4 -translate-y-4"><i className="fa-solid fa-calendar-check text-[100px]"></i></div>
-                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Bulan Ini)</p>
-                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaBulanIni)}</h2>
-                                        
-                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDR(data.grandTotalBulanIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisBulanIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Total Beban</span><span className="text-sm font-black">- {formatIDR(data.expenseBulanIni)}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
-                                
-                                {/* WIDGET: TOP TERAPIS */}
-                                <div className="bg-[#1C1C1E] p-6 rounded-[2rem] border border-white/5 shadow-lg">
-                                    <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-star text-[#FFCC00]"></i> Top 3 Terapis Bulan Ini</h3>
-                                    <div className="space-y-3">
-                                        {data.topTerapis && data.topTerapis.length === 0 && <p className="text-xs text-gray-600 font-bold">Belum ada data</p>}
-                                        {data.topTerapis && data.topTerapis.map((t, idx) => (
-                                            <div key={idx} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${idx===0 ? 'bg-[#FFCC00] text-black' : idx===1 ? 'bg-gray-300 text-black' : 'bg-[#CD7F32] text-white'}`}>{idx+1}</div>
-                                                    <span className="font-black text-sm uppercase">{t.nama}</span>
-                                                </div>
-                                                <span className="text-[#0A84FF] font-black text-sm">{formatIDR(t.omset)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* WIDGET: TREN HARI TERAMAI */}
-                                <div className="bg-[#1C1C1E] p-6 rounded-[2rem] border border-white/5 shadow-lg">
-                                    <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2"><i className="fa-solid fa-chart-simple text-[#34C759]"></i> Kepadatan Pasien Per Hari</h3>
-                                    <div className="flex justify-between items-end h-32 gap-1 sm:gap-2">
-                                        {data.trenHari && data.trenHari.map((tren, idx) => {
-                                            const maxPasien = Math.max(...data.trenHari.map(t => t.pasien), 1); 
-                                            const heightPct = Math.round((tren.pasien / maxPasien) * 100);
-                                            return (
-                                                <div key={idx} className="flex flex-col items-center flex-1">
-                                                    <span className="text-[9px] font-bold text-gray-400 mb-1">{tren.pasien}</span>
-                                                    <div className="w-full bg-[#34C759] rounded-t-sm" style={{height: `${heightPct}%`, minHeight: '2px', opacity: heightPct===100 ? '1' : '0.5'}}></div>
-                                                    <span className="text-[8px] sm:text-[10px] font-black uppercase mt-2 text-gray-500">{tren.hari.substring(0,3)}</span>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-
-                                {/* AGREGAT CABANG BULAN INI */}
-                                <div className="bg-[#1C1C1E] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                                    <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-building text-white"></i> Laba Cabang (Bulan Ini)</h3>
-                                    <div className="space-y-3">
-                                        {data.leaderboard && data.leaderboard.map((cabang) => (
-                                            <div key={cabang.id} className="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center">
-                                                <div>
-                                                    <h4 className="font-black text-sm uppercase text-white">{cabang.id}</h4>
-                                                    <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Omset: {formatIDR(cabang.omsetBulanIni)}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-base font-black text-[#FF3B30]">{formatIDR(cabang.labaBulanIni)}</p>
-                                                    <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Beban: {formatIDR(cabang.expenseBulanIni)}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </main>
-                        </div>
-                    )}
-
-                    {/* TAB: LOGISTIK */}
-                    {activeTab === 'logistik' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
-                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Logistik</h2><p className="text-[10px] text-[#0A84FF] font-black uppercase tracking-widest mt-2">Supply Chain Management</p></div>
-                            <div className="bg-[#0A84FF]/10 p-8 rounded-[2.5rem] border border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.05)]">
-                                <HotelDateRangePicker value={filterLogistikOwner} onChange={setFilterLogistikOwner} title="Filter Periode Belanja" />
-                                <div className="space-y-3 mt-6">
-                                    {filteredLogistikOwner.length === 0 && <p className="text-center text-[10px] font-bold text-[#0A84FF]/50 py-4 uppercase tracking-widest">Tidak ada pengeluaran logistik</p>}
-                                    {filteredLogistikOwner.map((log, idx) => (
-                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-[#0A84FF]/20 flex justify-between items-center backdrop-blur-sm">
-                                            <div><span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${log.target === 'PUSAT' ? 'bg-[#1C1C1E] text-white border border-white/10' : 'bg-[#0A84FF] text-white'}`}>{log.target}</span><h5 className="font-black text-xs text-white uppercase mt-2 truncate max-w-[150px]">{log.nama}</h5><p className="text-[9px] text-gray-500 font-bold mt-1 tracking-widest">{log.tanggal}</p></div>
-                                            <p className="text-sm font-black text-[#FF3B30]">- {formatIDR(log.nominal)}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* TAB: AUDIT (PEMBATALAN) */}
-                    {activeTab === 'audit' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
-                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Audit</h2><p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-2">Log Pembatalan Transaksi</p></div>
-                            <div className="bg-[#2A0808] p-8 rounded-[2.5rem] border border-[#FF3B30]/30 shadow-[0_0_30px_rgba(255,59,48,0.15)]">
-                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#FF3B30] mb-6 flex items-center gap-3"><i className="fa-solid fa-triangle-exclamation text-lg"></i> 20 Transaksi Dibatalkan Terakhir</h3>
-                                <div className="space-y-3">
-                                    {data.cancelledOrders && data.cancelledOrders.length === 0 && <p className="text-center text-xs font-bold text-red-500/50 py-4 uppercase tracking-widest">Bersih! Tidak ada pembatalan.</p>}
-                                    {data.cancelledOrders && data.cancelledOrders.map((batal, idx) => (
-                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center backdrop-blur-sm">
-                                            <div><span className="text-[#FF3B30] font-black text-[8px] bg-red-950 px-2 py-1 rounded uppercase tracking-widest mr-2">{batal.CABANG_ID}</span><span className="text-xs font-black uppercase text-gray-300 line-through">{batal.NAMA_PASIEN}</span><p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1.5">{batal.TANGGAL}</p></div>
-                                            <i className="fa-solid fa-ban text-red-900 text-xl"></i>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* NEW BOTTOM NAV (5 TABS) */}
-                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/95 backdrop-blur-3xl border-t border-white/5 pb-8 pt-3 px-1 sm:px-4 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-                        <div className="flex justify-between items-center">
-                            <button onClick={() => setActiveTab('daily')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'daily' ? 'text-[#FF3B30] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-bolt text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Harian</span></button>
-                            <button onClick={() => setActiveTab('monthly')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'monthly' ? 'text-[#0A84FF] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-calendar-check text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Bulan</span></button>
-                            <button onClick={() => setActiveTab('logistik')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'logistik' ? 'text-white scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-boxes-stacked text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Logistik</span></button>
-                            <button onClick={() => setActiveTab('audit')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'audit' ? 'text-white scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-shield-halved text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Audit</span></button>
-                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1 transition-all text-gray-600 hover:text-[#FF3B30]"><i className="fa-solid fa-power-off text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Keluar</span></button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         const App = () => {
-            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('core_isLoggedIn') === 'true');
-            const [userRole, setUserRole] = useState(localStorage.getItem('core_userRole') || ''); 
-            const [activeCabang, setActiveCabang] = useState(localStorage.getItem('core_activeCabang') || '');
+            // MENGGUNAKAN LOCALSTORAGE "cashier_" KHUSUS KASIR
+            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('cashier_isLoggedIn') === 'true');
+            const [activeCabang, setActiveCabang] = useState(localStorage.getItem('cashier_activeCabang') || '');
             
             const [loginData, setLoginData] = useState({ id: '', password: '' });
             const [loading, setLoading] = useState(false);
@@ -829,9 +460,10 @@
                 e.preventDefault(); setLoading(true); setShakeLogin(false);
                 const cleanId = loginData.id.trim().toUpperCase(); const cleanPass = loginData.password.trim();
                 
-                if (cleanId.includes('KEUANGAN') || cleanId.includes('FINANCE')) {
+                // TOLAK JIKA OWNER / SUPERVISOR / LOGISTIK / KEUANGAN MENCOBA LOGIN DI SINI
+                if (cleanId.includes('OWNER') || cleanId.includes('MASTER') || cleanId.includes('SUPERVISOR') || cleanId.includes('LOGISTIK') || cleanId.includes('KEUANGAN')) {
                     setShakeLogin(true); 
-                    showToast('Akses Ditolak. Silakan buka Portal Keuangan.', 'error');
+                    showToast('Akses Ditolak! Silakan login di portal khusus divisi Anda.', 'error');
                     setLoading(false);
                     return;
                 }
@@ -839,24 +471,17 @@
                 const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
                 
                 if (res && res.status === 'success') {
-                    let detectedRole = 'CABANG';
-                    if (cleanId.includes('OWNER') || cleanId.includes('MASTER')) detectedRole = 'OWNER';
-                    if (cleanId.includes('SUPERVISOR')) detectedRole = 'SUPERVISOR';
-                    if (cleanId.includes('LOGISTIK')) detectedRole = 'LOGISTIK';
-                    
-                    localStorage.setItem('core_isLoggedIn', 'true'); 
-                    localStorage.setItem('core_userRole', detectedRole); 
-                    localStorage.setItem('core_activeCabang', cleanId);
-                    setUserRole(detectedRole); setActiveCabang(cleanId); setIsLoggedIn(true);
+                    localStorage.setItem('cashier_isLoggedIn', 'true'); 
+                    localStorage.setItem('cashier_activeCabang', cleanId);
+                    setActiveCabang(cleanId); setIsLoggedIn(true);
                 } else { setShakeLogin(true); showToast(res.message || 'ID atau Password Salah', 'error'); }
                 setLoading(false);
             };
 
             const handleLogout = () => { 
-                localStorage.removeItem('core_isLoggedIn');
-                localStorage.removeItem('core_userRole');
-                localStorage.removeItem('core_activeCabang');
-                setIsLoggedIn(false); setUserRole(''); setActiveCabang(''); 
+                localStorage.removeItem('cashier_isLoggedIn');
+                localStorage.removeItem('cashier_activeCabang');
+                setIsLoggedIn(false); setActiveCabang(''); 
             };
 
             if (!isLoggedIn) {
@@ -865,11 +490,11 @@
                         <div className="absolute top-10 left-10 w-72 h-72 bg-[#FF3B30]/10 rounded-full blur-3xl"></div>
                         <div className="absolute bottom-10 right-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div>
                         <div className={`bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
-                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Portal Management V5.13</p></div>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Cashier System V5.14</p></div>
                             <form onSubmit={handleLogin} className="space-y-5">
-                                <input type="text" placeholder="LOGIN ID" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
+                                <input type="text" placeholder="LOGIN ID (CABANG)" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
                                 <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
-                                <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase text-base hover:bg-[#E02020]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "MASUK SEKARANG"}</button>
+                                <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase text-base hover:bg-[#E02020]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "MASUK KE KASIR"}</button>
                             </form>
                         </div>
                         {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
@@ -879,11 +504,7 @@
 
             return (
                 <div>
-                    {userRole === 'OWNER' && <OwnerView onLogout={handleLogout} />}
-                    {userRole === 'SUPERVISOR' && <SupervisorView onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
-                    {userRole === 'LOGISTIK' && <LogistikView onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
-                    {userRole === 'CABANG' && <CashierView activeCabang={activeCabang} onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />}
-                    
+                    <CashierView activeCabang={activeCabang} onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />
                     {toast.show && <div className={`fixed bottom-32 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
                 </div>
             );
