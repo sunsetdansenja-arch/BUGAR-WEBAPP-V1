@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bugar Connect - Supply Chain Portal</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { animation: { 'slide-up': 'slideUp 0.4s ease-out', 'fade-in': 'fadeIn 0.3s ease-out' }, keyframes: { slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }, fadeIn: { 'from': { opacity: '0' }, 'to': { opacity: '1' } } } } } }</script>
+    <style> body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; } ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; } input, select, textarea { font-size: 16px !important; } </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-[#F2F2F7] text-[#1C1C1E]">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useCallback, useEffect, useMemo } = React;
+        const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
+        const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
+        const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
+
+        const HotelDateRangePicker = ({ value, onChange, title }) => {
+            const [step, setStep] = useState(0); const [showModal, setShowModal] = useState(false);
+            const days = useMemo(() => {
+                const arr = []; const today = new Date(); today.setHours(0,0,0,0);
+                const getLocalIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                for(let i=34; i>=0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); arr.push({ date: d, iso: getLocalIso(d), dayStr: d.getDate(), isToday: i===0 }); } return arr;
+            }, []);
+            const handleDayClick = (iso) => { if (step === 0 || iso < value.start) { onChange({ start: iso, end: iso }); setStep(1); } else { onChange({ ...value, end: iso }); setStep(0); setShowModal(false); } };
+            const formatDateStr = (iso) => { if(!iso) return "-"; const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}); };
+            return (
+                <div className="w-full">
+                    <label className="text-[10px] uppercase font-black tracking-widest mb-2 block text-gray-400">{title || "Pilih Rentang Waktu"}</label>
+                    <div onClick={() => {setShowModal(true); setStep(0);}} className="bg-[#F2F2F7] border border-gray-200 text-[#1C1C1E] shadow-sm rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all">
+                        <div className="flex gap-4 items-center"><i className="fa-regular fa-calendar text-[#0A84FF] text-xl"></i><div><p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Mulai</p><p className="text-base font-black">{formatDateStr(value.start)}</p></div></div>
+                        <div className="h-8 w-[1px] bg-gray-300"></div>
+                        <div className="text-right"><p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Selesai</p><p className="text-base font-black">{formatDateStr(value.end)}</p></div>
+                    </div>
+                    {showModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+                            <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/10 animate-slide-up relative overflow-hidden">
+                                <div className="text-center mb-6"><h3 className="text-lg font-black uppercase tracking-tight text-white">{step === 0 ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai"}</h3></div>
+                                <div className="grid grid-cols-7 gap-y-2 gap-x-0 relative">
+                                    {Array.from({length: days[0].date.getDay()}).map((_,i) => <div key={`blank-${i}`} />)}
+                                    {days.map((d, i) => {
+                                        const isStart = d.iso === value.start; const isEnd = d.iso === value.end; const inRange = d.iso > value.start && d.iso < value.end;
+                                        let bgClass = "bg-transparent text-gray-300"; let wrapperClass = "flex justify-center items-center h-10 w-full relative cursor-pointer";
+                                        if (isStart || isEnd) bgClass = "bg-[#0A84FF] text-white shadow-[0_0_15px_rgba(10,132,255,0.5)] z-10 scale-110 rounded-full"; else if (inRange) bgClass = "bg-[#0A84FF]/20 text-[#0A84FF] rounded-none"; else if (d.isToday) bgClass = "bg-white/10 text-white border border-white/20 rounded-full";
+                                        if(isStart && value.start !== value.end) wrapperClass += " rounded-l-full bg-[#0A84FF]/20"; if(isEnd && value.start !== value.end) wrapperClass += " rounded-r-full bg-[#0A84FF]/20";
+                                        return (<div key={i} className={wrapperClass} onClick={() => handleDayClick(d.iso)}><div className={`w-8 h-8 flex items-center justify-center font-bold text-sm transition-all ${bgClass}`}>{d.dayStr}</div></div>)
+                                    })}
+                                </div>
+                                <button onClick={()=>setShowModal(false)} className="mt-8 w-full py-4 bg-white/10 text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 text-base hover:bg-white/20 transition-all">Batalkan</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )
+        };
+
+        const LogistikView = ({ onLogout, sendToN8N, showToast }) => {
+            const isoToday = new Date().toISOString().split('T')[0];
+            const [formData, setFormData] = useState({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
+            const [loading, setLoading] = useState(false); const [logs, setLogs] = useState([]);
+            const [filterDate, setFilterDate] = useState({ start: isoToday, end: isoToday });
+            const [loadingLogs, setLoadingLogs] = useState(true);
+
+            const fetchLogs = useCallback(async () => {
+                setLoadingLogs(true); const res = await sendToN8N('logistik_load');
+                if (res && res.data) setLogs(res.data); setLoadingLogs(false);
+            }, []);
+
+            useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault(); setLoading(true);
+                const res = await sendToN8N('insert_logistik', formData);
+                if (res && res.status === 'success') {
+                    setFormData({ TARGET_CABANG: 'PUSAT', NAMA_BARANG: '', NOMINAL: '', KETERANGAN: '' });
+                    showToast('Data Logistik Berhasil Dicatat!', 'success'); await fetchLogs();
+                } else { showToast('Gagal Mencatat Logistik', 'error'); }
+                setLoading(false);
+            };
+
+            const filteredLogs = logs.filter(log => log.TANGGAL >= filterDate.start && log.TANGGAL <= filterDate.end);
+
+            return (
+                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
+                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
+                        <div className="max-w-xl mx-auto flex justify-between items-center"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#0A84FF]/10 rounded-full flex items-center justify-center"><i className="fa-solid fa-boxes-stacked text-[#0A84FF] text-lg"></i></div><div><p className="text-[9px] text-[#0A84FF] font-black tracking-widest uppercase">Supply Chain</p><h1 className="text-base font-black uppercase tracking-tight text-[#1C1C1E]">Portal Logistik</h1></div></div><button onClick={onLogout} className="text-gray-500 hover:text-[#FF3B30] transition-all text-xl p-2"><i className="fa-solid fa-power-off"></i></button></div>
+                    </nav>
+                    <main className="max-w-xl mx-auto p-4 mt-4 space-y-6">
+                        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
+                            <h2 className="font-black text-xl text-[#1C1C1E] uppercase tracking-tight mb-1">Catat Pembelian</h2>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Input kebutuhan cabang & pusat</p>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2 block">Dialokasikan Untuk</label>
+                                    <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent appearance-none" value={formData.TARGET_CABANG} onChange={e => setFormData({...formData, TARGET_CABANG: e.target.value})}>
+                                        <option value="PUSAT">Pusat (Global)</option>
+                                        {Array.from({length: 12}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>Cabang BUGAR{i+1}</option>)}
+                                    </select>
+                                </div>
+                                <input type="text" placeholder="Nama Barang (Cth: Krim 5kg, Servis AC)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NAMA_BARANG} onChange={e => setFormData({...formData, NAMA_BARANG: e.target.value})} />
+                                <input type="number" placeholder="Nominal (Rp)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent" value={formData.NOMINAL} onChange={e => setFormData({...formData, NOMINAL: e.target.value})} />
+                                <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:border-[#0A84FF] transition-all border border-transparent resize-none" value={formData.KETERANGAN} onChange={e => setFormData({...formData, KETERANGAN: e.target.value})}></textarea>
+                                <button type="submit" disabled={loading} className="w-full bg-[#0A84FF] text-white font-black py-5 rounded-2xl hover:bg-blue-600 active:scale-95 transition-all tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(10,132,255,0.3)] mt-4">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN LOGISTIK"}</button>
+                            </form>
+                        </div>
+                        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                            <HotelDateRangePicker value={filterDate} onChange={setFilterDate} title="Filter Riwayat Logistik" theme="light" />
+                            <div className="mt-8 space-y-3">
+                                {loadingLogs && <div className="text-center py-6"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-2xl"></i></div>}
+                                {!loadingLogs && filteredLogs.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-4">Tidak ada data di rentang ini</p>}
+                                {filteredLogs.map((log, idx) => (
+                                    <div key={idx} className="bg-[#F2F2F7] p-5 rounded-2xl flex justify-between items-center border border-gray-200">
+                                        <div><span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded text-white shadow-sm ${log.TARGET_CABANG === 'PUSAT' ? 'bg-[#1C1C1E]' : 'bg-[#0A84FF]'}`}>{log.TARGET_CABANG}</span><h5 className="font-black text-base text-[#1C1C1E] uppercase mt-3 tracking-tight">{log.NAMA_BARANG}</h5><p className="text-[10px] text-gray-500 font-bold mt-1 tracking-widest">{log.TANGGAL}</p></div>
+                                        <div className="text-right"><p className="text-base font-black text-[#FF3B30]">- {formatIDR(log.NOMINAL)}</p></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('logistik_isLoggedIn') === 'true');
+            const [loginData, setLoginData] = useState({ id: '', password: '' });
+            const [loading, setLoading] = useState(false); const [shakeLogin, setShakeLogin] = useState(false); const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+            const showToast = (message, type = 'success') => { setToast({ show: true, message, type }); setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000); };
+
+            const sendToN8N = async (action, payload = {}) => {
+                try {
+                    const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...payload }) });
+                    const text = await response.text(); if (!text) return {}; const rawData = JSON.parse(text);
+                    let unwrapped = Array.isArray(rawData) ? rawData[0] : rawData; return (unwrapped && unwrapped.json) ? unwrapped.json : unwrapped;
+                } catch (error) { return { status: 'error' }; }
+            };
+
+            const handleLogin = async (e) => {
+                e.preventDefault(); setLoading(true); setShakeLogin(false);
+                const cleanId = loginData.id.trim().toUpperCase(); const cleanPass = loginData.password.trim();
+                
+                // KUNCI PINTU HANYA UNTUK LOGISTIK
+                if (!cleanId.includes('LOGISTIK')) {
+                    setShakeLogin(true); showToast('Akses Ditolak! Portal khusus Divisi Logistik.', 'error'); setLoading(false); return;
+                }
+
+                const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
+                if (res && res.status === 'success') {
+                    localStorage.setItem('logistik_isLoggedIn', 'true'); setIsLoggedIn(true);
+                } else { setShakeLogin(true); showToast(res.message || 'ID atau Password Salah', 'error'); }
+                setLoading(false);
+            };
+
+            const handleLogout = () => { localStorage.removeItem('logistik_isLoggedIn'); setIsLoggedIn(false); };
+
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen bg-[#111111] flex items-center justify-center p-6 pb-24 relative overflow-hidden">
+                        <div className="absolute top-10 left-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div><div className="absolute bottom-10 right-10 w-72 h-72 bg-[#34C759]/10 rounded-full blur-3xl"></div>
+                        <div className={`bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Supply Chain</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Logistik Portal V5</p></div>
+                            <form onSubmit={handleLogin} className="space-y-5">
+                                <input type="text" placeholder="LOGISTIK ID" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#0A84FF] uppercase font-bold text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
+                                <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#0A84FF] font-bold text-center tracking-widest text-base shadow-inner" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
+                                <button type="submit" disabled={loading} className="w-full bg-[#0A84FF] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(10,132,255,0.3)] tracking-widest uppercase text-base hover:bg-blue-600">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "LOGIN LOGISTIK"}</button>
+                            </form>
+                        </div>
+                        {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                    </div>
+                );
+            }
+            return <div><LogistikView onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />{toast.show && <div className={`fixed bottom-32 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}</div>;
+        };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
