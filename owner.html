@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bugar Connect V5.14 - Executive Portal</title>
+    <title>Bugar Connect V5.15 - Executive Portal</title>
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { animation: { 'slide-up': 'slideUp 0.4s ease-out', 'fade-in': 'fadeIn 0.3s ease-out' }, keyframes: { slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }, fadeIn: { 'from': { opacity: '0' }, 'to': { opacity: '1' } } } } } }</script>
@@ -19,7 +19,17 @@
         const { useState, useCallback, useEffect, useMemo } = React;
         const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
         const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
+        
+        // FORMAT UANG LENGKAP
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
+        
+        // FORMAT UANG SINGKAT (Juta/Miliar) UNTUK ANGKA BESAR
+        const formatIDRShort = (val) => {
+            const num = Number(val || 0);
+            if (num >= 1000000000) return 'Rp ' + (num / 1000000000).toFixed(2).replace('.', ',') + ' M';
+            if (num >= 1000000) return 'Rp ' + (num / 1000000).toFixed(1).replace('.', ',') + ' Jt';
+            return 'Rp ' + num.toLocaleString('id-ID');
+        };
 
         const HotelDateRangePicker = ({ value, onChange, title, theme = "dark" }) => {
             const [step, setStep] = useState(0); const [showModal, setShowModal] = useState(false);
@@ -71,11 +81,14 @@
                                 <div className={`shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-black text-sm sm:text-lg ${idx === 0 ? 'bg-gradient-to-br from-[#FF3B30] to-[#E02020] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/5'}`}>{idx + 1}</div>
                                 <h4 className="font-black text-lg sm:text-2xl tracking-tighter uppercase text-white leading-none truncate max-w-[120px] sm:max-w-none">{cabang.id}</h4>
                             </div>
-                            <div className="text-right shrink-0"><p className="text-[8px] sm:text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1.5">Laba Hak Owner</p><p className="text-lg sm:text-2xl font-black text-[#FF3B30] leading-none">{formatIDR(cabang.labaHariIni)}</p></div>
+                            <div className="text-right shrink-0 min-w-0">
+                                <p className="text-[8px] sm:text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1.5">Laba Hak Owner</p>
+                                <p className="text-lg sm:text-2xl font-black text-[#FF3B30] leading-none truncate max-w-[100px] sm:max-w-full">{formatIDR(cabang.labaHariIni)}</p>
+                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-[#111111] p-3 sm:p-4 rounded-xl border border-white/5">
-                            <div><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Omset Total</p><p className="text-xs sm:text-sm font-black text-white">{formatIDR(cabang.omsetHariIni)}</p></div>
-                            <div className="text-right"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Pengeluaran</p><p className="text-xs sm:text-sm font-black text-gray-300">{formatIDR(cabang.expenseHariIni)}</p></div>
+                            <div className="min-w-0"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Omset Total</p><p className="text-xs sm:text-sm font-black text-white truncate">{formatIDR(cabang.omsetHariIni)}</p></div>
+                            <div className="text-right min-w-0"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Pengeluaran</p><p className="text-xs sm:text-sm font-black text-gray-300 truncate">{formatIDR(cabang.expenseHariIni)}</p></div>
                         </div>
                     </div>
                     <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
@@ -106,14 +119,14 @@
                 grandOmsetHariIni: 0, grandBagiTerapisHariIni: 0, grandTotalBulanIni: 0, grandBagiTerapisBulanIni: 0, 
                 expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, 
                 leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [], logistikLogs: [],
-                reviewStats: { avgRating: 0, totalReview: 0, totalKomplain: 0 }, reviews: [] 
+                reviewStats: { avgRating: 0, totalReview: 0, totalKomplain: 0 }, reviews: [],
+                holdOrders: [] // Menampung data hold harian
             });
             const [loading, setLoading] = useState(true);
             const [refreshing, setRefreshing] = useState(false);
             
             const [filterLogistikOwner, setFilterLogistikOwner] = useState({ start: isoToday, end: isoToday });
             
-            // State untuk Tab Review
             const [filterCabangRev, setFilterCabangRev] = useState('ALL');
             const [filterJenisRev, setFilterJenisRev] = useState('ALL');
 
@@ -153,16 +166,43 @@
                                     <div className="flex justify-between items-start mb-10"><div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Daily Recap</h1></div></div><button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#FF3B30]' : 'text-gray-300'}`}></i></button></div>
                                     <div className="bg-gradient-to-br from-[#FF3B30] to-[#E02020] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.4)] relative overflow-hidden border border-white/20">
                                         <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Hari Ini)</p>
-                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaHariIni)}</h2>
+                                        <h2 className="text-4xl sm:text-5xl font-black tracking-tighter relative z-10 break-words leading-tight">{formatIDRShort(data.globalLabaHariIni)}</h2>
                                         <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDR(data.grandOmsetHariIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisHariIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Pengeluaran</span><span className="text-sm font-black">- {formatIDR(data.expenseHariIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDRShort(data.grandOmsetHariIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDRShort(data.grandBagiTerapisHariIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Pengeluaran</span><span className="text-sm font-black">- {formatIDRShort(data.expenseHariIni)}</span></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <main className="max-w-xl mx-auto p-6 space-y-8 mt-2">
+                                
+                                {/* TRAY HOLD ORDER */}
+                                {data.holdOrders && data.holdOrders.length > 0 && (
+                                    <div className="bg-[#FFCC00]/10 border border-[#FFCC00]/30 rounded-[2rem] p-6 shadow-lg animate-fade-in relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-3 opacity-10"><i className="fa-solid fa-hourglass-half text-6xl text-[#FFCC00]"></i></div>
+                                        <div className="flex justify-between items-center mb-5 relative z-10">
+                                            <h4 className="font-black text-sm text-[#FFCC00] tracking-widest uppercase flex items-center gap-2"><i className="fa-regular fa-clock"></i> Menggantung ({data.holdOrders.length})</h4>
+                                        </div>
+                                        <div className="space-y-3 relative z-10">
+                                            {data.holdOrders.map((hold, idx) => (
+                                                <div key={idx} className="bg-black/60 p-4 rounded-xl border border-[#FFCC00]/20 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 backdrop-blur-md">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-[#1C1C1E] bg-[#FFCC00] font-black text-[8px] px-2 py-1 rounded uppercase tracking-widest">{hold.CABANG_ID}</span>
+                                                        </div>
+                                                        <h5 className="font-black text-sm text-white uppercase tracking-tight">{hold.NAMA_PASIEN}</h5>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Trp: {hold.TERAPIS} • {formatIDR(hold.TAGIHAN)}</p>
+                                                    </div>
+                                                    <div className="text-right w-full sm:w-auto">
+                                                        <span className="text-[9px] text-[#FFCC00] font-black uppercase tracking-widest bg-[#FFCC00]/10 border border-[#FFCC00]/20 px-3 py-1.5 rounded-lg inline-block animate-pulse w-full sm:w-auto text-center">Menunggu Pembayaran</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
                                     <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30] text-lg"></i> Performa Cabang</h3>
                                     <div className="space-y-4">{data.leaderboard && data.leaderboard.map((cabang, idx) => <BranchCard key={cabang.id} cabang={cabang} idx={idx} />)}</div>
@@ -180,19 +220,19 @@
                                     <div className="flex justify-between items-start mb-10"><div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#0A84FF] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Monthly Recap</h1></div></div><button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#0A84FF]' : 'text-gray-300'}`}></i></button></div>
                                     <div className="bg-gradient-to-br from-[#0A84FF] to-[#0040DD] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(10,132,255,0.4)] relative overflow-hidden border border-white/20">
                                         <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Bulan Ini)</p>
-                                        <h2 className="text-5xl font-black tracking-tighter relative z-10">{formatIDR(data.globalLabaBulanIni)}</h2>
+                                        <h2 className="text-4xl sm:text-5xl font-black tracking-tighter relative z-10 break-words leading-tight">{formatIDRShort(data.globalLabaBulanIni)}</h2>
                                         <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDR(data.grandTotalBulanIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDR(data.grandBagiTerapisBulanIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Total Beban</span><span className="text-sm font-black">- {formatIDR(data.expenseBulanIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDRShort(data.grandTotalBulanIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDRShort(data.grandBagiTerapisBulanIni)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="opacity-70">Total Beban</span><span className="text-sm font-black">- {formatIDRShort(data.expenseBulanIni)}</span></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
-                                <div className="bg-[#1C1C1E] p-6 rounded-[2rem] border border-white/5 shadow-lg"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-star text-[#FFCC00]"></i> Top 3 Terapis Bulan Ini</h3><div className="space-y-3">{data.topTerapis && data.topTerapis.length === 0 && <p className="text-xs text-gray-600 font-bold">Belum ada data</p>}{data.topTerapis && data.topTerapis.map((t, idx) => (<div key={idx} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5"><div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${idx===0 ? 'bg-[#FFCC00] text-black' : idx===1 ? 'bg-gray-300 text-black' : 'bg-[#CD7F32] text-white'}`}>{idx+1}</div><span className="font-black text-sm uppercase">{t.nama}</span></div><span className="text-[#0A84FF] font-black text-sm">{formatIDR(t.omset)}</span></div>))}</div></div>
+                                <div className="bg-[#1C1C1E] p-6 rounded-[2rem] border border-white/5 shadow-lg"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-star text-[#FFCC00]"></i> Top 3 Terapis Bulan Ini</h3><div className="space-y-3">{data.topTerapis && data.topTerapis.length === 0 && <p className="text-xs text-gray-600 font-bold">Belum ada data</p>}{data.topTerapis && data.topTerapis.map((t, idx) => (<div key={idx} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5"><div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${idx===0 ? 'bg-[#FFCC00] text-black' : idx===1 ? 'bg-gray-300 text-black' : 'bg-[#CD7F32] text-white'}`}>{idx+1}</div><span className="font-black text-sm uppercase">{t.nama}</span></div><span className="text-[#0A84FF] font-black text-sm">{formatIDRShort(t.omset)}</span></div>))}</div></div>
                                 <div className="bg-[#1C1C1E] p-6 rounded-[2rem] border border-white/5 shadow-lg"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2"><i className="fa-solid fa-chart-simple text-[#34C759]"></i> Kepadatan Pasien Per Hari</h3><div className="flex justify-between items-end h-32 gap-1 sm:gap-2">{data.trenHari && data.trenHari.map((tren, idx) => { const maxPasien = Math.max(...data.trenHari.map(t => t.pasien), 1); const heightPct = Math.round((tren.pasien / maxPasien) * 100); return (<div key={idx} className="flex flex-col items-center flex-1"><span className="text-[9px] font-bold text-gray-400 mb-1">{tren.pasien}</span><div className="w-full bg-[#34C759] rounded-t-sm" style={{height: `${heightPct}%`, minHeight: '2px', opacity: heightPct===100 ? '1' : '0.5'}}></div><span className="text-[8px] sm:text-[10px] font-black uppercase mt-2 text-gray-500">{tren.hari.substring(0,3)}</span></div>) })}</div></div>
-                                <div className="bg-[#1C1C1E] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-building text-white"></i> Laba Cabang (Bulan Ini)</h3><div className="space-y-3">{data.leaderboard && data.leaderboard.map((cabang) => (<div key={cabang.id} className="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center"><div><h4 className="font-black text-sm uppercase text-white">{cabang.id}</h4><p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Omset: {formatIDR(cabang.omsetBulanIni)}</p></div><div className="text-right"><p className="text-base font-black text-[#FF3B30]">{formatIDR(cabang.labaBulanIni)}</p><p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Beban: {formatIDR(cabang.expenseBulanIni)}</p></div></div>))}</div></div>
+                                <div className="bg-[#1C1C1E] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-building text-white"></i> Laba Cabang (Bulan Ini)</h3><div className="space-y-3">{data.leaderboard && data.leaderboard.map((cabang) => (<div key={cabang.id} className="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center"><div className="min-w-0"><h4 className="font-black text-sm uppercase text-white truncate">{cabang.id}</h4><p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Omset: {formatIDRShort(cabang.omsetBulanIni)}</p></div><div className="text-right min-w-0"><p className="text-base font-black text-[#FF3B30] truncate">{formatIDRShort(cabang.labaBulanIni)}</p><p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Beban: {formatIDRShort(cabang.expenseBulanIni)}</p></div></div>))}</div></div>
                             </main>
                         </div>
                     )}
@@ -206,7 +246,7 @@
                                 <div className="space-y-3 mt-6">
                                     {filteredLogistikOwner.length === 0 && <p className="text-center text-[10px] font-bold text-[#0A84FF]/50 py-4 uppercase tracking-widest">Tidak ada pengeluaran logistik</p>}
                                     {filteredLogistikOwner.map((log, idx) => (
-                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-[#0A84FF]/20 flex justify-between items-center backdrop-blur-sm"><div><span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${log.target === 'PUSAT' ? 'bg-[#1C1C1E] text-white border border-white/10' : 'bg-[#0A84FF] text-white'}`}>{log.target}</span><h5 className="font-black text-xs text-white uppercase mt-2 truncate max-w-[150px]">{log.nama}</h5><p className="text-[9px] text-gray-500 font-bold mt-1 tracking-widest">{log.tanggal}</p></div><p className="text-sm font-black text-[#FF3B30]">- {formatIDR(log.nominal)}</p></div>
+                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-[#0A84FF]/20 flex justify-between items-center backdrop-blur-sm"><div className="min-w-0"><span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest inline-block mb-2 ${log.target === 'PUSAT' ? 'bg-[#1C1C1E] text-white border border-white/10' : 'bg-[#0A84FF] text-white'}`}>{log.target}</span><h5 className="font-black text-xs text-white uppercase truncate max-w-[150px]">{log.nama}</h5><p className="text-[9px] text-gray-500 font-bold mt-1 tracking-widest">{log.tanggal}</p></div><p className="text-sm font-black text-[#FF3B30] shrink-0">- {formatIDRShort(log.nominal)}</p></div>
                                     ))}
                                 </div>
                             </div>
@@ -222,41 +262,25 @@
                                 <div className="space-y-3">
                                     {data.cancelledOrders && data.cancelledOrders.length === 0 && <p className="text-center text-xs font-bold text-red-500/50 py-4 uppercase tracking-widest">Bersih! Tidak ada pembatalan.</p>}
                                     {data.cancelledOrders && data.cancelledOrders.map((batal, idx) => (
-                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center backdrop-blur-sm"><div><span className="text-[#FF3B30] font-black text-[8px] bg-red-950 px-2 py-1 rounded uppercase tracking-widest mr-2">{batal.CABANG_ID}</span><span className="text-xs font-black uppercase text-gray-300 line-through">{batal.NAMA_PASIEN}</span><p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1.5">{batal.TANGGAL}</p></div><i className="fa-solid fa-ban text-red-900 text-xl"></i></div>
+                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center backdrop-blur-sm"><div className="min-w-0"><span className="text-[#FF3B30] font-black text-[8px] bg-red-950 px-2 py-1 rounded uppercase tracking-widest mr-2 inline-block mb-1">{batal.CABANG_ID}</span><span className="text-xs font-black uppercase text-gray-300 line-through block truncate">{batal.NAMA_PASIEN}</span><p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1">{batal.TANGGAL}</p></div><i className="fa-solid fa-ban text-red-900 text-xl shrink-0"></i></div>
                                     ))}
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* TAB: ULASAN (REVIEW) - NEW! */}
+                    {/* TAB: ULASAN (REVIEW) */}
                     {activeTab === 'review' && (
                         <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-6">
                             <div className="mb-4 flex justify-between items-end">
                                 <div><h2 className="text-4xl font-black uppercase tracking-tighter text-[#FFCC00] leading-none">Ulasan</h2><p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-2">Voice of Customer (Bulan Ini)</p></div>
                                 <button onClick={() => loadOwnerData(true)} className="text-gray-400 hover:text-white p-2"><i className={`fa-solid fa-rotate-right ${refreshing ? 'fa-spin text-[#FFCC00]' : ''}`}></i></button>
                             </div>
-
-                            {/* LAYER 1: KPI RINGKASAN */}
                             <div className="grid grid-cols-3 gap-3">
-                                <div className="bg-[#1C1C1E] p-4 rounded-[1.5rem] border border-white/5 text-center shadow-lg">
-                                    <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Rata-Rata</p>
-                                    <h3 className="text-2xl font-black text-[#FFCC00]">{data.reviewStats?.avgRating || "0.0"}</h3>
-                                    <div className="flex justify-center text-[8px] text-[#FFCC00] mt-1 gap-0.5"><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i></div>
-                                </div>
-                                <div className="bg-[#1C1C1E] p-4 rounded-[1.5rem] border border-white/5 text-center shadow-lg">
-                                    <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Total</p>
-                                    <h3 className="text-2xl font-black text-white">{data.reviewStats?.totalReview || 0}</h3>
-                                    <p className="text-[8px] text-gray-500 font-bold uppercase mt-1">Responden</p>
-                                </div>
-                                <div className="bg-red-950/30 p-4 rounded-[1.5rem] border border-red-500/20 text-center shadow-lg">
-                                    <p className="text-[9px] text-red-400/70 font-black uppercase tracking-widest mb-1">Komplain</p>
-                                    <h3 className="text-2xl font-black text-[#FF3B30]">{data.reviewStats?.totalKomplain || 0}</h3>
-                                    <p className="text-[8px] text-red-400/50 font-bold uppercase mt-1">Bintang 1 - 3</p>
-                                </div>
+                                <div className="bg-[#1C1C1E] p-4 rounded-[1.5rem] border border-white/5 text-center shadow-lg"><p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Rata-Rata</p><h3 className="text-2xl font-black text-[#FFCC00]">{data.reviewStats?.avgRating || "0.0"}</h3><div className="flex justify-center text-[8px] text-[#FFCC00] mt-1 gap-0.5"><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i></div></div>
+                                <div className="bg-[#1C1C1E] p-4 rounded-[1.5rem] border border-white/5 text-center shadow-lg"><p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Total</p><h3 className="text-2xl font-black text-white">{data.reviewStats?.totalReview || 0}</h3><p className="text-[8px] text-gray-500 font-bold uppercase mt-1">Responden</p></div>
+                                <div className="bg-red-950/30 p-4 rounded-[1.5rem] border border-red-500/20 text-center shadow-lg"><p className="text-[9px] text-red-400/70 font-black uppercase tracking-widest mb-1">Komplain</p><h3 className="text-2xl font-black text-[#FF3B30]">{data.reviewStats?.totalKomplain || 0}</h3><p className="text-[8px] text-red-400/50 font-bold uppercase mt-1">Bintang 1 - 3</p></div>
                             </div>
-
-                            {/* LAYER 2: SMART FILTER */}
                             <div className="bg-[#1C1C1E] p-4 rounded-[1.5rem] border border-white/5 space-y-3 shadow-lg">
                                 <select className="w-full bg-black text-white text-xs font-black uppercase tracking-widest p-3 rounded-xl border border-white/10 outline-none appearance-none text-center" value={filterCabangRev} onChange={(e) => setFilterCabangRev(e.target.value)}>
                                     <option value="ALL">-- TAMPILKAN SEMUA CABANG --</option>
@@ -268,42 +292,15 @@
                                     <button onClick={()=>setFilterJenisRev('KOMPLAIN')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filterJenisRev === 'KOMPLAIN' ? 'bg-[#FF3B30] text-white' : 'text-gray-500'}`}>Komplain</button>
                                 </div>
                             </div>
-
-                            {/* LAYER 3: CARD FEED */}
                             <div className="space-y-4 pb-4">
                                 {filteredReviews.length === 0 && <div className="text-center py-10"><i className="fa-regular fa-comment-dots text-4xl text-gray-700 mb-3"></i><p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Belum ada ulasan sesuai filter</p></div>}
-                                
                                 {filteredReviews.map((r, idx) => (
                                     <div key={idx} className={`p-5 rounded-[1.5rem] border transition-all shadow-lg ${r.rating <= 3 ? 'bg-red-950/20 border-red-500/30' : 'bg-[#1C1C1E] border-white/5'}`}>
-                                        <div className="flex justify-between items-start mb-3 border-b border-white/5 pb-3">
-                                            <div>
-                                                <h5 className="font-black text-base uppercase tracking-tight text-white">{r.terapis}</h5>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[8px] bg-black px-2 py-1 rounded text-gray-400 font-black tracking-widest uppercase border border-white/5">{r.cabang}</span>
-                                                    <span className="text-[9px] text-gray-500 font-bold uppercase">{r.tanggal}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-1 text-[#FFCC00] text-sm">
-                                                {Array.from({length: 5}).map((_,i) => <i key={i} className={i < r.rating ? "fa-solid fa-star drop-shadow-[0_0_5px_rgba(255,204,0,0.5)]" : "fa-regular fa-star text-gray-700"}></i>)}
-                                            </div>
-                                        </div>
-                                        
+                                        <div className="flex justify-between items-start mb-3 border-b border-white/5 pb-3"><div><h5 className="font-black text-base uppercase tracking-tight text-white">{r.terapis}</h5><div className="flex items-center gap-2 mt-1"><span className="text-[8px] bg-black px-2 py-1 rounded text-gray-400 font-black tracking-widest uppercase border border-white/5">{r.cabang}</span><span className="text-[9px] text-gray-500 font-bold uppercase">{r.tanggal}</span></div></div><div className="flex gap-1 text-[#FFCC00] text-sm">{Array.from({length: 5}).map((_,i) => <i key={i} className={i < r.rating ? "fa-solid fa-star drop-shadow-[0_0_5px_rgba(255,204,0,0.5)]" : "fa-regular fa-star text-gray-700"}></i>)}</div></div>
                                         <div className="space-y-2">
-                                            {r.komplain && r.komplain !== "-" && (
-                                                <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                                                    <p className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1"><i className="fa-solid fa-triangle-exclamation mr-1"></i> Komplain</p>
-                                                    <p className="text-xs text-red-100 font-medium leading-relaxed">{r.komplain}</p>
-                                                </div>
-                                            )}
-                                            {r.saran && r.saran !== "-" && (
-                                                <div className="bg-[#0A84FF]/10 p-3 rounded-xl border border-[#0A84FF]/20">
-                                                    <p className="text-[8px] font-black text-[#0A84FF] uppercase tracking-widest mb-1"><i className="fa-solid fa-lightbulb mr-1"></i> Saran / Pesan</p>
-                                                    <p className="text-xs text-blue-100 italic leading-relaxed">"{r.saran}"</p>
-                                                </div>
-                                            )}
-                                            {(!r.komplain || r.komplain === "-") && (!r.saran || r.saran === "-") && (
-                                                <p className="text-[10px] text-gray-600 font-bold italic">Pelanggan hanya memberikan rating bintang tanpa teks masukan.</p>
-                                            )}
+                                            {r.komplain && r.komplain !== "-" && <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20"><p className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1"><i className="fa-solid fa-triangle-exclamation mr-1"></i> Komplain</p><p className="text-xs text-red-100 font-medium leading-relaxed">{r.komplain}</p></div>}
+                                            {r.saran && r.saran !== "-" && <div className="bg-[#0A84FF]/10 p-3 rounded-xl border border-[#0A84FF]/20"><p className="text-[8px] font-black text-[#0A84FF] uppercase tracking-widest mb-1"><i className="fa-solid fa-lightbulb mr-1"></i> Saran / Pesan</p><p className="text-xs text-blue-100 italic leading-relaxed">"{r.saran}"</p></div>}
+                                            {(!r.komplain || r.komplain === "-") && (!r.saran || r.saran === "-") && <p className="text-[10px] text-gray-600 font-bold italic">Pelanggan hanya memberikan rating bintang tanpa teks masukan.</p>}
                                         </div>
                                     </div>
                                 ))}
@@ -311,7 +308,7 @@
                         </div>
                     )}
 
-                    {/* BOTTOM NAV (6 TABS) */}
+                    {/* BOTTOM NAV */}
                     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/95 backdrop-blur-3xl border-t border-white/5 pb-8 pt-3 px-2 sm:px-4 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
                         <div className="flex justify-between items-center">
                             <button onClick={() => setActiveTab('daily')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'daily' ? 'text-[#FF3B30] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-bolt text-lg sm:text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Harian</span></button>
