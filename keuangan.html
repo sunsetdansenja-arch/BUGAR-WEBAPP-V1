@@ -95,6 +95,11 @@
             const [gajiGlobalData, setGajiGlobalData] = useState({});
             const [loadingGajiGlobal, setLoadingGajiGlobal] = useState(false);
 
+            // STATE UNTUK TAB CEK OMSET HARIAN
+            const [filterOmset, setFilterOmset] = useState({ start: isoToday, end: isoToday, cabang: 'ALL' });
+            const [omsetData, setOmsetData] = useState(null);
+            const [loadingOmset, setLoadingOmset] = useState(false);
+
             const [filterLog, setFilterLog] = useState({ start: isoToday, end: isoToday, cabang: 'ALL' });
             const [logData, setLogData] = useState([]);
             const [loadingLog, setLoadingLog] = useState(false);
@@ -103,14 +108,12 @@
             const [editModal, setEditModal] = useState({ show: false, data: null });
             const [savingEdit, setSavingEdit] = useState(false);
 
-            // STATE UNTUK EXPORT PDF BULAN SPESIFIK
             const [exportMonth, setExportMonth] = useState(isoToday.substring(0, 7));
             const [exportingPDF, setExportingPDF] = useState(false);
 
-            // FIX: Kunci Celah Infinite Loop
             useEffect(() => {
                 const loadOwnerData = async () => {
-                    if (loadingOwner || dataOwner) return; // Cegah pemanggilan ganda
+                    if (loadingOwner || dataOwner) return;
                     setLoadingOwner(true);
                     try {
                         const res = await sendToN8N('owner_load');
@@ -129,6 +132,19 @@
                 }
                 // eslint-disable-next-line
             }, [activeTab, reportSubTab]);
+
+            // FUNGSI CEK OMSET SPESIFIK
+            const fetchOmsetSpesifik = async () => {
+                setLoadingOmset(true);
+                try {
+                    const res = await sendToN8N('filter_report', { startDate: filterOmset.start, endDate: filterOmset.end, cabang: filterOmset.cabang });
+                    let finalData = Array.isArray(res) ? res[0] : res;
+                    setOmsetData(finalData?.data || finalData?.json?.data);
+                } catch (e) {
+                    showToast('Gagal menarik data omset', 'error');
+                }
+                setLoadingOmset(false);
+            };
 
             const fetchGajiGlobal = async () => {
                 setLoadingGajiGlobal(true);
@@ -193,7 +209,6 @@
                 setEditModal({ ...editModal, data: { ...editModal.data, BAGI_TERAPIS: newTrp, STATUS_BONUS: 'APPROVED' }});
             };
 
-            // MENDOWNLOAD LAPORAN BULAN INI (DATA OWNER_LOAD)
             const downloadLaporanBulanIni = async () => {
                 if(!dataOwner || !dataOwner.leaderboard) return;
                 const { jsPDF } = window.jspdf; const doc = new jsPDF({ format: 'a4' });
@@ -247,14 +262,13 @@
                 doc.save(`Laporan_Keuangan_${monthName.replace(/\s+/g, '_')}.pdf`);
             };
 
-            // NEW: MENDOWNLOAD LAPORAN BULAN SPESIFIK (DARI FILTER_REPORT)
             const handleExportSpecificMonth = async () => {
                 if(!exportMonth) return;
                 setExportingPDF(true);
                 try {
                     const year = exportMonth.split('-')[0];
                     const month = exportMonth.split('-')[1];
-                    const lastDay = new Date(year, month, 0).getDate(); // Mendapatkan hari terakhir di bulan tersebut
+                    const lastDay = new Date(year, month, 0).getDate();
                     const startDate = `${exportMonth}-01`;
                     const endDate = `${exportMonth}-${lastDay}`;
 
@@ -381,14 +395,16 @@
 
                     {activeTab === 'administrasi' && (
                         <div className="max-w-xl mx-auto p-4 space-y-6 animate-slide-up">
+                            {/* MENU TIGA SUB-TAB BARU */}
                             <div className="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-sm mt-4">
                                 <button onClick={() => setReportSubTab('keuangan')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${reportSubTab === 'keuangan' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500'}`}>Konsolidasi</button>
+                                <button onClick={() => setReportSubTab('omset')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${reportSubTab === 'omset' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500'}`}>Cek Omset</button>
                                 <button onClick={() => setReportSubTab('gaji')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${reportSubTab === 'gaji' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500'}`}>Gaji Terapis</button>
                             </div>
 
+                            {/* SUB-TAB 1: KONSOLIDASI BULANAN */}
                             {reportSubTab === 'keuangan' && dataOwner && !dataOwner.empty && (
                                 <>
-                                    {/* LAPORAN BULAN INI (LIVE) */}
                                     <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm animate-fade-in border border-gray-100">
                                         <div className="flex justify-between items-center mb-6">
                                             <h3 className="text-xs sm:text-sm font-black uppercase text-gray-500 tracking-[0.2em]"><i className="fa-solid fa-chart-pie text-[#0A84FF] mr-2"></i> Laporan Live (Bulan Ini)</h3>
@@ -413,21 +429,70 @@
                                         </div>
                                     </div>
 
-                                    {/* FITUR BARU: EXPORT PDF SPESIFIK BULAN */}
                                     <div className="bg-[#1C1C1E] p-6 sm:p-8 rounded-[2.5rem] shadow-xl animate-fade-in border border-white/5 mt-6 text-white">
-                                        <h3 className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] mb-4 text-gray-400"><i className="fa-solid fa-file-pdf text-red-500 mr-2"></i> Arsip Laporan Bulanan (PDF)</h3>
+                                        <h3 className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] mb-4 text-gray-400"><i className="fa-solid fa-file-pdf text-red-500 mr-2"></i> Arsip Laporan Bulanan</h3>
                                         <div className="flex flex-col sm:flex-row gap-3">
                                             <input type="month" className="flex-1 p-4 bg-black border border-white/10 text-white rounded-xl font-bold outline-none focus:border-[#0A84FF] text-center" value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} />
                                             <button onClick={handleExportSpecificMonth} disabled={exportingPDF} className="bg-[#FF3B30] text-white font-black px-6 py-4 rounded-xl uppercase tracking-widest text-xs hover:bg-[#E02020] active:scale-95 transition-all shadow-[0_10px_20px_rgba(255,59,48,0.3)]">
                                                 {exportingPDF ? <i className="fa-solid fa-spinner fa-spin"></i> : "UNDUH PDF"}
                                             </button>
                                         </div>
-                                        <p className="text-[9px] text-gray-500 font-bold mt-4 tracking-widest text-center uppercase">Fitur ini akan merekap total Omset, Beban Laci Keluar, dan Hak Terapis di bulan yang Anda pilih.</p>
+                                        <p className="text-[9px] text-gray-500 font-bold mt-4 tracking-widest text-center uppercase">Fitur ini merekap Omset, Beban Keluar, dan Hak Terapis di bulan yang dipilih.</p>
                                     </div>
                                 </>
                             )}
                             {reportSubTab === 'keuangan' && loadingOwner && <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div>}
 
+                            {/* SUB-TAB 2: CEK OMSET SPESIFIK (FITUR BARU) */}
+                            {reportSubTab === 'omset' && (
+                                <div className="space-y-6 animate-fade-in">
+                                    <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#1C1C1E] mb-5"><i className="fa-solid fa-magnifying-glass-dollar text-[#0A84FF] mr-2"></i> Pengecekan Pemasukan</h3>
+                                        
+                                        <HotelDateRangePicker value={filterOmset} onChange={(val)=>setFilterOmset({...filterOmset, ...val})} title="Periode Tanggal" theme="light" />
+                                        
+                                        <div className="mt-5">
+                                            <label className="text-[10px] uppercase font-black text-gray-500 tracking-widest block mb-2">Pilih Cabang</label>
+                                            <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-xl outline-none font-bold text-xs uppercase border border-transparent appearance-none" value={filterOmset.cabang} onChange={e => setFilterOmset({...filterOmset, cabang: e.target.value})}>
+                                                <option value="ALL">SEMUA CABANG</option>
+                                                {Array.from({length: 13}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>BUGAR{i+1}</option>)}
+                                            </select>
+                                        </div>
+                                        
+                                        <button onClick={fetchOmsetSpesifik} disabled={loadingOmset} className="w-full bg-[#1C1C1E] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg mt-6 active:scale-95 transition-all">
+                                            {loadingOmset ? <i className="fa-solid fa-spinner fa-spin"></i> : "CEK PEMASUKAN SEKARANG"}
+                                        </button>
+                                    </div>
+
+                                    {omsetData && (
+                                        <div className="bg-[#1C1C1E] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl text-white animate-slide-up">
+                                            <div className="text-center mb-6">
+                                                <h4 className="text-[#0A84FF] font-black text-[10px] uppercase tracking-widest mb-1">Hasil Rekapitulasi</h4>
+                                                <p className="text-lg font-black uppercase tracking-tight">{filterOmset.cabang === 'ALL' ? 'Semua Cabang' : filterOmset.cabang}</p>
+                                                <p className="text-xs text-gray-400 mt-1 font-mono">{filterOmset.start} s/d {filterOmset.end}</p>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center shadow-inner">
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Omset Kotor</p>
+                                                    <p className="text-lg font-black text-white">{formatIDR(omsetData.omset)}</p>
+                                                </div>
+                                                <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center shadow-inner">
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Laci Keluar</p>
+                                                    <p className="text-lg font-black text-[#FF3B30]">{formatIDR(omsetData.expense)}</p>
+                                                </div>
+                                            </div>
+                                            <div className="bg-[#34C759]/10 p-5 rounded-2xl border border-[#34C759]/20 text-center relative overflow-hidden">
+                                                <div className="absolute right-0 top-0 opacity-10 p-2"><i className="fa-solid fa-sack-dollar text-6xl text-[#34C759]"></i></div>
+                                                <p className="text-[9px] text-[#34C759] font-black uppercase tracking-widest mb-1 relative z-10">Laba Setelah Terapis & Expense</p>
+                                                <p className="text-3xl font-black text-[#34C759] relative z-10">{formatIDR(omsetData.laba)}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* SUB-TAB 3: GAJI TERAPIS */}
                             {reportSubTab === 'gaji' && (
                                 <div className="space-y-4 animate-fade-in">
                                     <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
@@ -462,7 +527,7 @@
                                 <div className="flex gap-2 mt-5">
                                     <select className="flex-1 p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-xl outline-none font-bold text-xs uppercase border border-transparent appearance-none" value={filterLog.cabang} onChange={e => setFilterLog({...filterLog, cabang: e.target.value})}>
                                         <option value="ALL">SEMUA CABANG</option>
-                                        {Array.from({length: 12}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>BUGAR{i+1}</option>)}
+                                        {Array.from({length: 13}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>BUGAR{i+1}</option>)}
                                     </select>
                                     <button onClick={fetchLogOrder} disabled={loadingLog} className="bg-[#1C1C1E] text-white font-black px-6 rounded-xl text-xs uppercase shadow-lg active:scale-95 transition-all">TARIK</button>
                                 </div>
