@@ -165,7 +165,8 @@
                 return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
             }, [history, filterRekap]);
 
-            const isLhokseumawe = activeCabang === 'BUGAR8';
+            // UPDATE: Menambahkan BUGAR13 sebagai cabang dengan harga Lhokseumawe
+            const isLhokseumawe = activeCabang === 'BUGAR8' || activeCabang === 'BUGAR13';
 
             const estimasiBagiHasil = useMemo(() => {
                 if (!formData.TAGIHAN || formData.TAGIHAN <= 0) return null;
@@ -183,8 +184,9 @@
                 let bagiOwner = 0;
                 let tipeHitungan = "Persentase 30%";
 
+                // UPDATE: Logika Chiropractic untuk BUGAR8 dan BUGAR13
                 let isChiropractic = false;
-                if (activeCabang === 'BUGAR8') {
+                if (activeCabang === 'BUGAR8' || activeCabang === 'BUGAR13') {
                     if (paketName.includes("PAKET 7") || paketName.includes("CHIROPRACTIC")) isChiropractic = true;
                 } else {
                     if (paketName.includes("PAKET 8") || paketName.includes("CHIROPRACTIC")) isChiropractic = true;
