@@ -2,379 +2,389 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bugar Connect V5.15 - Executive Portal</title>
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { theme: { extend: { animation: { 'slide-up': 'slideUp 0.4s ease-out', 'fade-in': 'fadeIn 0.3s ease-out' }, keyframes: { slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }, fadeIn: { 'from': { opacity: '0' }, 'to': { opacity: '1' } } } } } }</script>
-    <style> .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; } ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; } input, select, textarea { font-size: 16px !important; } </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body class="bg-[#111111] text-white">
-    <div id="root"></div>
-    <script type="text/babel">
-        const { useState, useCallback, useEffect, useMemo } = React;
-        const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
-        const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
-        
-        // FORMAT UANG LENGKAP
-        const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
-        
-        // FORMAT UANG SINGKAT (Juta/Miliar)
-        const formatIDRShort = (val) => {
-            const num = Number(val || 0);
-            if (num >= 1000000000) return 'Rp ' + (num / 1000000000).toFixed(2).replace('.', ',') + ' M';
-            if (num >= 1000000) return 'Rp ' + (num / 1000000).toFixed(1).replace('.', ',') + ' Jt';
-            return 'Rp ' + num.toLocaleString('id-ID');
-        };
-
-        const HotelDateRangePicker = ({ value, onChange, title, theme = "dark" }) => {
-            const [step, setStep] = useState(0); const [showModal, setShowModal] = useState(false);
-            const days = useMemo(() => {
-                const arr = []; const today = new Date(); today.setHours(0,0,0,0);
-                const getLocalIso = (d) => new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                for(let i=34; i>=0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); arr.push({ date: d, iso: getLocalIso(d), dayStr: d.getDate(), isToday: i===0 }); } return arr;
-            }, []);
-            const handleDayClick = (iso) => { if (step === 0 || iso < value.start) { onChange({ start: iso, end: iso }); setStep(1); } else { onChange({ ...value, end: iso }); setStep(0); setShowModal(false); } };
-            const formatDateStr = (iso) => { if(!iso) return "-"; const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}); };
-            const isDark = theme === "dark"; const boxClass = isDark ? "bg-[#1C1C1E] border border-white/10 text-white hover:border-white/20" : "bg-[#F2F2F7] border border-gray-200 text-[#1C1C1E]"; const titleClass = isDark ? "text-gray-500" : "text-gray-400";
-            return (
-                <div className="w-full">
-                    <label className={`text-[10px] uppercase font-black tracking-widest mb-2 block ${titleClass}`}>{title || "Pilih Rentang Waktu"}</label>
-                    <div onClick={() => {setShowModal(true); setStep(0);}} className={`${boxClass} rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all shadow-inner`}>
-                        <div className="flex gap-4 items-center"><i className="fa-regular fa-calendar text-[#0A84FF] text-xl"></i><div><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Mulai</p><p className="text-base font-black">{formatDateStr(value.start)}</p></div></div>
-                        <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-gray-300'}`}></div>
-                        <div className="text-right"><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Selesai</p><p className="text-base font-black">{formatDateStr(value.end)}</p></div>
-                    </div>
-                    {showModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-                            <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/10 animate-slide-up relative overflow-hidden">
-                                <div className="text-center mb-6"><h3 className="text-lg font-black uppercase tracking-tight text-white">{step === 0 ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai"}</h3></div>
-                                <div className="grid grid-cols-7 gap-y-2 gap-x-0 relative">
-                                    {Array.from({length: days[0].date.getDay()}).map((_,i) => <div key={`blank-${i}`} />)}
-                                    {days.map((d, i) => {
-                                        const isStart = d.iso === value.start; const isEnd = d.iso === value.end; const inRange = d.iso > value.start && d.iso < value.end;
-                                        let bgClass = "bg-transparent text-gray-300"; let wrapperClass = "flex justify-center items-center h-10 w-full relative cursor-pointer";
-                                        if (isStart || isEnd) bgClass = "bg-[#0A84FF] text-white shadow-[0_0_15px_rgba(10,132,255,0.5)] z-10 scale-110 rounded-full"; else if (inRange) bgClass = "bg-[#0A84FF]/20 text-[#0A84FF] rounded-none"; else if (d.isToday) bgClass = "bg-white/10 text-white border border-white/20 rounded-full";
-                                        if(isStart && value.start !== value.end) wrapperClass += " rounded-l-full bg-[#0A84FF]/20"; if(isEnd && value.start !== value.end) wrapperClass += " rounded-r-full bg-[#0A84FF]/20";
-                                        return (<div key={i} className={wrapperClass} onClick={() => handleDayClick(d.iso)}><div className={`w-8 h-8 flex items-center justify-center font-bold text-sm transition-all ${bgClass}`}>{d.dayStr}</div></div>)
-                                    })}
-                                </div>
-                                <button onClick={()=>setShowModal(false)} className="mt-8 w-full py-4 bg-white/10 text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 text-base hover:bg-white/20 transition-all">Batalkan</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )
-        };
-
-        const BranchCard = ({ cabang, idx }) => {
-            const [expanded, setExpanded] = useState(false);
-            return (
-                <div className="bg-black rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-300 shadow-lg mb-4">
-                    <div className="p-5 sm:p-6 cursor-pointer active:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
-                        <div className="flex justify-between items-start sm:items-center mb-5 gap-2">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className={`shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-black text-sm sm:text-lg ${idx === 0 ? 'bg-gradient-to-br from-[#FF3B30] to-[#E02020] text-white shadow-[0_0_15px_rgba(255,59,48,0.5)]' : 'bg-[#1C1C1E] text-gray-400 border border-white/5'}`}>{idx + 1}</div>
-                                <h4 className="font-black text-lg sm:text-2xl tracking-tighter uppercase text-white leading-none truncate max-w-[120px] sm:max-w-none">{cabang.id}</h4>
-                            </div>
-                            <div className="text-right shrink-0 min-w-0">
-                                <p className="text-[8px] sm:text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1.5">Laba Hak Owner</p>
-                                <p className="text-lg sm:text-2xl font-black text-[#FF3B30] leading-none truncate max-w-[100px] sm:max-w-full">{formatIDRShort(cabang.labaHariIni)}</p>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-[#111111] p-3 sm:p-4 rounded-xl border border-white/5">
-                            <div className="min-w-0"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Omset Total</p><p className="text-xs sm:text-sm font-black text-white truncate">{formatIDRShort(cabang.omsetHariIni)}</p></div>
-                            <div className="text-right min-w-0"><p className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Pengeluaran</p><p className="text-xs sm:text-sm font-black text-gray-300 truncate">{formatIDRShort(cabang.expenseHariIni)}</p></div>
-                        </div>
-                    </div>
-                    <div className={`bg-[#111111] overflow-hidden transition-all duration-300 ${expanded ? 'max-h-[1000px] border-t border-white/5' : 'max-h-0'}`}>
-                        <div className="grid grid-cols-3 gap-px bg-white/5 border-b border-white/5">
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Pasien</p><p className="text-sm font-black text-white mt-0.5">{cabang.paxHariIni}</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Margin</p><p className={`text-sm font-black mt-0.5 ${cabang.margin > 50 ? 'text-[#34C759]' : 'text-[#FFCC00]'}`}>{cabang.margin}%</p></div>
-                            <div className="p-3 text-center bg-[#111111]"><p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Trp MVP</p><p className="text-xs font-black text-[#0A84FF] mt-1 truncate">{cabang.mvp}</p></div>
-                        </div>
-                        <div className="p-4 space-y-2">
-                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-3 px-1">Rincian Hari Ini</p>
-                            {cabang.logsHariIni && cabang.logsHariIni.length === 0 && <p className="text-center text-xs font-bold text-gray-600 py-4">Belum ada aktivitas</p>}
-                            {cabang.logsHariIni && cabang.logsHariIni.map((log, i) => (
-                                <div key={i} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5">
-                                    <div className="flex gap-3 items-center min-w-0"><span className="text-[9px] font-black text-gray-500">{log.jam}</span><div className="min-w-0"><p className={`text-xs font-bold uppercase truncate max-w-[120px] sm:max-w-[180px] ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-gray-200'}`}>{log.nama}</p>{log.terapis && <p className="text-[8px] text-gray-500 font-black tracking-widest uppercase mt-0.5">Trp: {log.terapis}</p>}</div></div>
-                                    <p className={`text-xs font-black shrink-0 ${log.type==='expense' ? 'text-[#FF3B30]' : 'text-white'}`}>{log.type==='expense'?'-':''}{formatIDR(log.nominal)}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard - Bugar Refleksi</title>
+    <style>
+        /* --- Base & Reset --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        const OwnerView = ({ onLogout }) => {
-            const isoToday = new Date().toISOString().split('T')[0];
-            const [activeTab, setActiveTab] = useState('daily');
-            const [data, setData] = useState({ 
-                grandOmsetHariIni: 0, grandBagiTerapisHariIni: 0, grandTotalBulanIni: 0, grandBagiTerapisBulanIni: 0, 
-                expenseHariIni: 0, expenseBulanIni: 0, globalLabaHariIni: 0, globalLabaBulanIni: 0, 
-                leaderboard: [], trenHari: [], topTerapis: [], cancelledOrders: [], logistikLogs: [],
-                reviewStats: { avgRating: 0, totalReview: 0, totalKomplain: 0 }, reviews: [],
-                holdOrders: [] // Menampung data hold harian
-            });
-            const [loading, setLoading] = useState(true);
-            const [refreshing, setRefreshing] = useState(false);
-            
-            const [filterLogistikOwner, setFilterLogistikOwner] = useState({ start: isoToday, end: isoToday });
-            
-            // State untuk Tab Review
-            const [filterCabangRev, setFilterCabangRev] = useState('ALL');
-            const [filterJenisRev, setFilterJenisRev] = useState('ALL');
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f5f7; /* Apple's signature light gray background */
+            color: #1d1d1f;
+            display: flex;
+            min-height: 100vh;
+        }
 
-            const loadOwnerData = async (isRefresh = false) => {
-                if (isRefresh) setRefreshing(true); else setLoading(true);
-                try {
-                    const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'owner_load' }) });
-                    const result = await res.json(); let finalData = Array.isArray(result) ? result[0] : result;
-                    if (finalData && finalData.json) finalData = finalData.json;
-                    setData(finalData || {});
-                } catch (e) {} setLoading(false); setRefreshing(false);
-            };
+        /* --- Sidebar Navigation --- */
+        .sidebar {
+            width: 250px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
 
-            useEffect(() => { loadOwnerData(); }, []);
+        .sidebar h1 {
+            font-size: 18px;
+            font-weight: 600;
+            padding-bottom: 20px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            text-align: center;
+        }
 
-            const filteredLogistikOwner = (data.logistikLogs || []).filter(l => l.tanggal >= filterLogistikOwner.start && l.tanggal <= filterLogistikOwner.end);
-            
-            const filteredReviews = useMemo(() => {
-                if(!data.reviews) return [];
-                return data.reviews.filter(r => {
-                    const matchCabang = filterCabangRev === 'ALL' || r.cabang === filterCabangRev;
-                    const matchJenis = filterJenisRev === 'ALL' || (filterJenisRev === 'KOMPLAIN' ? r.rating <= 3 : r.rating >= 4);
-                    return matchCabang && matchJenis;
-                });
-            }, [data.reviews, filterCabangRev, filterJenisRev]);
+        .tab-button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #1d1d1f;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
 
-            if (loading) return <div className="min-h-screen bg-[#111111] flex items-center justify-center"><i className="fa-solid fa-spinner fa-spin text-[#FF3B30] text-5xl drop-shadow-[0_0_15px_rgba(255,59,48,0.5)]"></i></div>;
+        .tab-button:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
 
-            return (
-                <div className="min-h-screen bg-[#111111] text-white font-sans animate-fade-in pb-28">
-                    {/* TAB: DASBOR HARIAN */}
-                    {activeTab === 'daily' && (
-                        <div className="animate-slide-up">
-                            <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF3B30]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-                                <div className="max-w-xl mx-auto relative z-10">
-                                    <div className="flex justify-between items-start mb-10"><div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#FF3B30] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Daily Recap</h1></div></div><button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#FF3B30]' : 'text-gray-300'}`}></i></button></div>
-                                    <div className="bg-gradient-to-br from-[#FF3B30] to-[#E02020] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(255,59,48,0.4)] relative overflow-hidden border border-white/20">
-                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Hari Ini)</p>
-                                        <h2 className="text-4xl sm:text-5xl font-black tracking-tighter relative z-10 break-words leading-tight">{formatIDRShort(data.globalLabaHariIni)}</h2>
-                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDRShort(data.grandOmsetHariIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDRShort(data.grandBagiTerapisHariIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Pengeluaran</span><span className="text-sm font-black">- {formatIDRShort(data.expenseHariIni)}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <main className="max-w-xl mx-auto p-6 space-y-8 mt-2">
-                                
-                                {/* WIDGET: TRAY HOLD ORDER (TAMPIL SELALU) */}
-                                <div className="bg-[#FFCC00]/10 border border-[#FFCC00]/30 rounded-[2rem] p-6 shadow-lg animate-fade-in relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-3 opacity-10"><i className="fa-solid fa-hourglass-half text-6xl text-[#FFCC00]"></i></div>
-                                    <div className="flex justify-between items-center mb-5 relative z-10">
-                                        <h4 className="font-black text-sm text-[#FFCC00] tracking-widest uppercase flex items-center gap-2"><i className="fa-regular fa-clock"></i> Menggantung ({data.holdOrders?.length || 0})</h4>
-                                    </div>
-                                    <div className="space-y-3 relative z-10">
-                                        {(!data.holdOrders || data.holdOrders.length === 0) && (
-                                            <p className="text-center text-[10px] font-bold text-[#FFCC00]/50 py-4 uppercase tracking-widest">Semua transaksi beres / lunas</p>
-                                        )}
-                                        {data.holdOrders && data.holdOrders.map((hold, idx) => (
-                                            <div key={idx} className="bg-black/60 p-4 rounded-xl border border-[#FFCC00]/20 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 backdrop-blur-md">
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-[#1C1C1E] bg-[#FFCC00] font-black text-[8px] px-2 py-1 rounded uppercase tracking-widest">{hold.CABANG_ID}</span>
-                                                    </div>
-                                                    <h5 className="font-black text-sm text-white uppercase tracking-tight">{hold.NAMA_PASIEN}</h5>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Trp: {hold.TERAPIS} • {formatIDR(hold.TAGIHAN)}</p>
-                                                </div>
-                                                <div className="text-right w-full sm:w-auto">
-                                                    <span className="text-[9px] text-[#FFCC00] font-black uppercase tracking-widest bg-[#FFCC00]/10 border border-[#FFCC00]/20 px-3 py-1.5 rounded-lg inline-block animate-pulse w-full sm:w-auto text-center">Menunggu Kasir</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+        .tab-button.active {
+            background: #0071e3;
+            color: #fff;
+        }
 
-                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3"><i className="fa-solid fa-trophy text-[#FF3B30] text-lg"></i> Performa Cabang</h3>
-                                    <div className="space-y-4">
-                                        {data.leaderboard && data.leaderboard.length === 0 && <p className="text-center text-xs text-gray-500 font-bold">Belum ada transaksi lunas</p>}
-                                        {data.leaderboard && data.leaderboard.map((cabang, idx) => <BranchCard key={cabang.id} cabang={cabang} idx={idx} />)}
-                                    </div>
-                                </div>
-                            </main>
-                        </div>
-                    )}
+        .tab-button.active svg {
+            color: #fff;
+        }
 
-                    {/* TAB: DASBOR BULANAN */}
-                    {activeTab === 'monthly' && (
-                        <div className="animate-slide-up">
-                            <div className="bg-[#1C1C1E] px-6 py-12 rounded-b-[3.5rem] shadow-2xl border-b border-white/5 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#0A84FF]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-                                <div className="max-w-xl mx-auto relative z-10">
-                                    <div className="flex justify-between items-start mb-10"><div className="flex items-center gap-4"><img src={LOGO_URL} alt="Logo" className="h-14 w-14 object-contain drop-shadow-2xl" /><div><p className="text-[#0A84FF] font-black text-[10px] uppercase tracking-[0.4em] mb-1">Executive Portal</p><h1 className="text-3xl font-black tracking-tighter uppercase leading-none text-white">Monthly Recap</h1></div></div><button onClick={() => loadOwnerData(true)} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 active:scale-90 transition-all border border-white/10 shadow-lg"><i className={`fa-solid fa-rotate-right text-xl ${refreshing ? 'fa-spin text-[#0A84FF]' : 'text-gray-300'}`}></i></button></div>
-                                    <div className="bg-gradient-to-br from-[#0A84FF] to-[#0040DD] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(10,132,255,0.4)] relative overflow-hidden border border-white/20">
-                                        <p className="text-white/90 font-black uppercase tracking-widest text-[10px] mb-2 relative z-10">Laba Hak Owner (Bulan Ini)</p>
-                                        <h2 className="text-4xl sm:text-5xl font-black tracking-tighter relative z-10 break-words leading-tight">{formatIDRShort(data.globalLabaBulanIni)}</h2>
-                                        <div className="mt-6 relative z-10 text-[10px] font-bold uppercase opacity-90 border-t border-white/20 pt-4 space-y-2">
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Omset Global</span><span className="text-sm font-black">{formatIDRShort(data.grandTotalBulanIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Hak Terapis</span><span className="text-sm font-black">- {formatIDRShort(data.grandBagiTerapisBulanIni)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="opacity-70">Total Beban</span><span className="text-sm font-black">- {formatIDRShort(data.expenseBulanIni)}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <main className="max-w-xl mx-auto p-6 space-y-6 mt-2">
-                                <div className="bg-[#1C1C1E] p-6 rounded-[2rem] border border-white/5 shadow-lg"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-star text-[#FFCC00]"></i> Top 3 Terapis Bulan Ini</h3><div className="space-y-3">{data.topTerapis && data.topTerapis.length === 0 && <p className="text-xs text-gray-600 font-bold">Belum ada data</p>}{data.topTerapis && data.topTerapis.map((t, idx) => (<div key={idx} className="flex justify-between items-center bg-black p-3 rounded-xl border border-white/5"><div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${idx===0 ? 'bg-[#FFCC00] text-black' : idx===1 ? 'bg-gray-300 text-black' : 'bg-[#CD7F32] text-white'}`}>{idx+1}</div><span className="font-black text-sm uppercase">{t.nama}</span></div><span className="text-[#0A84FF] font-black text-sm">{formatIDRShort(t.omset)}</span></div>))}</div></div>
-                                <div className="bg-[#1C1C1E] p-6 rounded-[2rem] border border-white/5 shadow-lg"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2"><i className="fa-solid fa-chart-simple text-[#34C759]"></i> Kepadatan Pasien Per Hari</h3><div className="flex justify-between items-end h-32 gap-1 sm:gap-2">{data.trenHari && data.trenHari.map((tren, idx) => { const maxPasien = Math.max(...data.trenHari.map(t => t.pasien), 1); const heightPct = Math.round((tren.pasien / maxPasien) * 100); return (<div key={idx} className="flex flex-col items-center flex-1"><span className="text-[9px] font-bold text-gray-400 mb-1">{tren.pasien}</span><div className="w-full bg-[#34C759] rounded-t-sm" style={{height: `${heightPct}%`, minHeight: '2px', opacity: heightPct===100 ? '1' : '0.5'}}></div><span className="text-[8px] sm:text-[10px] font-black uppercase mt-2 text-gray-500">{tren.hari.substring(0,3)}</span></div>) })}</div></div>
-                                <div className="bg-[#1C1C1E] p-6 rounded-[2.5rem] border border-white/5 shadow-2xl"><h3 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2"><i className="fa-solid fa-building text-white"></i> Laba Cabang (Bulan Ini)</h3><div className="space-y-3">{data.leaderboard && data.leaderboard.map((cabang) => (<div key={cabang.id} className="bg-black p-4 rounded-2xl border border-white/5 flex justify-between items-center"><div className="min-w-0"><h4 className="font-black text-sm uppercase text-white truncate">{cabang.id}</h4><p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Omset: {formatIDRShort(cabang.omsetBulanIni)}</p></div><div className="text-right min-w-0"><p className="text-base font-black text-[#FF3B30] truncate">{formatIDRShort(cabang.labaBulanIni)}</p><p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Beban: {formatIDRShort(cabang.expenseBulanIni)}</p></div></div>))}</div></div>
-                            </main>
-                        </div>
-                    )}
+        /* --- Main Content Area --- */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
 
-                    {/* TAB: LOGISTIK */}
-                    {activeTab === 'logistik' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
-                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Logistik</h2><p className="text-[10px] text-[#0A84FF] font-black uppercase tracking-widest mt-2">Pantauan Supply Chain</p></div>
-                            <div className="bg-[#0A84FF]/10 p-8 rounded-[2.5rem] border border-[#0A84FF]/30 shadow-[0_0_30px_rgba(10,132,255,0.05)]">
-                                <HotelDateRangePicker value={filterLogistikOwner} onChange={setFilterLogistikOwner} title="Filter Periode Belanja" />
-                                <div className="space-y-3 mt-6">
-                                    {filteredLogistikOwner.length === 0 && <p className="text-center text-[10px] font-bold text-[#0A84FF]/50 py-4 uppercase tracking-widest">Tidak ada pengeluaran logistik</p>}
-                                    {filteredLogistikOwner.map((log, idx) => (
-                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-[#0A84FF]/20 flex justify-between items-center backdrop-blur-sm"><div className="min-w-0"><span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest inline-block mb-2 ${log.target === 'PUSAT' ? 'bg-[#1C1C1E] text-white border border-white/10' : 'bg-[#0A84FF] text-white'}`}>{log.target}</span><h5 className="font-black text-xs text-white uppercase truncate max-w-[150px]">{log.nama}</h5><p className="text-[9px] text-gray-500 font-bold mt-1 tracking-widest">{log.tanggal}</p></div><p className="text-sm font-black text-[#FF3B30] shrink-0">- {formatIDRShort(log.nominal)}</p></div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
 
-                    {/* TAB: AUDIT */}
-                    {activeTab === 'audit' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-8">
-                            <div className="mb-2"><h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">Audit</h2><p className="text-[10px] text-[#FF3B30] font-black uppercase tracking-widest mt-2">Log Pembatalan Transaksi</p></div>
-                            <div className="bg-[#2A0808] p-8 rounded-[2.5rem] border border-[#FF3B30]/30 shadow-[0_0_30px_rgba(255,59,48,0.15)]">
-                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#FF3B30] mb-6 flex items-center gap-3"><i className="fa-solid fa-triangle-exclamation text-lg"></i> 20 Transaksi Dibatalkan</h3>
-                                <div className="space-y-3">
-                                    {data.cancelledOrders && data.cancelledOrders.length === 0 && <p className="text-center text-xs font-bold text-red-500/50 py-4 uppercase tracking-widest">Bersih! Tidak ada pembatalan.</p>}
-                                    {data.cancelledOrders && data.cancelledOrders.map((batal, idx) => (
-                                        <div key={idx} className="bg-black/60 p-4 rounded-2xl border border-red-500/20 flex justify-between items-center backdrop-blur-sm"><div className="min-w-0"><span className="text-[#FF3B30] font-black text-[8px] bg-red-950 px-2 py-1 rounded uppercase tracking-widest mr-2 inline-block mb-1">{batal.CABANG_ID}</span><span className="text-xs font-black uppercase text-gray-300 line-through block truncate">{batal.NAMA_PASIEN}</span><p className="text-[9px] text-gray-500 font-bold tracking-widest mt-1">{batal.TANGGAL}</p></div><i className="fa-solid fa-ban text-red-900 text-xl shrink-0"></i></div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+        .tab-content.active {
+            display: block;
+        }
 
-                    {/* TAB: ULASAN (REVIEW) */}
-                    {activeTab === 'review' && (
-                        <div className="animate-slide-up max-w-xl mx-auto p-6 pt-10 space-y-6">
-                            <div className="mb-4 flex justify-between items-end">
-                                <div><h2 className="text-4xl font-black uppercase tracking-tighter text-[#FFCC00] leading-none">Ulasan</h2><p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-2">Voice of Customer (Bulan Ini)</p></div>
-                                <button onClick={() => loadOwnerData(true)} className="text-gray-400 hover:text-white p-2"><i className={`fa-solid fa-rotate-right ${refreshing ? 'fa-spin text-[#FFCC00]' : ''}`}></i></button>
-                            </div>
-                            <div className="grid grid-cols-3 gap-3">
-                                <div className="bg-[#1C1C1E] p-4 rounded-[1.5rem] border border-white/5 text-center shadow-lg"><p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Rata-Rata</p><h3 className="text-2xl font-black text-[#FFCC00]">{data.reviewStats?.avgRating || "0.0"}</h3><div className="flex justify-center text-[8px] text-[#FFCC00] mt-1 gap-0.5"><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i></div></div>
-                                <div className="bg-[#1C1C1E] p-4 rounded-[1.5rem] border border-white/5 text-center shadow-lg"><p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Total</p><h3 className="text-2xl font-black text-white">{data.reviewStats?.totalReview || 0}</h3><p className="text-[8px] text-gray-500 font-bold uppercase mt-1">Responden</p></div>
-                                <div className="bg-red-950/30 p-4 rounded-[1.5rem] border border-red-500/20 text-center shadow-lg"><p className="text-[9px] text-red-400/70 font-black uppercase tracking-widest mb-1">Komplain</p><h3 className="text-2xl font-black text-[#FF3B30]">{data.reviewStats?.totalKomplain || 0}</h3><p className="text-[8px] text-red-400/50 font-bold uppercase mt-1">Bintang 1 - 3</p></div>
-                            </div>
-                            <div className="bg-[#1C1C1E] p-4 rounded-[1.5rem] border border-white/5 space-y-3 shadow-lg">
-                                <select className="w-full bg-black text-white text-xs font-black uppercase tracking-widest p-3 rounded-xl border border-white/10 outline-none appearance-none text-center" value={filterCabangRev} onChange={(e) => setFilterCabangRev(e.target.value)}>
-                                    <option value="ALL">-- TAMPILKAN SEMUA CABANG --</option>
-                                    {data.leaderboard && data.leaderboard.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
-                                </select>
-                                <div className="flex gap-2 bg-black p-1 rounded-xl">
-                                    <button onClick={()=>setFilterJenisRev('ALL')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filterJenisRev === 'ALL' ? 'bg-white text-black' : 'text-gray-500'}`}>Semua</button>
-                                    <button onClick={()=>setFilterJenisRev('PUAS')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filterJenisRev === 'PUAS' ? 'bg-[#34C759] text-white' : 'text-gray-500'}`}>Puas (4-5)</button>
-                                    <button onClick={()=>setFilterJenisRev('KOMPLAIN')} className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filterJenisRev === 'KOMPLAIN' ? 'bg-[#FF3B30] text-white' : 'text-gray-500'}`}>Komplain</button>
-                                </div>
-                            </div>
-                            <div className="space-y-4 pb-4">
-                                {filteredReviews.length === 0 && <div className="text-center py-10"><i className="fa-regular fa-comment-dots text-4xl text-gray-700 mb-3"></i><p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Belum ada ulasan sesuai filter</p></div>}
-                                {filteredReviews.map((r, idx) => (
-                                    <div key={idx} className={`p-5 rounded-[1.5rem] border transition-all shadow-lg ${r.rating <= 3 ? 'bg-red-950/20 border-red-500/30' : 'bg-[#1C1C1E] border-white/5'}`}>
-                                        <div className="flex justify-between items-start mb-3 border-b border-white/5 pb-3"><div><h5 className="font-black text-base uppercase tracking-tight text-white">{r.terapis}</h5><div className="flex items-center gap-2 mt-1"><span className="text-[8px] bg-black px-2 py-1 rounded text-gray-400 font-black tracking-widest uppercase border border-white/5">{r.cabang}</span><span className="text-[9px] text-gray-500 font-bold uppercase">{r.tanggal}</span></div></div><div className="flex gap-1 text-[#FFCC00] text-sm">{Array.from({length: 5}).map((_,i) => <i key={i} className={i < r.rating ? "fa-solid fa-star drop-shadow-[0_0_5px_rgba(255,204,0,0.5)]" : "fa-regular fa-star text-gray-700"}></i>)}</div></div>
-                                        <div className="space-y-2">
-                                            {r.komplain && r.komplain !== "-" && <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20"><p className="text-[8px] font-black text-red-400 uppercase tracking-widest mb-1"><i className="fa-solid fa-triangle-exclamation mr-1"></i> Komplain</p><p className="text-xs text-red-100 font-medium leading-relaxed">{r.komplain}</p></div>}
-                                            {r.saran && r.saran !== "-" && <div className="bg-[#0A84FF]/10 p-3 rounded-xl border border-[#0A84FF]/20"><p className="text-[8px] font-black text-[#0A84FF] uppercase tracking-widest mb-1"><i className="fa-solid fa-lightbulb mr-1"></i> Saran / Pesan</p><p className="text-xs text-blue-100 italic leading-relaxed">"{r.saran}"</p></div>}
-                                            {(!r.komplain || r.komplain === "-") && (!r.saran || r.saran === "-") && <p className="text-[10px] text-gray-600 font-bold italic">Pelanggan hanya memberikan rating bintang tanpa teks masukan.</p>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-                    {/* BOTTOM NAV */}
-                    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl z-50 bg-[#111111]/95 backdrop-blur-3xl border-t border-white/5 pb-8 pt-3 px-2 sm:px-4 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-                        <div className="flex justify-between items-center">
-                            <button onClick={() => setActiveTab('daily')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'daily' ? 'text-[#FF3B30] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-bolt text-lg sm:text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Harian</span></button>
-                            <button onClick={() => setActiveTab('monthly')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'monthly' ? 'text-[#0A84FF] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-calendar-check text-lg sm:text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Bulan</span></button>
-                            <button onClick={() => setActiveTab('logistik')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'logistik' ? 'text-white scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-boxes-stacked text-lg sm:text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Logistik</span></button>
-                            <button onClick={() => setActiveTab('audit')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'audit' ? 'text-white scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-shield-halved text-lg sm:text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Audit</span></button>
-                            <button onClick={() => setActiveTab('review')} className={`flex-1 py-2 flex flex-col items-center gap-1 transition-all ${activeTab === 'review' ? 'text-[#FFCC00] scale-110' : 'text-gray-600 hover:text-gray-400'}`}><i className="fa-solid fa-star text-lg sm:text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Ulasan</span></button>
-                            <button onClick={onLogout} className="flex-1 py-2 flex flex-col items-center gap-1 transition-all text-gray-600 hover:text-[#FF3B30]"><i className="fa-solid fa-power-off text-lg sm:text-xl mb-1"></i><span className="text-[8px] font-black uppercase tracking-widest">Keluar</span></button>
-                        </div>
+        /* --- Apple UI / Glassmorphism Styles (Modul Broadcaster) --- */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 8px;
+        }
+
+        .apple-input {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+            min-width: 280px;
+        }
+
+        .apple-input:focus {
+            border-color: #0071e3;
+            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+        }
+
+        .apple-btn {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            background: #fff;
+            color: #1d1d1f;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .apple-btn:hover {
+            background: #f5f5f7;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .apple-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .apple-table th {
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #86868b;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .apple-table td {
+            padding: 16px;
+            font-size: 14px;
+            color: #1d1d1f;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .apple-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .wa-link {
+            color: #0071e3;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .wa-link:hover {
+            text-decoration: underline;
+        }
+        
+        .badge-batal {
+            background: #ffe5e5;
+            color: #ff3b30;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h1>Bugar Refleksi</h1>
+        
+        <button class="tab-button active" onclick="showTab('dashboard-tab', this)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+            Dashboard
+        </button>
+
+        <button class="tab-button" onclick="showTab('broadcaster-tab', this)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            Log Broadcast
+        </button>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="dashboard-tab" class="tab-content active">
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <h2>Ringkasan Omset</h2>
+                </div>
+                <p style="color: #86868b;">Halaman utama dasbor owner (Konten ada di file lain).</p>
+            </div>
+        </div>
+
+        <div id="broadcaster-tab" class="tab-content">
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <h2>Log Broadcast WhatsApp</h2>
+                    <div class="search-container">
+                        <input type="text" id="search-bc" class="apple-input" placeholder="Cari Nama atau Nomor..." onkeyup="filterBroadcast()">
+                        <button class="apple-btn" onclick="loadBroadcastData()" title="Refresh Data">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                        </button>
                     </div>
                 </div>
-            );
-        };
+                
+                <div class="table-responsive">
+                    <table class="apple-table" id="bc-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Nama Pasien</th>
+                                <th>Nomor WhatsApp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bc-table-body">
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: #86868b;">Tekan tombol refresh untuk memuat data.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-        const App = () => {
-            const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('owner_isLoggedIn') === 'true');
-            const [loginData, setLoginData] = useState({ id: '', password: '' });
-            const [loading, setLoading] = useState(false); const [shakeLogin, setShakeLogin] = useState(false); const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-            const showToast = (message, type = 'success') => { setToast({ show: true, message, type }); setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000); };
+    </div>
 
-            const sendToN8N = async (action, payload = {}) => {
-                try {
-                    const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...payload }) });
-                    const text = await response.text(); if (!text) return {}; const rawData = JSON.parse(text);
-                    let unwrapped = Array.isArray(rawData) ? rawData[0] : rawData; return (unwrapped && unwrapped.json) ? unwrapped.json : unwrapped;
-                } catch (error) { return { status: 'error' }; }
-            };
+    <script>
+        // 1. Logika Tab Navigation
+        function showTab(tabId, buttonElement) {
+            // Sembunyikan semua konten tab
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
 
-            const handleLogin = async (e) => {
-                e.preventDefault(); setLoading(true); setShakeLogin(false);
-                const cleanId = loginData.id.trim().toUpperCase(); const cleanPass = loginData.password.trim();
-                if (!cleanId.includes('OWNER') && !cleanId.includes('MASTER')) { setShakeLogin(true); showToast('Akses Ditolak! Portal ini khusus akun Owner.', 'error'); setLoading(false); return; }
-                const res = await sendToN8N('login', { id: cleanId, password: cleanPass });
-                if (res && res.status === 'success') { localStorage.setItem('owner_isLoggedIn', 'true'); setIsLoggedIn(true); } else { setShakeLogin(true); showToast(res.message || 'ID atau Password Salah', 'error'); }
-                setLoading(false);
-            };
+            // Hapus class active dari semua tombol
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
 
-            const handleLogout = () => { localStorage.removeItem('owner_isLoggedIn'); setIsLoggedIn(false); };
+            // Tampilkan tab yang dipilih & aktifkan tombolnya
+            document.getElementById(tabId).classList.add('active');
+            if(buttonElement) buttonElement.classList.add('active');
 
-            if (!isLoggedIn) {
-                return (
-                    <div className="min-h-screen bg-[#111111] flex items-center justify-center p-6 pb-24 relative overflow-hidden">
-                        <div className="absolute top-10 left-10 w-72 h-72 bg-[#FF3B30]/10 rounded-full blur-3xl"></div>
-                        <div className="absolute bottom-10 right-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div>
-                        <div className={`bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
-                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Executive</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Owner Portal V5</p></div>
-                            <form onSubmit={handleLogin} className="space-y-5">
-                                <input type="text" placeholder="OWNER ID" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
-                                <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
-                                <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase text-base hover:bg-[#E02020]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "LOGIN OWNER"}</button>
-                            </form>
-                        </div>
-                        {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
-                    </div>
-                );
+            // Jika tab broadcaster dibuka dan tabel masih kosong, otomatis load data
+            if (tabId === 'broadcaster-tab') {
+                const tbody = document.getElementById('bc-table-body');
+                if (tbody.innerText.includes('Tekan tombol refresh')) {
+                    loadBroadcastData();
+                }
             }
-            return <div><OwnerView onLogout={handleLogout} /></div>;
-        };
+        }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // 2. Logika Fetch Data dari Webhook n8n
+        const WEBHOOK_URL = 'https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550';
+
+        async function loadBroadcastData() {
+            const tbody = document.getElementById('bc-table-body');
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #86868b;">Memuat data broadcast...</td></tr>';
+            
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'get_bc_log'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    renderBroadcastTable(data);
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #86868b;">Belum ada log broadcast.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error fetching broadcast data:', error);
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #ff3b30;">Gagal memuat data. Periksa koneksi atau webhook.</td></tr>';
+            }
+        }
+
+        function renderBroadcastTable(data) {
+            const tbody = document.getElementById('bc-table-body');
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                // Menangani jika response JSON n8n terbungkus dalam .json atau langsung flat object
+                const rowData = item.json ? item.json : item; 
+                
+                const tr = document.createElement('tr');
+                
+                const tanggal = rowData.TANGGAL || '-';
+                let pasien = rowData.PASIEN || 'Tanpa Nama';
+                const nomor = rowData.NOMOR || '-';
+                
+                // Deteksi otomatis jika ada tag BATAL di nama pasien (sesuai CSV)
+                let badgeBatal = '';
+                if (pasien.includes('BATAL')) {
+                    pasien = pasien.replace('BATAL', '').trim();
+                    badgeBatal = '<span class="badge-batal">Batal</span>';
+                }
+
+                // Format wa.me link
+                const waLink = nomor !== '-' 
+                    ? `<a href="https://wa.me/${nomor}" target="_blank" class="wa-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                        +${nomor}
+                       </a>` 
+                    : '-';
+
+                tr.innerHTML = `
+                    <td>${tanggal}</td>
+                    <td style="font-weight: 500;">${pasien} ${badgeBatal}</td>
+                    <td>${waLink}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 3. Fitur Live Search Lokal
+        function filterBroadcast() {
+            const input = document.getElementById('search-bc').value.toUpperCase();
+            const table = document.getElementById('bc-table');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                const tdPasien = tr[i].getElementsByTagName('td')[1];
+                const tdNomor = tr[i].getElementsByTagName('td')[2];
+                
+                if (tdPasien || tdNomor) {
+                    const txtValuePasien = tdPasien.textContent || tdPasien.innerText;
+                    const txtValueNomor = tdNomor.textContent || tdNomor.innerText;
+                    
+                    if (txtValuePasien.toUpperCase().indexOf(input) > -1 || txtValueNomor.toUpperCase().indexOf(input) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }       
+            }
+        }
     </script>
 </body>
 </html>
