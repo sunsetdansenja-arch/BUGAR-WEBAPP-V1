@@ -8,21 +8,64 @@
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { theme: { extend: { animation: { 'slide-up': 'slideUp 0.4s ease-out', 'fade-in': 'fadeIn 0.3s ease-out' }, keyframes: { slideUp: { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }, fadeIn: { 'from': { opacity: '0' }, 'to': { opacity: '1' } } } } } }
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: {
+                        appleRed: '#FF453A',
+                        appleDark: '#09090B',
+                        appleCard: '#18181B'
+                    },
+                    animation: { 
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)', 
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'shake': 'shake 0.4s ease-in-out'
+                    }, 
+                    keyframes: { 
+                        slideUp: { 
+                            '0%': { opacity: '0', transform: 'translateY(20px) scale(0.98)' }, 
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' } 
+                        }, 
+                        fadeIn: { 
+                            '0%': { opacity: '0' }, 
+                            '100%': { opacity: '1' } 
+                        },
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '25%': { transform: 'translateX(-5px)' },
+                            '50%': { transform: 'translateX(5px)' },
+                            '75%': { transform: 'translateX(-5px)' }
+                        }
+                    } 
+                } 
+            } 
+        }
     </script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { 
+            -webkit-tap-highlight-color: transparent; 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #000000;
+        }
         ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         input, select, textarea { font-size: 16px !important; }
+        
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: rgba(24, 24, 27, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
 </head>
-<body class="bg-[#111111] text-white">
+<body class="text-white selection:bg-appleRed selection:text-white">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -38,7 +81,42 @@
         
         const formatIDR = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 
-        const HotelDateRangePicker = ({ value, onChange, title, theme = "dark" }) => {
+        // Notifikasi Welcome 2.0 (Muncul s/d tgl 23 bulan 5)
+        const WelcomeNotification = () => {
+            const [show, setShow] = useState(false);
+            useEffect(() => {
+                const wib = new Date(new Date().getTime() + (new Date().getTimezoneOffset() * 60000) + (3600000 * 7));
+                const month = wib.getMonth() + 1;
+                const date = wib.getDate();
+                if (month < 5 || (month === 5 && date <= 23)) {
+                    setShow(true);
+                }
+            }, []);
+
+            if (!show) return null;
+
+            return (
+                <div className="max-w-xl mx-auto px-4 mt-4 animate-slide-up">
+                    <div className="glass-panel rounded-2xl p-4 flex items-center justify-between shadow-[0_10px_30px_rgba(255,69,58,0.15)] relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-appleRed"></div>
+                        <div className="flex items-center gap-4 pl-2">
+                            <div className="w-10 h-10 bg-appleRed/20 rounded-full flex items-center justify-center text-appleRed shrink-0">
+                                <i className="fa-solid fa-sparkles"></i>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-black text-sm tracking-tight uppercase">Update Bugar 2.0!</h4>
+                                <p className="text-white/50 font-bold text-[10px] tracking-widest uppercase mt-0.5">Selamat datang kembali di sistem baru.</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setShow(false)} className="text-white/40 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 shrink-0">
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const HotelDateRangePicker = ({ value, onChange, title }) => {
             const [step, setStep] = useState(0); const [showModal, setShowModal] = useState(false);
             const days = useMemo(() => {
                 const arr = []; const today = new Date(); today.setHours(0,0,0,0);
@@ -48,38 +126,34 @@
             const handleDayClick = (iso) => { if (step === 0 || iso < value.start) { onChange({ start: iso, end: iso }); setStep(1); } else { onChange({ ...value, end: iso }); setStep(0); setShowModal(false); } };
             const formatDateStr = (iso) => { if(!iso) return "-"; const d = new Date(iso); return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}); };
 
-            const isDark = theme === "dark";
-            const boxClass = isDark ? "bg-[#1C1C1E] border border-white/10 text-white hover:border-white/20 shadow-inner" : "bg-[#F2F2F7] border border-gray-200 text-[#1C1C1E] shadow-sm";
-            const titleClass = isDark ? "text-gray-500" : "text-gray-400";
-
             return (
                 <div className="w-full">
-                    <label className={`text-[10px] uppercase font-black tracking-widest mb-2 block ${titleClass}`}>{title || "Pilih Rentang Waktu"}</label>
-                    <div onClick={() => {setShowModal(true); setStep(0);}} className={`${boxClass} rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all`}>
-                        <div className="flex gap-4 items-center"><i className="fa-regular fa-calendar text-[#0A84FF] text-xl"></i><div><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Mulai</p><p className="text-base font-black">{formatDateStr(value.start)}</p></div></div>
-                        <div className={`h-8 w-[1px] ${isDark ? 'bg-white/10' : 'bg-gray-300'}`}></div>
-                        <div className="text-right"><p className={`text-[10px] font-bold uppercase tracking-widest ${titleClass}`}>Selesai</p><p className="text-base font-black">{formatDateStr(value.end)}</p></div>
+                    <label className="text-[10px] uppercase font-black tracking-widest mb-2 block text-white/50">{title || "Pilih Rentang Waktu"}</label>
+                    <div onClick={() => {setShowModal(true); setStep(0);}} className="bg-[#1C1C1E] border border-white/5 text-white hover:border-appleRed/50 rounded-2xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-all shadow-inner">
+                        <div className="flex gap-4 items-center"><i className="fa-regular fa-calendar text-appleRed text-xl"></i><div><p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Mulai</p><p className="text-base font-black">{formatDateStr(value.start)}</p></div></div>
+                        <div className="h-8 w-[1px] bg-white/10"></div>
+                        <div className="text-right"><p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Selesai</p><p className="text-base font-black">{formatDateStr(value.end)}</p></div>
                     </div>
                     {showModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-                            <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/10 animate-slide-up relative overflow-hidden">
-                                <div className="text-center mb-6"><h3 className="text-lg font-black uppercase tracking-tight text-white">{step === 0 ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai"}</h3><p className="text-[10px] text-[#0A84FF] font-bold uppercase tracking-widest mt-1">Maksimal 35 Hari Ke Belakang</p></div>
-                                <div className="grid grid-cols-7 gap-2 mb-2">{['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d=><div key={d} className="text-center text-[9px] font-black text-gray-500 uppercase">{d}</div>)}</div>
+                            <div className="bg-[#18181B] w-full max-w-sm rounded-[2.5rem] p-6 shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/10 animate-slide-up relative overflow-hidden">
+                                <div className="text-center mb-6"><h3 className="text-lg font-black uppercase tracking-tight text-white">{step === 0 ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai"}</h3><p className="text-[10px] text-appleRed font-bold uppercase tracking-widest mt-1">Maksimal 35 Hari Ke Belakang</p></div>
+                                <div className="grid grid-cols-7 gap-2 mb-2">{['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d=><div key={d} className="text-center text-[9px] font-black text-white/40 uppercase">{d}</div>)}</div>
                                 <div className="grid grid-cols-7 gap-y-2 gap-x-0 relative">
                                     {Array.from({length: days[0].date.getDay()}).map((_,i) => <div key={`blank-${i}`} />)}
                                     {days.map((d, i) => {
                                         const isStart = d.iso === value.start; const isEnd = d.iso === value.end; const inRange = d.iso > value.start && d.iso < value.end;
-                                        let bgClass = "bg-transparent text-gray-300";
-                                        if (isStart || isEnd) bgClass = "bg-[#0A84FF] text-white shadow-[0_0_15px_rgba(10,132,255,0.5)] z-10 scale-110 rounded-full";
-                                        else if (inRange) bgClass = "bg-[#0A84FF]/20 text-[#0A84FF] rounded-none";
+                                        let bgClass = "bg-transparent text-white/70 hover:bg-white/5 rounded-full";
+                                        if (isStart || isEnd) bgClass = "bg-appleRed text-white shadow-[0_0_15px_rgba(255,69,58,0.5)] z-10 scale-110 rounded-full";
+                                        else if (inRange) bgClass = "bg-appleRed/20 text-appleRed rounded-none";
                                         else if (d.isToday) bgClass = "bg-white/10 text-white border border-white/20 rounded-full";
                                         let wrapperClass = "flex justify-center items-center h-10 w-full relative cursor-pointer";
-                                        if(isStart && value.start !== value.end) wrapperClass += " rounded-l-full bg-[#0A84FF]/20";
-                                        if(isEnd && value.start !== value.end) wrapperClass += " rounded-r-full bg-[#0A84FF]/20";
+                                        if(isStart && value.start !== value.end) wrapperClass += " rounded-l-full bg-appleRed/20";
+                                        if(isEnd && value.start !== value.end) wrapperClass += " rounded-r-full bg-appleRed/20";
                                         return (<div key={i} className={wrapperClass} onClick={() => handleDayClick(d.iso)}><div className={`w-8 h-8 flex items-center justify-center font-bold text-sm transition-all ${bgClass}`}>{d.dayStr}</div></div>)
                                     })}
                                 </div>
-                                <button onClick={()=>setShowModal(false)} className="mt-8 w-full py-4 bg-white/10 text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 text-base hover:bg-white/20 transition-all">Batalkan</button>
+                                <button onClick={()=>setShowModal(false)} className="mt-8 w-full py-4 bg-white/5 text-white/70 font-black uppercase tracking-widest rounded-2xl active:scale-95 text-xs hover:bg-white/10 hover:text-white transition-all border border-white/5">Batalkan</button>
                             </div>
                         </div>
                     )}
@@ -87,14 +161,12 @@
             )
         };
 
-        // KOMPONEN KASIR
         const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
             const [mode, setMode] = useState('pemasukan'); 
             const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
             const [history, setHistory] = useState([]);
             const [expenseHistory, setExpenseHistory] = useState([]);
             
-            // NEW: Hold List
             const [holdList, setHoldList] = useState([]);
             const [executingHoldId, setExecutingHoldId] = useState(null);
 
@@ -121,8 +193,6 @@
                     setStats(res.stats || { hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
                     
                     const fullHistory = res.history || [];
-                    
-                    // Pisahkan history biasa dan yang statusnya HOLD (hari ini)
                     const activeHolds = fullHistory.filter(h => h.TANGGAL === isoToday && (h.METODE_BAYAR || '').toUpperCase() === 'HOLD');
                     const validHistory = fullHistory.filter(h => (h.METODE_BAYAR || '').toUpperCase() !== 'HOLD');
 
@@ -165,7 +235,6 @@
                 return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
             }, [history, filterRekap]);
 
-            // UPDATE: Menambahkan BUGAR13 sebagai cabang dengan harga Lhokseumawe
             const isLhokseumawe = activeCabang === 'BUGAR8' || activeCabang === 'BUGAR13';
 
             const estimasiBagiHasil = useMemo(() => {
@@ -184,7 +253,6 @@
                 let bagiOwner = 0;
                 let tipeHitungan = "Persentase 30%";
 
-                // UPDATE: Logika Chiropractic untuk BUGAR8 dan BUGAR13
                 let isChiropractic = false;
                 if (activeCabang === 'BUGAR8' || activeCabang === 'BUGAR13') {
                     if (paketName.includes("PAKET 7") || paketName.includes("CHIROPRACTIC")) isChiropractic = true;
@@ -198,9 +266,7 @@
                     tipeHitungan = "Flat Paket Khusus";
                 } 
                 else if (paketName.includes("HERMES")) {
-                    bagiTerapis = 54000;
-                    bagiOwner = cleanTagihan - bagiTerapis; 
-                    tipeHitungan = "Flat Hotel Hermes";
+                    bagiTerapis = 54000; bagiOwner = cleanTagihan - bagiTerapis; tipeHitungan = "Flat Hotel Hermes";
                 }
                 else if (paketName.includes("BODY MASSAGE (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
                 else if (paketName.includes("REFLEKSI (60 MENIT)")) { bagiTerapis = 30000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
@@ -241,7 +307,6 @@
                 return PAKET_NON;
             }, [kategoriMenu, isLhokseumawe]);
 
-            // Submit Data Awal (Cash, Transfer, atau Hold)
             const handleOrderSubmit = async (metodeDipilih) => {
                 if(!formData.NAMA_PASIEN || !formData.TAGIHAN || !formData.TERAPIS) {
                     showToast('Harap lengkapi Nama, Tagihan, dan Terapis', 'error'); return;
@@ -254,7 +319,7 @@
 
                 const payload = { 
                     ...formData, 
-                    METODE_BAYAR: metodeDipilih, // CASH, TRANSFER, atau HOLD
+                    METODE_BAYAR: metodeDipilih,
                     CABANG_ID: activeCabang, 
                     PASIEN_KE: pasienKe,
                     REQ_BONUS: reqBonus,
@@ -276,7 +341,6 @@
                 setLoading(false);
             };
 
-            // Submit Data Lunas dari Tray Hold
             const handlePayHold = async (holdItem, metodeFinal) => {
                 setExecutingHoldId(holdItem.db_id);
                 
@@ -310,17 +374,17 @@
             const TerapisAccordion = ({ t }) => {
                 const [expanded, setExpanded] = useState(false);
                 return (
-                    <div className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm overflow-hidden mb-3">
-                        <div className="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-all" onClick={() => setExpanded(!expanded)}>
-                            <div><p className="font-black text-lg uppercase text-[#1C1C1E] tracking-tight leading-none">{t.nama}</p><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1.5">{t.pasien} Pasien Diselesaikan</p></div>
-                            <div className="text-right"><p className="text-xl font-black text-[#0A84FF] leading-none">{formatIDR(t.komisi)}</p><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-2">Rincian {expanded ? '▲' : '▼'}</p></div>
+                    <div className="bg-[#18181B] border border-white/5 rounded-[1.5rem] shadow-sm overflow-hidden mb-3 transition-colors duration-200">
+                        <div className="p-5 flex justify-between items-center cursor-pointer hover:bg-white/5 transition-all" onClick={() => setExpanded(!expanded)}>
+                            <div><p className="font-black text-lg uppercase text-white tracking-tight leading-none">{t.nama}</p><p className="text-[10px] text-white/50 font-bold uppercase tracking-widest mt-1.5">{t.pasien} Pasien Diselesaikan</p></div>
+                            <div className="text-right"><p className="text-xl font-black text-[#32D74B] leading-none">{formatIDR(t.komisi)}</p><p className="text-[9px] text-white/40 font-black uppercase tracking-widest mt-2">Rincian {expanded ? '▲' : '▼'}</p></div>
                         </div>
                         {expanded && (
-                            <div className="bg-[#F2F2F7] p-5 border-t border-gray-100 space-y-3 animate-fade-in">
+                            <div className="bg-appleDark p-5 border-t border-white/5 space-y-3 animate-fade-in">
                                 {t.riwayat.map((r, i) => (
-                                    <div key={i} className="flex justify-between items-center border-b border-gray-200 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
-                                        <div><p className="text-sm font-black uppercase text-[#1C1C1E] tracking-tight">{r.NAMA_PASIEN}</p><p className="text-[9px] font-bold text-gray-500 uppercase mt-1 tracking-widest">{r.TANGGAL} | {r.PAKET}</p></div>
-                                        <div className="text-right"><p className="text-sm font-black text-[#0A84FF]">{formatIDR(r.BAGI_TERAPIS)}</p><span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded mt-1 inline-block ${r.METODE_BAYAR === 'TRANSFER' ? 'bg-[#0A84FF]/10 text-[#0A84FF]' : 'bg-[#34C759]/10 text-[#34C759]'}`}>{r.METODE_BAYAR || 'CASH'}</span></div>
+                                    <div key={i} className="flex justify-between items-center border-b border-white/5 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0">
+                                        <div><p className="text-sm font-black uppercase text-white/90 tracking-tight">{r.NAMA_PASIEN}</p><p className="text-[9px] font-bold text-white/40 uppercase mt-1 tracking-widest">{r.TANGGAL} | {r.PAKET}</p></div>
+                                        <div className="text-right"><p className="text-sm font-black text-[#32D74B]">{formatIDR(r.BAGI_TERAPIS)}</p><span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded mt-1 inline-block ${r.METODE_BAYAR === 'TRANSFER' ? 'bg-[#FF453A]/10 text-appleRed border border-[#FF453A]/20' : 'bg-white/10 text-white/70 border border-white/10'}`}>{r.METODE_BAYAR || 'CASH'}</span></div>
                                     </div>
                                 ))}
                             </div>
@@ -330,76 +394,84 @@
             };
 
             return (
-                <div className="min-h-screen bg-[#F2F2F7] pb-10 animate-fade-in font-sans">
-                    <nav className="bg-white border-b border-gray-200 p-4 sticky top-0 z-40 shadow-sm">
-                        <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm"><div className="flex items-center gap-3 text-[#1C1C1E]"><img src={LOGO_URL} alt="Logo" className="h-8 w-8 object-contain drop-shadow-md" /> <div><p className="text-[8px] text-gray-400 tracking-widest leading-none mb-0.5">PORTAL KASIR</p><span className="text-[#1C1C1E] text-sm tracking-tight">{activeCabang}</span></div></div><button onClick={onLogout} className="text-[#FF3B30] bg-[#FF3B30]/10 px-5 py-2.5 rounded-full text-[10px] flex items-center gap-2 hover:bg-[#FF3B30]/20 active:scale-95 transition-all tracking-widest"><i className="fa-solid fa-right-from-bracket"></i> KELUAR</button></div>
+                <div className="min-h-screen pb-10 animate-fade-in">
+                    <nav className="glass-panel p-4 sticky top-0 z-40 border-b border-white/5">
+                        <div className="max-w-xl mx-auto flex justify-between items-center font-black uppercase text-sm">
+                            <div className="flex items-center gap-3 text-white">
+                                <img src={LOGO_URL} alt="Logo" className="h-8 w-8 object-contain drop-shadow-md brightness-200 contrast-200 opacity-90" /> 
+                                <div><p className="text-[8px] text-appleRed tracking-widest leading-none mb-0.5">PORTAL KASIR</p><span className="text-white text-sm tracking-tight">{activeCabang}</span></div>
+                            </div>
+                            <button onClick={onLogout} className="text-white/50 bg-white/5 border border-white/10 px-5 py-2.5 rounded-full text-[10px] flex items-center gap-2 hover:bg-appleRed/10 hover:text-appleRed hover:border-appleRed/30 active:scale-95 transition-all tracking-widest"><i className="fa-solid fa-right-from-bracket"></i> KELUAR</button>
+                        </div>
                     </nav>
 
-                    <main className="max-w-xl mx-auto p-4 space-y-6 mt-4">
-                        <div className="flex bg-gray-200 p-1.5 rounded-full shadow-inner">
-                            <button onClick={() => setMode('pemasukan')} className={`flex-1 py-3.5 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pemasukan' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Pemasukan</button>
-                            <button onClick={() => setMode('pengeluaran')} className={`flex-1 py-3.5 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pengeluaran' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Laci Keluar</button>
+                    <WelcomeNotification />
+
+                    <main className="max-w-xl mx-auto p-4 space-y-6 mt-2">
+                        <div className="flex bg-[#18181B] p-1.5 rounded-full border border-white/5 shadow-inner">
+                            <button onClick={() => setMode('pemasukan')} className={`flex-1 py-3.5 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pemasukan' ? 'bg-[#27272A] text-white shadow-md border border-white/5' : 'text-white/40 hover:text-white/80'}`}>Pemasukan</button>
+                            <button onClick={() => setMode('pengeluaran')} className={`flex-1 py-3.5 rounded-full text-xs font-black uppercase transition-all tracking-widest ${mode === 'pengeluaran' ? 'bg-[#27272A] text-white shadow-md border border-white/5' : 'text-white/40 hover:text-white/80'}`}>Laci Keluar</button>
                         </div>
 
                         {mode === 'pemasukan' && (
                             <div className="animate-slide-up space-y-6">
-                                <div className="bg-[#1C1C1E] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border border-gray-800">
-                                    <div className="absolute top-0 right-0 p-6 opacity-5"><i className="fa-solid fa-vault text-[120px]"></i></div>
-                                    <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1 relative z-10">Wajib Setor Laci (Hari Ini)</p>
-                                    <h3 className="text-5xl font-black tracking-tighter relative z-10 text-[#34C759]">{formatIDR(targetSetoran)}</h3>
+                                <div className="bg-gradient-to-br from-[#121214] to-[#18181B] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden border border-white/10">
+                                    <div className="absolute top-0 right-0 p-6 opacity-5"><i className="fa-solid fa-vault text-[120px] text-white"></i></div>
+                                    <p className="text-[10px] uppercase font-black text-white/40 tracking-widest mb-1 relative z-10">Wajib Setor Laci (Hari Ini)</p>
+                                    <h3 className="text-5xl font-black tracking-tighter relative z-10 text-white drop-shadow-md">{formatIDR(targetSetoran)}</h3>
                                     <div className="flex justify-between items-center mt-6 relative z-10 text-[10px] font-bold uppercase border-t border-white/10 pt-4">
-                                        <div><span className="text-gray-500 block mb-1">Omset Cash</span> <span className="text-base text-white">{formatIDR(stats.hariIniCash)}</span></div>
-                                        <div className="text-right"><span className="text-gray-500 block mb-1">Laci Keluar</span> <span className="text-base text-[#FF3B30]">- {formatIDR(expenseHariIniKasir)}</span></div>
+                                        <div><span className="text-white/40 block mb-1">Omset Cash</span> <span className="text-base text-white">{formatIDR(stats.hariIniCash)}</span></div>
+                                        <div className="text-right"><span className="text-white/40 block mb-1">Laci Keluar</span> <span className="text-base text-appleRed">- {formatIDR(expenseHariIniKasir)}</span></div>
                                     </div>
-                                    <p className="text-center text-[9px] text-[#0A84FF] font-black uppercase tracking-widest mt-5 bg-[#0A84FF]/10 py-2.5 rounded-xl border border-[#0A84FF]/20">Omset Transfer: {formatIDR(stats.hariIniTransfer)}</p>
+                                    <p className="text-center text-[9px] text-appleRed font-black uppercase tracking-widest mt-5 bg-appleRed/10 py-2.5 rounded-xl border border-appleRed/20 backdrop-blur-md">Omset Transfer: {formatIDR(stats.hariIniTransfer)}</p>
                                 </div>
 
-                                <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
-                                    <h4 className="font-black text-xs text-[#1C1C1E] mb-6 tracking-widest uppercase flex items-center gap-2"><i className="fa-solid fa-user-plus text-[#0A84FF] text-lg"></i> Input Pasien Baru</h4>
+                                <div className="glass-panel rounded-[2.5rem] p-8 shadow-xl">
+                                    <h4 className="font-black text-xs text-white mb-6 tracking-widest uppercase flex items-center gap-2"><i className="fa-solid fa-user-plus text-appleRed text-lg"></i> Input Pasien Baru</h4>
                                     
                                     <div className="space-y-4">
-                                        <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
-                                        <input type="tel" placeholder="WhatsApp (08...)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
+                                        <input type="text" placeholder="Nama Pasien" required className="w-full p-4 bg-appleDark text-white placeholder-white/30 rounded-2xl outline-none font-bold text-base border border-white/5 focus:border-appleRed focus:ring-1 focus:ring-appleRed/30 transition-all shadow-inner" value={formData.NAMA_PASIEN} onChange={e => setFormData({...formData, NAMA_PASIEN: e.target.value})} />
+                                        <input type="tel" placeholder="WhatsApp (08...)" required className="w-full p-4 bg-appleDark text-white placeholder-white/30 rounded-2xl outline-none font-bold text-base border border-white/5 focus:border-appleRed focus:ring-1 focus:ring-appleRed/30 transition-all shadow-inner" value={formData.NOMOR_CUSTOMER} onChange={e => setFormData({...formData, NOMOR_CUSTOMER: e.target.value})} />
                                         
-                                        <div className="flex bg-[#F2F2F7] p-1.5 rounded-2xl">
-                                            <button type="button" onClick={()=>{setKategoriMenu('REGULER'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'REGULER' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Reguler</button>
-                                            <button type="button" onClick={()=>{setKategoriMenu('HOTEL'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'HOTEL' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Hotel</button>
-                                            <button type="button" onClick={()=>{setKategoriMenu('NON'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'NON' ? 'bg-white text-[#1C1C1E] shadow-sm' : 'text-gray-400 hover:text-black'}`}>Satuan</button>
+                                        <div className="flex bg-[#09090B] p-1.5 rounded-2xl border border-white/5">
+                                            <button type="button" onClick={()=>{setKategoriMenu('REGULER'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'REGULER' ? 'bg-[#27272A] text-white shadow-md border border-white/5' : 'text-white/40 hover:text-white/80'}`}>Reguler</button>
+                                            <button type="button" onClick={()=>{setKategoriMenu('HOTEL'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'HOTEL' ? 'bg-[#27272A] text-white shadow-md border border-white/5' : 'text-white/40 hover:text-white/80'}`}>Hotel</button>
+                                            <button type="button" onClick={()=>{setKategoriMenu('NON'); setFormData({...formData, PAKET: '', TAGIHAN: ''})}} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${kategoriMenu === 'NON' ? 'bg-[#27272A] text-white shadow-md border border-white/5' : 'text-white/40 hover:text-white/80'}`}>Satuan</button>
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-4">
                                             <div className="relative" ref={dropdownRef}>
-                                                <div onClick={() => setIsDropdownOpen(!isDropdownOpen)} className={`w-full p-4 rounded-2xl outline-none font-bold text-base transition-all border flex justify-between items-center cursor-pointer ${isDropdownOpen ? 'bg-white border-[#0A84FF] ring-2 ring-[#0A84FF]/20' : 'bg-[#F2F2F7] border-transparent hover:bg-white text-[#1C1C1E]'}`}>
-                                                    <span className={formData.PAKET ? 'text-[#1C1C1E]' : 'text-gray-400'}>{formData.PAKET || "-- Pilih Layanan --"}</span>
-                                                    <i className={`fa-solid fa-chevron-down text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}></i>
+                                                <div onClick={() => setIsDropdownOpen(!isDropdownOpen)} className={`w-full p-4 rounded-2xl outline-none font-bold text-base transition-all border flex justify-between items-center cursor-pointer shadow-inner ${isDropdownOpen ? 'bg-appleDark border-appleRed ring-1 ring-appleRed/30' : 'bg-appleDark border-white/5 text-white'}`}>
+                                                    <span className={formData.PAKET ? 'text-white' : 'text-white/30'}>{formData.PAKET || "-- Pilih Layanan --"}</span>
+                                                    <i className={`fa-solid fa-chevron-down text-white/40 transition-transform ${isDropdownOpen ? 'rotate-180 text-appleRed' : ''}`}></i>
                                                 </div>
 
                                                 {isDropdownOpen && (
-                                                    <div className="absolute z-50 w-full mt-2 bg-white/90 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] overflow-hidden animate-slide-up">
+                                                    <div className="absolute z-50 w-full mt-2 bg-[#1C1C1E]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.8)] overflow-hidden animate-slide-up">
                                                         <div className="max-h-64 overflow-y-auto no-scrollbar py-2">
                                                             {activeListPaket.map((p, i) => (
-                                                                <div key={i} onClick={() => handleSelectPaket(p)} className="px-5 py-3 hover:bg-[#0A84FF]/10 hover:text-[#0A84FF] cursor-pointer text-sm font-bold text-gray-700 transition-colors border-b border-gray-100 last:border-0">{p}</div>
+                                                                <div key={i} onClick={() => handleSelectPaket(p)} className="px-5 py-3 hover:bg-appleRed/10 hover:text-appleRed cursor-pointer text-sm font-bold text-white/80 transition-colors border-b border-white/5 last:border-0">{p}</div>
                                                             ))}
-                                                            <div onClick={() => handleSelectPaket("Paket Non-Paket (Ala Carte)")} className="px-5 py-4 bg-gray-50 hover:bg-gray-200 cursor-pointer text-xs font-black uppercase tracking-widest text-gray-600 transition-colors border-t border-gray-200">
+                                                            <div onClick={() => handleSelectPaket("Paket Non-Paket (Ala Carte)")} className="px-5 py-4 bg-white/5 hover:bg-white/10 cursor-pointer text-xs font-black uppercase tracking-widest text-white/50 transition-colors border-t border-white/5">
                                                                 <i className="fa-solid fa-pen-to-square mr-2"></i>Lainnya / Ketik Manual
                                                             </div>
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
-                                            <input type="number" placeholder="Total Tagihan Rp (Cth: 150000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF]" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
+                                            <input type="number" placeholder="Total Tagihan Rp (Cth: 150000)" required className="w-full p-4 bg-appleDark text-white placeholder-white/30 rounded-2xl outline-none font-bold text-base border border-white/5 focus:border-appleRed focus:ring-1 focus:ring-appleRed/30 transition-all shadow-inner" value={formData.TAGIHAN} onChange={e => setFormData({...formData, TAGIHAN: e.target.value})} />
                                         </div>
 
-                                        <input type="text" placeholder="Nama Terapis (Cth: RANI)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#0A84FF]/20 focus:bg-white transition-all border border-transparent focus:border-[#0A84FF] uppercase" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value.toUpperCase()})} />
+                                        <input type="text" placeholder="Nama Terapis (Cth: RANI)" required className="w-full p-4 bg-appleDark text-white placeholder-white/30 rounded-2xl outline-none font-bold text-base border border-white/5 focus:border-appleRed focus:ring-1 focus:ring-appleRed/30 transition-all uppercase shadow-inner" value={formData.TERAPIS} onChange={e => setFormData({...formData, TERAPIS: e.target.value.toUpperCase()})} />
                                         
-                                        <div className="mt-4 bg-[#FFCC00]/10 border border-[#FFCC00]/30 p-4 rounded-2xl">
+                                        <div className="mt-4 bg-[#FFD60A]/10 border border-[#FFD60A]/20 p-4 rounded-2xl backdrop-blur-md">
                                             <label className="flex items-center gap-3 cursor-pointer">
-                                                <input type="checkbox" className="w-5 h-5 rounded accent-[#FFCC00]" checked={reqBonus} onChange={e => setReqBonus(e.target.checked)} />
-                                                <span className="text-[11px] font-black text-[#FFCC00] uppercase tracking-widest mt-0.5">Ajukan Bonus Extra Terapis?</span>
+                                                <input type="checkbox" className="w-5 h-5 rounded border-white/20 accent-[#FFD60A] bg-appleDark" checked={reqBonus} onChange={e => setReqBonus(e.target.checked)} />
+                                                <span className="text-[11px] font-black text-[#FFD60A] uppercase tracking-widest mt-0.5">Ajukan Bonus Extra Terapis?</span>
                                             </label>
                                             {reqBonus && (
                                                 <div className="mt-4 animate-fade-in">
-                                                    <select className="w-full p-4 bg-white/50 text-[#1C1C1E] rounded-xl outline-none font-bold text-xs uppercase tracking-widest border border-[#FFCC00]/50 focus:bg-white appearance-none" value={alasanBonus} onChange={e => setAlasanBonus(e.target.value)}>
+                                                    <select className="w-full p-4 bg-[#09090B] text-white/90 rounded-xl outline-none font-bold text-xs uppercase tracking-widest border border-[#FFD60A]/40 focus:border-[#FFD60A] appearance-none" value={alasanBonus} onChange={e => setAlasanBonus(e.target.value)}>
                                                         <option value="Pasien Ke-4 (40%)">Pasien Ke-4 (40%)</option>
                                                         <option value="Pasien Ke-5 (45%)">Pasien Ke-5 (45%)</option>
                                                         <option value="Pasien Ke-6+ (50%)">Pasien Ke-6+ (50%)</option>
@@ -411,18 +483,18 @@
                                         </div>
 
                                         {estimasiBagiHasil && (
-                                            <div className="bg-[#0A84FF]/5 border border-[#0A84FF]/20 p-4 rounded-2xl animate-fade-in relative overflow-hidden mt-2">
-                                                <div className="absolute top-0 right-0 p-3 opacity-10"><i className="fa-solid fa-calculator text-5xl text-[#0A84FF]"></i></div>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#0A84FF] mb-3 relative z-10 flex items-center gap-1"><i className="fa-solid fa-bolt"></i> Live Estimasi Sistem</p>
-                                                <div className="flex justify-between items-center mb-2 relative z-10">
-                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hak Bugar (Owner)</span>
-                                                    <span className="text-sm font-black text-[#1C1C1E]">{formatIDR(estimasiBagiHasil.bagiOwner)}</span>
+                                            <div className="bg-appleDark border border-appleRed/30 border-dashed p-5 rounded-2xl animate-fade-in relative overflow-hidden mt-2">
+                                                <div className="absolute top-0 right-0 p-3 opacity-[0.03]"><i className="fa-solid fa-calculator text-5xl text-white"></i></div>
+                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/50 mb-4 relative z-10 flex items-center gap-1"><i className="fa-solid fa-bolt text-appleRed"></i> Live Estimasi Sistem</p>
+                                                <div className="flex justify-between items-center mb-3 relative z-10">
+                                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Hak Bugar (Owner)</span>
+                                                    <span className="text-sm font-black text-white">{formatIDR(estimasiBagiHasil.bagiOwner)}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center relative z-10">
-                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hak Terapis</span>
+                                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Hak Terapis</span>
                                                     <div className="text-right">
-                                                        <span className="text-sm font-black text-[#34C759] block">{formatIDR(estimasiBagiHasil.bagiTerapis)}</span>
-                                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">({estimasiBagiHasil.tipeHitungan})</span>
+                                                        <span className="text-sm font-black text-[#32D74B] block">{formatIDR(estimasiBagiHasil.bagiTerapis)}</span>
+                                                        <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">({estimasiBagiHasil.tipeHitungan})</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -430,15 +502,15 @@
 
                                         {/* TIGA TOMBOL SUBMIT */}
                                         <div className="pt-4 grid grid-cols-3 gap-2">
-                                            <button type="button" onClick={() => handleOrderSubmit('HOLD')} disabled={loading} className="w-full bg-[#FFCC00]/20 text-[#D4A000] border border-[#FFCC00]/50 font-black py-4 rounded-2xl hover:bg-[#FFCC00]/30 active:scale-95 transition-all flex flex-col items-center justify-center gap-1">
+                                            <button type="button" onClick={() => handleOrderSubmit('HOLD')} disabled={loading} className="w-full bg-transparent text-white/50 border border-white/20 font-black py-4 rounded-2xl hover:bg-white/5 hover:border-white/40 active:scale-95 transition-all flex flex-col items-center justify-center gap-1">
                                                 <i className="fa-regular fa-clock text-xl"></i>
-                                                <span className="text-[9px] uppercase tracking-widest">Hold (Tunda)</span>
+                                                <span className="text-[9px] uppercase tracking-widest">Hold</span>
                                             </button>
-                                            <button type="button" onClick={() => handleOrderSubmit('CASH')} disabled={loading} className="w-full bg-[#34C759] text-white font-black py-4 rounded-2xl hover:bg-[#28A745] active:scale-95 transition-all shadow-[0_10px_20px_rgba(52,199,89,0.3)] flex flex-col items-center justify-center gap-1">
+                                            <button type="button" onClick={() => handleOrderSubmit('CASH')} disabled={loading} className="w-full bg-gradient-to-br from-appleRed to-[#D70015] text-white font-black py-4 rounded-2xl active:scale-95 transition-all shadow-[0_10px_20px_rgba(255,69,58,0.3)] hover:shadow-[0_10px_25px_rgba(255,69,58,0.5)] flex flex-col items-center justify-center gap-1">
                                                 <i className="fa-solid fa-money-bill-wave text-xl"></i>
                                                 <span className="text-[9px] uppercase tracking-widest">Lunas Cash</span>
                                             </button>
-                                            <button type="button" onClick={() => handleOrderSubmit('TRANSFER')} disabled={loading} className="w-full bg-[#0A84FF] text-white font-black py-4 rounded-2xl hover:bg-[#007AFF] active:scale-95 transition-all shadow-[0_10px_20px_rgba(10,132,255,0.3)] flex flex-col items-center justify-center gap-1">
+                                            <button type="button" onClick={() => handleOrderSubmit('TRANSFER')} disabled={loading} className="w-full bg-[#1C1C1E] border border-appleRed/40 text-appleRed font-black py-4 rounded-2xl hover:bg-appleRed/10 active:scale-95 transition-all flex flex-col items-center justify-center gap-1 shadow-inner">
                                                 <i className="fa-solid fa-building-columns text-xl"></i>
                                                 <span className="text-[9px] uppercase tracking-widest">Lunas TF</span>
                                             </button>
@@ -448,22 +520,29 @@
 
                                 {/* TRAY HOLD (ANTREAN BELUM LUNAS) */}
                                 {holdList.length > 0 && (
-                                    <div className="bg-[#FFCC00]/10 border border-[#FFCC00]/30 rounded-[2.5rem] p-6 shadow-sm animate-slide-up">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h4 className="font-black text-sm text-[#D4A000] tracking-widest uppercase flex items-center gap-2"><i className="fa-solid fa-hourglass-half"></i> Belum Lunas ({holdList.length})</h4>
+                                    <div className="bg-[#1C1C1E] border border-appleRed/20 rounded-[2.5rem] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)] animate-slide-up relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-appleRed/0 via-appleRed/50 to-appleRed/0"></div>
+                                        <div className="flex justify-between items-center mb-5">
+                                            <h4 className="font-black text-sm text-appleRed tracking-widest uppercase flex items-center gap-2">
+                                                <span className="relative flex h-2 w-2 mr-1">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-appleRed opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-appleRed"></span>
+                                                </span>
+                                                Belum Lunas ({holdList.length})
+                                            </h4>
                                         </div>
                                         <div className="space-y-3">
                                             {holdList.map((hold, idx) => (
-                                                <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                <div key={idx} className="bg-appleDark p-4 rounded-2xl border border-white/5 shadow-inner flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                                     <div>
-                                                        <h5 className="font-black text-sm text-[#1C1C1E] uppercase tracking-tight">{hold.NAMA_PASIEN}</h5>
-                                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Trp: {hold.TERAPIS} • {formatIDR(hold.TAGIHAN)}</p>
+                                                        <h5 className="font-black text-sm text-white uppercase tracking-tight">{hold.NAMA_PASIEN}</h5>
+                                                        <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest mt-1">Trp: {hold.TERAPIS} • {formatIDR(hold.TAGIHAN)}</p>
                                                     </div>
                                                     <div className="flex gap-2 w-full sm:w-auto">
-                                                        <button onClick={() => handlePayHold(hold, 'CASH')} disabled={executingHoldId === hold.db_id} className="flex-1 sm:flex-none px-4 py-2 bg-[#34C759]/10 text-[#34C759] hover:bg-[#34C759] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                                                        <button onClick={() => handlePayHold(hold, 'CASH')} disabled={executingHoldId === hold.db_id} className="flex-1 sm:flex-none px-4 py-2.5 bg-appleRed text-white hover:bg-[#D70015] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_5px_15px_rgba(255,69,58,0.2)]">
                                                             {executingHoldId === hold.db_id ? <i className="fa-solid fa-spinner fa-spin"></i> : "CASH"}
                                                         </button>
-                                                        <button onClick={() => handlePayHold(hold, 'TRANSFER')} disabled={executingHoldId === hold.db_id} className="flex-1 sm:flex-none px-4 py-2 bg-[#0A84FF]/10 text-[#0A84FF] hover:bg-[#0A84FF] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                                                        <button onClick={() => handlePayHold(hold, 'TRANSFER')} disabled={executingHoldId === hold.db_id} className="flex-1 sm:flex-none px-4 py-2.5 bg-[#27272A] text-white border border-white/10 hover:border-appleRed/50 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
                                                             {executingHoldId === hold.db_id ? <i className="fa-solid fa-spinner fa-spin"></i> : "TRF"}
                                                         </button>
                                                     </div>
@@ -473,10 +552,10 @@
                                     </div>
                                 )}
 
-                                <div className="space-y-4 pt-6 border-t border-gray-200">
-                                    <div className="flex justify-between items-end px-1 mb-2"><div><h4 className="font-black text-lg text-[#1C1C1E] tracking-tight uppercase"><i className="fa-solid fa-users text-[#0A84FF] mr-2"></i> Rekap Terapis</h4><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Transparansi Kinerja Cabang</p></div></div>
-                                    <HotelDateRangePicker value={filterRekap} onChange={setFilterRekap} title="Filter Tanggal Rekap" theme="light" />
-                                    {rekapTerapis.length === 0 && <div className="bg-white p-8 rounded-[2rem] text-center border border-gray-100 shadow-sm mt-4"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada data pelunasan</p></div>}
+                                <div className="space-y-4 pt-6 border-t border-white/10">
+                                    <div className="flex justify-between items-end px-1 mb-2"><div><h4 className="font-black text-lg text-white tracking-tight uppercase"><i className="fa-solid fa-users text-appleRed mr-2"></i> Rekap Terapis</h4><p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mt-1">Transparansi Kinerja Cabang</p></div></div>
+                                    <HotelDateRangePicker value={filterRekap} onChange={setFilterRekap} title="Filter Tanggal Rekap" />
+                                    {rekapTerapis.length === 0 && <div className="glass-panel p-8 rounded-[2rem] text-center"><p className="text-xs font-bold text-white/40 uppercase tracking-widest">Belum ada data pelunasan</p></div>}
                                     <div className="space-y-3 mt-4">
                                         {rekapTerapis.map((t, idx) => (
                                             <TerapisAccordion key={idx} t={t} />
@@ -488,22 +567,26 @@
 
                         {mode === 'pengeluaran' && (
                             <div className="space-y-6 animate-slide-up">
-                                <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
-                                    <div className="text-center mb-8"><div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><i className="fa-solid fa-receipt text-[#FF3B30] text-3xl"></i></div><h4 className="font-black text-xl text-[#1C1C1E] tracking-tight uppercase">Catat Laci Keluar</h4><p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-2">Mengurangi Kewajiban Setoran</p></div>
+                                <div className="glass-panel rounded-[2.5rem] p-8 shadow-xl">
+                                    <div className="text-center mb-8">
+                                        <div className="w-20 h-20 bg-appleRed/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-appleRed/20"><i className="fa-solid fa-receipt text-appleRed text-3xl"></i></div>
+                                        <h4 className="font-black text-xl text-white tracking-tight uppercase">Catat Laci Keluar</h4>
+                                        <p className="text-[10px] text-white/50 uppercase tracking-widest font-bold mt-2">Mengurangi Kewajiban Setoran</p>
+                                    </div>
                                     <form onSubmit={handleExpenseSubmit} className="space-y-4">
-                                        <input type="text" placeholder="Nama Pengeluaran" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#FF3B30]/20 focus:bg-white transition-all border border-transparent focus:border-[#FF3B30]" value={expenseData.NAMA_PENGELUARAN} onChange={e => setExpenseData({...expenseData, NAMA_PENGELUARAN: e.target.value})} />
-                                        <input type="number" placeholder="Nominal Rp (Cth: 20000)" required className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#FF3B30]/20 focus:bg-white transition-all border border-transparent focus:border-[#FF3B30]" value={expenseData.NOMINAL} onChange={e => setExpenseData({...expenseData, NOMINAL: e.target.value})} />
-                                        <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-2xl outline-none font-bold text-base focus:ring-2 focus:ring-[#FF3B30]/20 focus:bg-white transition-all border border-transparent focus:border-[#FF3B30] resize-none" value={expenseData.KETERANGAN} onChange={e => setExpenseData({...expenseData, KETERANGAN: e.target.value})}></textarea>
-                                        <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 rounded-2xl hover:bg-red-600 active:scale-[0.98] transition-all mt-4 tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(255,59,48,0.3)]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN PENGELUARAN"}</button>
+                                        <input type="text" placeholder="Nama Pengeluaran" required className="w-full p-4 bg-appleDark text-white placeholder-white/30 rounded-2xl outline-none font-bold text-base border border-white/5 focus:border-appleRed focus:ring-1 focus:ring-appleRed/30 transition-all shadow-inner" value={expenseData.NAMA_PENGELUARAN} onChange={e => setExpenseData({...expenseData, NAMA_PENGELUARAN: e.target.value})} />
+                                        <input type="number" placeholder="Nominal Rp (Cth: 20000)" required className="w-full p-4 bg-appleDark text-white placeholder-white/30 rounded-2xl outline-none font-bold text-base border border-white/5 focus:border-appleRed focus:ring-1 focus:ring-appleRed/30 transition-all shadow-inner" value={expenseData.NOMINAL} onChange={e => setExpenseData({...expenseData, NOMINAL: e.target.value})} />
+                                        <textarea placeholder="Keterangan Opsional" rows="2" className="w-full p-4 bg-appleDark text-white placeholder-white/30 rounded-2xl outline-none font-bold text-base border border-white/5 focus:border-appleRed focus:ring-1 focus:ring-appleRed/30 transition-all resize-none shadow-inner" value={expenseData.KETERANGAN} onChange={e => setExpenseData({...expenseData, KETERANGAN: e.target.value})}></textarea>
+                                        <button type="submit" disabled={loading} className="w-full bg-appleRed text-white font-black py-5 rounded-2xl hover:bg-[#D70015] active:scale-[0.98] transition-all mt-4 tracking-widest uppercase text-base shadow-[0_10px_30px_rgba(255,69,58,0.3)]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "SIMPAN PENGELUARAN"}</button>
                                     </form>
                                 </div>
                                 <div className="space-y-3">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1"><i className="fa-solid fa-list-check text-[#FF3B30] mr-1"></i> Log Laci Keluar (7 Hari Terakhir)</p>
-                                    {expenseHistory.length === 0 && <div className="bg-white p-8 rounded-[2rem] text-center border border-gray-100 shadow-sm"><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Belum ada pengeluaran</p></div>}
+                                    <p className="text-[10px] font-black text-white/50 uppercase tracking-widest px-1"><i className="fa-solid fa-list-check text-appleRed mr-1"></i> Log Laci Keluar (7 Hari Terakhir)</p>
+                                    {expenseHistory.length === 0 && <div className="glass-panel p-8 rounded-[2rem] text-center"><p className="text-xs font-bold text-white/40 uppercase tracking-widest">Belum ada pengeluaran</p></div>}
                                     {expenseHistory.map((exp, idx) => (
-                                        <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 flex justify-between items-center shadow-sm">
-                                            <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-xl bg-red-50 text-[#FF3B30] flex items-center justify-center text-lg"><i className="fa-solid fa-arrow-down"></i></div><div><h5 className="font-black text-base text-[#1C1C1E] uppercase tracking-tight">{exp.NAMA_PENGELUARAN}</h5><p className="text-[10px] text-gray-400 font-bold uppercase mt-1 truncate max-w-[150px] tracking-widest">{exp.TANGGAL} | {exp.KETERANGAN || '-'}</p></div></div>
-                                            <p className="text-base font-black text-[#FF3B30]">- {formatIDR(exp.NOMINAL)}</p>
+                                        <div key={idx} className="bg-[#18181B] p-5 rounded-2xl border border-white/5 flex justify-between items-center shadow-inner">
+                                            <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-xl bg-appleRed/10 border border-appleRed/20 text-appleRed flex items-center justify-center text-lg"><i className="fa-solid fa-arrow-down"></i></div><div><h5 className="font-black text-base text-white/90 uppercase tracking-tight">{exp.NAMA_PENGELUARAN}</h5><p className="text-[10px] text-white/40 font-bold uppercase mt-1 truncate max-w-[150px] tracking-widest">{exp.TANGGAL} | {exp.KETERANGAN || '-'}</p></div></div>
+                                            <p className="text-base font-black text-appleRed">- {formatIDR(exp.NOMINAL)}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -557,20 +640,35 @@
                 setIsLoggedIn(false); setActiveCabang(''); 
             };
 
+            // Modern Floating Toast component
+            const FloatingToast = () => {
+                if(!toast.show) return null;
+                const isError = toast.type === 'error';
+                return (
+                    <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] animate-slide-up w-[90%] max-w-sm">
+                        <div className={`backdrop-blur-xl border p-4 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 ${isError ? 'bg-[#18181B]/90 border-appleRed/50' : 'bg-[#18181B]/90 border-[#32D74B]/50'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isError ? 'bg-appleRed/20 text-appleRed' : 'bg-[#32D74B]/20 text-[#32D74B]'}`}>
+                                <i className={`fa-solid ${isError ? 'fa-triangle-exclamation' : 'fa-check'}`}></i>
+                            </div>
+                            <p className="text-white font-bold text-xs uppercase tracking-widest">{toast.message}</p>
+                        </div>
+                    </div>
+                )
+            };
+
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen bg-[#111111] flex items-center justify-center p-6 pb-24 relative overflow-hidden">
-                        <div className="absolute top-10 left-10 w-72 h-72 bg-[#FF3B30]/10 rounded-full blur-3xl"></div>
-                        <div className="absolute bottom-10 right-10 w-72 h-72 bg-[#0A84FF]/10 rounded-full blur-3xl"></div>
-                        <div className={`bg-[#1C1C1E]/80 backdrop-blur-2xl p-10 rounded-[3rem] w-full max-w-md border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
-                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,59,48,0.4)]" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.3em] mt-2">Cashier System V5.15</p></div>
+                    <div className="min-h-screen bg-black flex items-center justify-center p-6 pb-24 relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-appleRed/10 rounded-full blur-[100px] pointer-events-none"></div>
+                        <div className={`glass-panel p-10 rounded-[3rem] w-full max-w-md shadow-[0_30px_60px_rgba(0,0,0,0.8)] relative z-10 ${shakeLogin ? 'animate-shake' : ''}`}>
+                            <div className="text-center mb-10"><img src={LOGO_URL} alt="Bugar Logo" className="h-20 mx-auto mb-5 drop-shadow-[0_0_20px_rgba(255,69,58,0.4)] brightness-200 contrast-200" /><h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1">Bugar Connect</h1><p className="text-[10px] text-white/40 uppercase font-black tracking-[0.3em] mt-2">Cashier System V5.15</p></div>
                             <form onSubmit={handleLogin} className="space-y-5">
-                                <input type="text" placeholder="LOGIN ID (CABANG)" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
-                                <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-black text-white outline-none border border-white/5 focus:border-[#FF3B30] font-bold transition-all text-center tracking-widest text-base shadow-inner" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
-                                <button type="submit" disabled={loading} className="w-full bg-[#FF3B30] text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,59,48,0.3)] tracking-widest uppercase text-base hover:bg-[#E02020]">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "MASUK KE KASIR"}</button>
+                                <input type="text" placeholder="LOGIN ID (CABANG)" required className="w-full p-5 rounded-2xl bg-appleDark text-white placeholder-white/30 outline-none border border-white/5 focus:border-appleRed uppercase font-bold transition-all text-center tracking-widest text-base shadow-inner focus:ring-1 focus:ring-appleRed/30" value={loginData.id} onChange={(e) => setLoginData({...loginData, id: e.target.value})} />
+                                <input type="password" placeholder="PASSWORD" required className="w-full p-5 rounded-2xl bg-appleDark text-white placeholder-white/30 outline-none border border-white/5 focus:border-appleRed font-bold transition-all text-center tracking-widest text-base shadow-inner focus:ring-1 focus:ring-appleRed/30" value={loginData.password} onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
+                                <button type="submit" disabled={loading} className="w-full bg-appleRed text-white font-black py-5 mt-2 rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,69,58,0.3)] tracking-widest uppercase text-base hover:bg-[#D70015] border border-appleRed/50">{loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "MASUK KE KASIR"}</button>
                             </form>
                         </div>
-                        {toast.show && <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                        <FloatingToast />
                     </div>
                 );
             }
@@ -578,7 +676,7 @@
             return (
                 <div>
                     <CashierView activeCabang={activeCabang} onLogout={handleLogout} sendToN8N={sendToN8N} showToast={showToast} />
-                    {toast.show && <div className={`fixed bottom-32 left-1/2 -translate-x-1/2 px-8 py-4 rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] z-[100] animate-fade-in shadow-2xl ${toast.type === 'success' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>{toast.message}</div>}
+                    <FloatingToast />
                 </div>
             );
         };
