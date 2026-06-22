@@ -87,14 +87,12 @@
             )
         };
 
-        // KOMPONEN KASIR
         const CashierView = ({ activeCabang, onLogout, sendToN8N, showToast }) => {
             const [mode, setMode] = useState('pemasukan'); 
             const [stats, setStats] = useState({ hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
             const [history, setHistory] = useState([]);
             const [expenseHistory, setExpenseHistory] = useState([]);
             
-            // NEW: Hold List
             const [holdList, setHoldList] = useState([]);
             const [executingHoldId, setExecutingHoldId] = useState(null);
 
@@ -116,25 +114,27 @@
 
             const loadDashboardData = useCallback(async (isInitial = false) => {
                 if (isInitial) setFetching(true);
-                const res = await sendToN8N('load_data', { CABANG_ID: activeCabang });
-                if (res && (res.status === 'success' || res.history)) {
-                    setStats(res.stats || { hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
-                    
-                    const fullHistory = res.history || [];
-                    
-                    // Pisahkan history biasa dan yang statusnya HOLD (hari ini)
-                    const activeHolds = fullHistory.filter(h => h.TANGGAL === isoToday && (h.METODE_BAYAR || '').toUpperCase() === 'HOLD');
-                    const validHistory = fullHistory.filter(h => (h.METODE_BAYAR || '').toUpperCase() !== 'HOLD');
+                try {
+                    const res = await sendToN8N('load_data', { CABANG_ID: activeCabang });
+                    if (res && (res.status === 'success' || res.history)) {
+                        setStats(res.stats || { hariIni: 0, bulanIni: 0, hariIniCash: 0, hariIniTransfer: 0 });
+                        
+                        const fullHistory = res.history || [];
+                        const activeHolds = fullHistory.filter(h => h.TANGGAL === isoToday && (h.METODE_BAYAR || '').toUpperCase() === 'HOLD');
+                        const validHistory = fullHistory.filter(h => (h.METODE_BAYAR || '').toUpperCase() !== 'HOLD');
 
-                    setHoldList(activeHolds);
-                    setHistory(validHistory);
-                    setExpenseHistory(res.expenseHistory || []); 
-                    
-                    const arrDates = validHistory.map(h => h.TANGGAL).sort();
-                    if(arrDates.length > 0 && isInitial) setFilterRekap({ start: arrDates[0], end: isoToday });
+                        setHoldList(activeHolds);
+                        setHistory(validHistory);
+                        setExpenseHistory(res.expenseHistory || []); 
+                        
+                        const arrDates = validHistory.map(h => h.TANGGAL).sort();
+                        if(arrDates.length > 0 && isInitial) setFilterRekap({ start: arrDates[0], end: isoToday });
+                    }
+                } catch (e) {
+                    console.error("Gagal load data kasir:", e);
                 }
                 if (isInitial) setFetching(false);
-            }, [activeCabang]);
+            }, [activeCabang, sendToN8N, isoToday]);
 
             useEffect(() => { loadDashboardData(true); }, [loadDashboardData]);
 
@@ -165,7 +165,6 @@
                 return Object.values(recapMap).sort((a,b) => b.komisi - a.komisi);
             }, [history, filterRekap]);
 
-            // UPDATE: Menambahkan BUGAR13 sebagai cabang dengan harga Lhokseumawe
             const isLhokseumawe = activeCabang === 'BUGAR8' || activeCabang === 'BUGAR13';
 
             const estimasiBagiHasil = useMemo(() => {
@@ -184,7 +183,6 @@
                 let bagiOwner = 0;
                 let tipeHitungan = "Persentase 30%";
 
-                // UPDATE: Logika Chiropractic untuk BUGAR8 dan BUGAR13
                 let isChiropractic = false;
                 if (activeCabang === 'BUGAR8' || activeCabang === 'BUGAR13') {
                     if (paketName.includes("PAKET 7") || paketName.includes("CHIROPRACTIC")) isChiropractic = true;
@@ -241,7 +239,6 @@
                 return PAKET_NON;
             }, [kategoriMenu, isLhokseumawe]);
 
-            // Submit Data Awal (Cash, Transfer, atau Hold)
             const handleOrderSubmit = async (metodeDipilih) => {
                 if(!formData.NAMA_PASIEN || !formData.TAGIHAN || !formData.TERAPIS) {
                     showToast('Harap lengkapi Nama, Tagihan, dan Terapis', 'error'); return;
@@ -254,7 +251,7 @@
 
                 const payload = { 
                     ...formData, 
-                    METODE_BAYAR: metodeDipilih, // CASH, TRANSFER, atau HOLD
+                    METODE_BAYAR: metodeDipilih,
                     CABANG_ID: activeCabang, 
                     PASIEN_KE: pasienKe,
                     REQ_BONUS: reqBonus,
@@ -276,7 +273,6 @@
                 setLoading(false);
             };
 
-            // Submit Data Lunas dari Tray Hold
             const handlePayHold = async (holdItem, metodeFinal) => {
                 setExecutingHoldId(holdItem.db_id);
                 
