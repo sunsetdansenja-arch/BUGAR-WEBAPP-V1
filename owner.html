@@ -135,26 +135,45 @@
 
             const loadOwnerData = async (isRefresh = false) => {
                 if (isRefresh) setRefreshing(true); else setLoading(true);
+                
+                // 1. Tarik Data Owner Utama (Mandiri)
                 try {
-                    const reqOwner = fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'owner_load' }) }).then(r => r.json());
-                    const reqBC = fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'get_bc_log' }) }).then(r => r.json());
-
-                    const loadOwnerData = async (isRefresh = false) => {                 if (isRefresh) setRefreshing(true); else setLoading(true);                                  // 1. Tarik Data Owner (Mandiri)                 try {                     const resOwner = await fetch(WEBHOOK_URL, {                          method: 'POST', headers: { 'Content-Type': 'application/json' },                          body: JSON.stringify({ action: 'owner_load' })                      });                     if (resOwner.ok) {                         const resultOwner = await resOwner.json();                         let finalData = Array.isArray(resultOwner) ? resultOwner[0] : resultOwner;                         if (finalData && finalData.json) finalData = finalData.json;                         // Timpa data state hanya jika tidak kosong                         if (finalData && Object.keys(finalData).length > 0) {                             setData(prev => ({...prev, ...finalData}));                         }                     }                 } catch (e) {                      console.error("Gagal memuat data Dashboard", e);                  }                  // 2. Tarik Data Broadcast (Mandiri)                 try {                     const resBC = await fetch(WEBHOOK_URL, {                          method: 'POST', headers: { 'Content-Type': 'application/json' },                          body: JSON.stringify({ action: 'get_bc_log' })                      });                     if (resBC.ok) {                         const resultBC = await resBC.json();                         let parsedBC = Array.isArray(resultBC) ? resultBC : [resultBC];                         parsedBC = parsedBC.map(i => i.json || i);                         setBcData(parsedBC);                     }                 } catch (e) {                      console.error("Gagal memuat data Broadcast", e);                  }                  setLoading(false);                  setRefreshing(false);             };
-
-                    // Parse Data Dashboard Owner
-                    let finalData = Array.isArray(resultOwner) ? resultOwner[0] : resultOwner;
-                    if (finalData && finalData.json) finalData = finalData.json;
-                    setData(finalData || {});
-
-                    // Parse Data Log Broadcast
-                    let parsedBC = Array.isArray(resultBC) ? resultBC : [resultBC];
-                    parsedBC = parsedBC.map(i => i.json || i);
-                    setBcData(parsedBC);
-
+                    const resOwner = await fetch(WEBHOOK_URL, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ action: 'owner_load' }) 
+                    });
+                    if (resOwner.ok) {
+                        const resultOwner = await resOwner.json();
+                        let finalData = Array.isArray(resultOwner) ? resultOwner[0] : resultOwner;
+                        if (finalData && finalData.json) finalData = finalData.json;
+                        if (finalData && Object.keys(finalData).length > 0) {
+                            setData(prev => ({...prev, ...finalData}));
+                        }
+                    }
                 } catch (e) {
-                    console.error("Gagal load data", e);
+                    console.error("Gagal memuat data Dashboard Owner", e);
                 }
-                setLoading(false); setRefreshing(false);
+
+                // 2. Tarik Data Log Broadcast (Mandiri)
+                try {
+                    const resBC = await fetch(WEBHOOK_URL, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ action: 'get_bc_log' }) 
+                    });
+                    if (resBC.ok) {
+                        const resultBC = await resBC.json();
+                        let parsedBC = Array.isArray(resultBC) ? resultBC : [resultBC];
+                        parsedBC = parsedBC.map(i => i.json || i);
+                        setBcData(parsedBC);
+                    }
+                } catch (e) {
+                    console.error("Gagal memuat data Broadcast", e);
+                }
+
+                setLoading(false); 
+                setRefreshing(false);
             };
 
             useEffect(() => { loadOwnerData(); }, []);
