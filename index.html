@@ -261,9 +261,26 @@
                 }
 
                 if (isChiropractic) {
-                    bagiTerapis = 100000;
-                    bagiOwner = cleanTagihan - bagiTerapis;
-                    tipeHitungan = "Flat Paket Khusus";
+                    if (['BUGAR1', 'BUGAR2', 'BUGAR3', 'BUGAR4', 'BUGAR5'].includes(activeCabang)) {
+                        // 1. Ambil potongan 10% pertama untuk Owner
+                        const potonganOwner = cleanTagihan * 0.10;
+                        
+                        // 2. Hitung sisa tagihan setelah dipotong 10%
+                        const sisaTagihan = cleanTagihan - potonganOwner;
+                        
+                        // 3. Sisanya dibagi dua (50% Terapis, 50% Owner)
+                        bagiTerapis = sisaTagihan * 0.50;
+                        const bagiHasilOwner = sisaTagihan * 0.50;
+                        
+                        // 4. Total masuk ke sistem Owner (Potongan awal + Hasil bagi 50%)
+                        bagiOwner = potonganOwner + bagiHasilOwner; 
+                        
+                        tipeHitungan = "Chiro (Potong 10%, Sisa 50:50)";
+                    } else {
+                        bagiTerapis = 100000;
+                        bagiOwner = cleanTagihan - bagiTerapis;
+                        tipeHitungan = "Flat Paket Khusus";
+                    }
                 } 
                 else if (paketName.includes("HERMES")) {
                     bagiTerapis = 54000; bagiOwner = cleanTagihan - bagiTerapis; tipeHitungan = "Flat Hotel Hermes";
