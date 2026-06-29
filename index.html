@@ -74,8 +74,10 @@
         const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
         const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
         
-        const PAKET_STANDAR = ["Paket 1 (70 Menit) - Rp 100.000", "Paket 2 (90 Menit) - Rp 120.000", "Paket 3 (120 Menit) - Rp 140.000", "Paket 4 (120 Menit) - Rp 150.000", "Paket 5 (120 Menit) - Rp 150.000", "Paket 6 (120 Menit) - Rp 170.000", "Paket 7 (120 Menit) - Rp 200.000", "Paket 8 - Rp 300.000: Chiropractic"];
-        const PAKET_LHOKSEUMAWE = ["Paket 1 (1.5 Jam) - Rp 100.000", "Paket 2 (2 Jam) - Rp 120.000", "Paket 3 (2 Jam) - Rp 130.000", "Paket 4 (2 Jam) - Rp 150.000", "Paket 5 (2.5 Jam) - Rp 200.000", "Paket 6 (2 Jam) - Rp 150.000", "Paket 7 - Rp 300.000: Chiropractic", "Paket 8 (2.5 Jam) - Rp 200.000", "Paket 9 (2.5 Jam) - Rp 200.000", "Paket 10 (3 Jam) - Rp 350.000"];
+        // --- PERUBAHAN DI SINI: MENGHILANGKAN RP 300.000 DAN FLAT KAN NAMA MENJADI CHIROPRACTIC ---
+        const PAKET_STANDAR = ["Paket 1 (70 Menit) - Rp 100.000", "Paket 2 (90 Menit) - Rp 120.000", "Paket 3 (120 Menit) - Rp 140.000", "Paket 4 (120 Menit) - Rp 150.000", "Paket 5 (120 Menit) - Rp 150.000", "Paket 6 (120 Menit) - Rp 170.000", "Paket 7 (120 Menit) - Rp 200.000", "Chiropractic"];
+        const PAKET_LHOKSEUMAWE = ["Paket 1 (1.5 Jam) - Rp 100.000", "Paket 2 (2 Jam) - Rp 120.000", "Paket 3 (2 Jam) - Rp 130.000", "Paket 4 (2 Jam) - Rp 150.000", "Paket 5 (2.5 Jam) - Rp 200.000", "Paket 6 (2 Jam) - Rp 150.000", "Chiropractic", "Paket 8 (2.5 Jam) - Rp 200.000", "Paket 9 (2.5 Jam) - Rp 200.000", "Paket 10 (3 Jam) - Rp 350.000"];
+        
         const PAKET_HOTEL = ["Paket Hotel Hermes - Rp 180.000", "Paket Hotel Kriyad - Rp 200.000", "Paket Hotel Plum Lading - Rp 160.000", "Paket Hotel The Pade - Rp 180.000", "Paket Premium (Hotel) - Rp 220.000", "Paket Reguler (Hotel) - Rp 200.000", "Paket Standart (Hotel) - Rp 180.000"];
         const PAKET_NON = ["BODY MASSAGE (60 Menit) - Rp 80.000", "REFLEKSI (60 Menit) - Rp 80.000", "BEKAM BASAH (60 Menit) - Rp 80.000", "LULUR - Rp 80.000", "TOTOK WAJAH (20 Menit) - Rp 60.000", "PIJAT KEPALA (20 Menit) - Rp 60.000", "TERAPI TELINGA - Rp 60.000", "BEKAM KERING - Rp 50.000"];
         
@@ -252,12 +254,8 @@
                 let bagiOwner = 0;
                 let tipeHitungan = "Persentase 30%";
 
-                let isChiropractic = false;
-                if (activeCabang === 'BUGAR8' || activeCabang === 'BUGAR13') {
-                    if (paketName.includes("PAKET 7") || paketName.includes("CHIROPRACTIC")) isChiropractic = true;
-                } else {
-                    if (paketName.includes("PAKET 8") || paketName.includes("CHIROPRACTIC")) isChiropractic = true;
-                }
+                // --- LOGIKA MENYESUAIKAN DENGAN NAMA BARU KATA KUNCI 'CHIROPRACTIC' ---
+                let isChiropractic = paketName.includes("CHIROPRACTIC");
 
                 if (isChiropractic) {
                     if (['BUGAR1', 'BUGAR2', 'BUGAR3', 'BUGAR4', 'BUGAR5'].includes(activeCabang)) {
@@ -265,7 +263,8 @@
                         const sisaTagihan = cleanTagihan - potonganOwner;
                         
                         bagiTerapis = sisaTagihan * 0.50;
-                        bagiOwner = potonganOwner + (sisaTagihan * 0.50); 
+                        bagiOwner = potonganOwner + (sisaTagihan * 0.50);
+                        
                         tipeHitungan = "Chiro (Potong 10%, Sisa 50:50)";
                     } else {
                         bagiTerapis = 100000;
@@ -300,7 +299,10 @@
 
             const handleSelectPaket = (selectedPaket) => {
                 let autoHarga = formData.TAGIHAN;
-                if (selectedPaket && !selectedPaket.includes("Ala Carte")) { 
+                // --- KONDISI KHUSUS CHIROPRACTIC HARGA FLEKSIBEL (KOSONGKAN AGAR BISA DIKETIK MANUAL) ---
+                if (selectedPaket === "Chiropractic") {
+                    autoHarga = "";
+                } else if (selectedPaket && !selectedPaket.includes("Ala Carte")) { 
                     const match = selectedPaket.match(/Rp\s*([\d.]+)/); 
                     if (match && match[1]) autoHarga = match[1].replace(/\./g, ''); 
                 } else if (selectedPaket.includes("Ala Carte")) { autoHarga = ""; }
