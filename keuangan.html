@@ -13,7 +13,7 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #111111; }
         .paper-slip { background-color: #fff; color: #1a1a1a; background-image: radial-gradient(#e5e5e5 1px, transparent 1px); background-size: 20px 20px; }
         ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         input, select, textarea { font-size: 16px !important; }
@@ -110,6 +110,7 @@
 
             const [exportMonth, setExportMonth] = useState(isoToday.substring(0, 7));
             const [exportingPDF, setExportingPDF] = useState(false);
+            const [exportingOmsetPDF, setExportingOmsetPDF] = useState(false);
 
             useEffect(() => {
                 const loadOwnerData = async () => {
@@ -130,7 +131,6 @@
                 if(activeTab === 'administrasi' && reportSubTab === 'keuangan' && !dataOwner) {
                     loadOwnerData();
                 }
-                // eslint-disable-next-line
             }, [activeTab, reportSubTab]);
 
             // FUNGSI CEK OMSET SPESIFIK
@@ -144,6 +144,56 @@
                     showToast('Gagal menarik data omset', 'error');
                 }
                 setLoadingOmset(false);
+            };
+
+            // --- FITUR BARU: CETAK REKAP OMSET SPESIFIK KE PDF ---
+            const downloadOmsetSpesifikPDF = async () => {
+                if (!omsetData) return;
+                setExportingOmsetPDF(true);
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ format: 'a4' });
+                    
+                    const logo = await getBase64Logo();
+                    if (logo) doc.addImage(logo, 'PNG', 90, 15, 30, 30);
+                    
+                    doc.setFontSize(20); doc.setTextColor(10, 132, 255); doc.setFont(undefined, 'bold');
+                    doc.text("BUGAR REFLEKSI", 105, 55, { align: "center" });
+                    doc.setFontSize(12); doc.setTextColor(50, 50, 50);
+                    doc.text("LAPORAN REKAPITULASI OMSET", 105, 62, { align: "center" });
+                    
+                    doc.setLineWidth(0.5); doc.line(20, 70, 190, 70);
+                    doc.setFontSize(11); doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'normal');
+                    
+                    doc.text(`Cabang / Target  : ${filterOmset.cabang === 'ALL' ? 'Semua Cabang' : filterOmset.cabang}`, 20, 80);
+                    doc.text(`Periode Tanggal  : ${filterOmset.start} s/d ${filterOmset.end}`, 20, 87);
+                    
+                    let y = 105;
+                    doc.setFontSize(13); doc.setFont(undefined, 'bold');
+                    doc.text("RINCIAN PEMBUKUAN", 20, y);
+                    
+                    doc.setFontSize(11); doc.setFont(undefined, 'normal');
+                    y += 12;
+                    doc.text("Total Omset Kotor", 20, y); doc.text(`${formatIDR(omsetData.omset)}`, 190, y, { align: 'right' });
+                    y += 8;
+                    doc.text("Total Laci Keluar (Beban)", 20, y); doc.setTextColor(255, 69, 58); doc.text(`- ${formatIDR(omsetData.expense)}`, 190, y, { align: 'right' });
+                    
+                    doc.setTextColor(0, 0, 0);
+                    y += 6; doc.setLineWidth(0.2); doc.line(20, y, 190, y);
+                    
+                    y += 10; doc.setFontSize(14); doc.setFont(undefined, 'bold');
+                    doc.text("LABA BERSIH (HAK OWNER)", 20, y); doc.setTextColor(52, 215, 75); doc.text(`${formatIDR(omsetData.laba)}`, 190, y, { align: 'right' });
+                    
+                    y += 40; doc.setFontSize(8); doc.setTextColor(150, 150, 150); doc.setFont(undefined, 'normal');
+                    doc.text("Dicetak otomatis via Bugar Connect - Financial Portal System", 105, y, { align: "center" });
+                    
+                    const fileName = `omsetrekap_${filterOmset.start}_${filterOmset.end}.pdf`;
+                    doc.save(fileName);
+                    showToast("Rekap Omset Berhasil Didownload!");
+                } catch (e) {
+                    showToast("Gagal export PDF", "error");
+                }
+                setExportingOmsetPDF(false);
             };
 
             const fetchGajiGlobal = async () => {
@@ -443,7 +493,7 @@
                             )}
                             {reportSubTab === 'keuangan' && loadingOwner && <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div>}
 
-                            {/* SUB-TAB 2: CEK OMSET SPESIFIK (FITUR BARU) */}
+                            {/* SUB-TAB 2: CEK OMSET SPESIFIK */}
                             {reportSubTab === 'omset' && (
                                 <div className="space-y-6 animate-fade-in">
                                     <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
@@ -487,6 +537,11 @@
                                                 <p className="text-[9px] text-[#34C759] font-black uppercase tracking-widest mb-1 relative z-10">Laba Setelah Terapis & Expense</p>
                                                 <p className="text-3xl font-black text-[#34C759] relative z-10">{formatIDR(omsetData.laba)}</p>
                                             </div>
+
+                                            {/* TOMBOL DOWNLOAD PDF REKAP OMSET */}
+                                            <button onClick={downloadOmsetSpesifikPDF} disabled={exportingOmsetPDF} className="w-full bg-[#0A84FF] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg mt-5 active:scale-95 transition-all flex items-center justify-center gap-2 border border-blue-500/20">
+                                                {exportingOmsetPDF ? <i className="fa-solid fa-spinner fa-spin"></i> : <><i className="fa-solid fa-print"></i> CETAK REKAP OMSET (PDF)</>}
+                                            </button>
                                         </div>
                                     )}
                                 </div>
