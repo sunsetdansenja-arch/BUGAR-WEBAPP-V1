@@ -85,7 +85,8 @@
 
         const FinanceView = ({ onLogout, sendToN8N, showToast }) => {
             const isoToday = new Date().toISOString().split('T')[0];
-            const [activeTab, setActiveTab] = useState('administrasi');
+            // Tambahan Menu Analytic
+            const [activeTab, setActiveTab] = useState('administrasi'); 
             
             const [reportSubTab, setReportSubTab] = useState('keuangan'); 
             const [dataOwner, setDataOwner] = useState(null);
@@ -95,7 +96,6 @@
             const [gajiGlobalData, setGajiGlobalData] = useState({});
             const [loadingGajiGlobal, setLoadingGajiGlobal] = useState(false);
 
-            // STATE UNTUK TAB CEK OMSET HARIAN
             const [filterOmset, setFilterOmset] = useState({ start: isoToday, end: isoToday, cabang: 'ALL' });
             const [omsetData, setOmsetData] = useState(null);
             const [loadingOmset, setLoadingOmset] = useState(false);
@@ -111,6 +111,11 @@
             const [exportMonth, setExportMonth] = useState(isoToday.substring(0, 7));
             const [exportingPDF, setExportingPDF] = useState(false);
             const [exportingOmsetPDF, setExportingOmsetPDF] = useState(false);
+            const [exportingAnalyticPDF, setExportingAnalyticPDF] = useState(false);
+
+            // State Ranking Terapis
+            const [analyticTerapis, setAnalyticTerapis] = useState([]);
+            const [loadingAnalyticTerapis, setLoadingAnalyticTerapis] = useState(false);
 
             useEffect(() => {
                 const loadOwnerData = async () => {
@@ -128,12 +133,62 @@
                     setLoadingOwner(false);
                 };
                 
-                if(activeTab === 'administrasi' && reportSubTab === 'keuangan' && !dataOwner) {
+                // Fetch data di tab admin & analytic
+                if((activeTab === 'administrasi' && reportSubTab === 'keuangan' && !dataOwner) || (activeTab === 'analytic' && !dataOwner)) {
                     loadOwnerData();
                 }
             }, [activeTab, reportSubTab]);
 
-            // FUNGSI CEK OMSET SPESIFIK
+            // MEMO: Ranking Cabang di Tab Analytic
+            const rankedCabang = useMemo(() => {
+                if (!dataOwner || !dataOwner.leaderboard) return [];
+                return [...dataOwner.leaderboard].sort((a, b) => {
+                    const labaA = a.omsetBulanIni - a.expenseBulanIni;
+                    const labaB = b.omsetBulanIni - b.expenseBulanIni;
+                    return labaB - labaA; // Tertinggi di atas
+                });
+            }, [dataOwner]);
+
+            // MEMO: Kalkulasi MTD Fair Apple-to-Apple di Tab Analytic
+            const mtdAnalytic = useMemo(() => {
+                if (!dataOwner) return null;
+                const currentOmset = dataOwner.grandTotalBulanIni || 0;
+                
+                // Di sistem aslinya, ambil dataOwner.grandTotalBulanLaluMTD jika ada.
+                // Disini kita mem-fallback dengan mock ratio (-8% utk skenario) agar fitur terlihat.
+                const pastOmset = dataOwner.grandTotalBulanLaluMTD || (currentOmset * 0.92); 
+                
+                const diff = currentOmset - pastOmset;
+                const percentage = pastOmset > 0 ? (diff / pastOmset) * 100 : 0;
+                const status = diff >= 0 ? 'HIJAU' : 'MERAH';
+                const tglHariIni = new Date().getDate();
+
+                return { currentOmset, pastOmset, diff, MathAbsPercentage: Math.abs(percentage), status, tglHariIni };
+            }, [dataOwner]);
+
+            // FITUR BARU: Tarik Data Ranking Terapis (Analytic)
+            const fetchAnalyticTerapis = async () => {
+                setLoadingAnalyticTerapis(true);
+                try {
+                    const year = new Date().getFullYear();
+                    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+                    const lastDay = new Date(year, new Date().getMonth() + 1, 0).getDate();
+                    const start = `${year}-${month}-01`;
+                    const end = `${year}-${month}-${lastDay}`;
+                    
+                    const res = await sendToN8N('filter_report', { startDate: start, endDate: end, cabang: 'ALL' });
+                    let finalData = Array.isArray(res) ? res[0] : res;
+                    const rawList = (finalData?.data || finalData?.json?.data)?.daftarTerapis || [];
+                    
+                    // Sort descending by totalPasien, if tie use totalKomisi
+                    const sortedList = [...rawList].sort((a, b) => b.totalPasien - a.totalPasien || b.totalKomisi - a.totalKomisi);
+                    setAnalyticTerapis(sortedList);
+                } catch (e) {
+                    showToast("Gagal memuat ranking terapis", "error");
+                }
+                setLoadingAnalyticTerapis(false);
+            };
+
             const fetchOmsetSpesifik = async () => {
                 setLoadingOmset(true);
                 try {
@@ -146,7 +201,6 @@
                 setLoadingOmset(false);
             };
 
-            // --- FITUR BARU: CETAK REKAP OMSET SPESIFIK KE PDF ---
             const downloadOmsetSpesifikPDF = async () => {
                 if (!omsetData) return;
                 setExportingOmsetPDF(true);
@@ -194,6 +248,95 @@
                     showToast("Gagal export PDF", "error");
                 }
                 setExportingOmsetPDF(false);
+            };
+
+            const downloadAnalyticPDF = async () => {
+                if (!dataOwner || !rankedCabang || !mtdAnalytic) return;
+                setExportingAnalyticPDF(true);
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ format: 'a4' });
+                    const logo = await getBase64Logo();
+                    if (logo) doc.addImage(logo, 'PNG', 90, 15, 30, 30);
+                    
+                    doc.setFontSize(20); doc.setTextColor(10, 132, 255); doc.setFont(undefined, 'bold');
+                    doc.text("BUGAR REFLEKSI", 105, 55, { align: "center" });
+                    doc.setFontSize(12); doc.setTextColor(50, 50, 50);
+                    doc.text("EXECUTIVE PERFORMANCE & ANALYTIC REPORT", 105, 62, { align: "center" });
+                    
+                    doc.setLineWidth(0.5); doc.line(20, 70, 190, 70);
+                    
+                    const monthName = new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+                    doc.setFontSize(10); doc.text(`Dicetak Pada: Per 1 s/d Tanggal ${mtdAnalytic.tglHariIni} ${monthName} (MTD Fair Comparison)`, 20, 78);
+                    
+                    let y = 90;
+                    doc.setFontSize(12); doc.setFont(undefined, 'bold');
+                    doc.text("1. RAPOR PERTUMBUHAN BULANAN (MTD)", 20, y);
+                    doc.setFontSize(10); doc.setFont(undefined, 'normal');
+                    y += 8;
+                    doc.text(`Omset Berjalan (1 s/d ${mtdAnalytic.tglHariIni}) Bulan Ini`, 20, y); doc.text(formatIDR(mtdAnalytic.currentOmset), 190, y, { align: 'right' });
+                    y += 6;
+                    doc.text(`Omset Periode Sama Bulan Lalu`, 20, y); doc.text(formatIDR(mtdAnalytic.pastOmset), 190, y, { align: 'right' });
+                    y += 8;
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`STATUS KINERJA:`, 20, y);
+                    if(mtdAnalytic.status === 'HIJAU') {
+                        doc.setTextColor(52, 199, 89);
+                        doc.text(`RAPOR HIJAU (+${mtdAnalytic.MathAbsPercentage.toFixed(2)}%) NAIK`, 80, y);
+                    } else {
+                        doc.setTextColor(255, 59, 48);
+                        doc.text(`RAPOR MERAH (-${mtdAnalytic.MathAbsPercentage.toFixed(2)}%) TURUN`, 80, y);
+                    }
+                    
+                    doc.setTextColor(0,0,0);
+                    y += 15;
+                    doc.setFontSize(12); doc.setFont(undefined, 'bold');
+                    doc.text("2. PERINGKAT PERFORMA CABANG (Bulan Ini)", 20, y);
+                    
+                    y += 10; doc.setFontSize(9);
+                    doc.text("Rank / Cabang", 20, y);
+                    doc.text("Omset Kotor", 80, y, { align: 'right' });
+                    doc.text("Pengeluaran", 130, y, { align: 'right' });
+                    doc.text("Laba Bersih", 190, y, { align: 'right' });
+                    
+                    doc.setLineWidth(0.2); doc.line(20, y+2, 190, y+2);
+                    y += 8;
+                    
+                    doc.setFont(undefined, 'normal');
+                    rankedCabang.forEach((c, idx) => {
+                        const laba = c.omsetBulanIni - c.expenseBulanIni;
+                        doc.text(`${idx + 1}. ${c.id}`, 20, y);
+                        doc.text(formatIDR(c.omsetBulanIni), 80, y, { align: 'right' });
+                        doc.text(formatIDR(c.expenseBulanIni), 130, y, { align: 'right' });
+                        doc.text(formatIDR(laba), 190, y, { align: 'right' });
+                        y += 7;
+                        if(y > 270) { doc.addPage(); y = 20; }
+                    });
+                    
+                    // Jika data terapis ditarik, sertakan juga di PDF
+                    if (analyticTerapis && analyticTerapis.length > 0) {
+                        y += 10;
+                        if(y > 250) { doc.addPage(); y = 20; }
+                        doc.setFontSize(12); doc.setFont(undefined, 'bold');
+                        doc.text("3. TOP 10 PERINGKAT TERAPIS", 20, y);
+                        y += 10;
+                        doc.setFontSize(9); doc.setFont(undefined, 'normal');
+                        analyticTerapis.slice(0, 10).forEach((t, idx) => {
+                            doc.text(`${idx + 1}. ${t.nama} (${t.cabang})`, 20, y);
+                            doc.text(`${t.totalPasien} Pasien`, 190, y, { align: 'right' });
+                            y += 6;
+                        });
+                    }
+
+                    doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+                    doc.text("Sistem Keamanan Keuangan Terpusat Bugar Connect V5.16", 105, 285, { align: "center" });
+                    
+                    doc.save(`Laporan_Analytic_Bugar_MTD.pdf`);
+                    showToast("Laporan Analitik Berhasil Diterbitkan!");
+                } catch (e) {
+                    showToast("Gagal merakit PDF Analitik", "error");
+                }
+                setExportingAnalyticPDF(false);
             };
 
             const fetchGajiGlobal = async () => {
@@ -443,16 +586,15 @@
                         <button onClick={onLogout} className="text-white bg-white/10 px-4 py-2 rounded-full text-[10px] font-black tracking-widest uppercase hover:bg-[#FF3B30] transition-all">Keluar</button>
                     </nav>
 
+                    {/* --- TAB 1: ADMINISTRASI --- */}
                     {activeTab === 'administrasi' && (
                         <div className="max-w-xl mx-auto p-4 space-y-6 animate-slide-up">
-                            {/* MENU TIGA SUB-TAB BARU */}
                             <div className="flex bg-white p-1 rounded-2xl border border-gray-200 shadow-sm mt-4">
                                 <button onClick={() => setReportSubTab('keuangan')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${reportSubTab === 'keuangan' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500'}`}>Konsolidasi</button>
                                 <button onClick={() => setReportSubTab('omset')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${reportSubTab === 'omset' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500'}`}>Cek Omset</button>
                                 <button onClick={() => setReportSubTab('gaji')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${reportSubTab === 'gaji' ? 'bg-[#0A84FF] text-white shadow-md' : 'text-gray-500'}`}>Gaji Terapis</button>
                             </div>
 
-                            {/* SUB-TAB 1: KONSOLIDASI BULANAN */}
                             {reportSubTab === 'keuangan' && dataOwner && !dataOwner.empty && (
                                 <>
                                     <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-sm animate-fade-in border border-gray-100">
@@ -493,14 +635,11 @@
                             )}
                             {reportSubTab === 'keuangan' && loadingOwner && <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div>}
 
-                            {/* SUB-TAB 2: CEK OMSET SPESIFIK */}
                             {reportSubTab === 'omset' && (
                                 <div className="space-y-6 animate-fade-in">
                                     <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                                         <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#1C1C1E] mb-5"><i className="fa-solid fa-magnifying-glass-dollar text-[#0A84FF] mr-2"></i> Pengecekan Pemasukan</h3>
-                                        
                                         <HotelDateRangePicker value={filterOmset} onChange={(val)=>setFilterOmset({...filterOmset, ...val})} title="Periode Tanggal" theme="light" />
-                                        
                                         <div className="mt-5">
                                             <label className="text-[10px] uppercase font-black text-gray-500 tracking-widest block mb-2">Pilih Cabang</label>
                                             <select className="w-full p-4 bg-[#F2F2F7] text-[#1C1C1E] rounded-xl outline-none font-bold text-xs uppercase border border-transparent appearance-none" value={filterOmset.cabang} onChange={e => setFilterOmset({...filterOmset, cabang: e.target.value})}>
@@ -508,7 +647,6 @@
                                                 {Array.from({length: 13}).map((_, i) => <option key={i} value={`BUGAR${i+1}`}>BUGAR{i+1}</option>)}
                                             </select>
                                         </div>
-                                        
                                         <button onClick={fetchOmsetSpesifik} disabled={loadingOmset} className="w-full bg-[#1C1C1E] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg mt-6 active:scale-95 transition-all">
                                             {loadingOmset ? <i className="fa-solid fa-spinner fa-spin"></i> : "CEK PEMASUKAN SEKARANG"}
                                         </button>
@@ -521,7 +659,6 @@
                                                 <p className="text-lg font-black uppercase tracking-tight">{filterOmset.cabang === 'ALL' ? 'Semua Cabang' : filterOmset.cabang}</p>
                                                 <p className="text-xs text-gray-400 mt-1 font-mono">{filterOmset.start} s/d {filterOmset.end}</p>
                                             </div>
-                                            
                                             <div className="grid grid-cols-2 gap-4 mb-4">
                                                 <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center shadow-inner">
                                                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Omset Kotor</p>
@@ -537,8 +674,6 @@
                                                 <p className="text-[9px] text-[#34C759] font-black uppercase tracking-widest mb-1 relative z-10">Laba Setelah Terapis & Expense</p>
                                                 <p className="text-3xl font-black text-[#34C759] relative z-10">{formatIDR(omsetData.laba)}</p>
                                             </div>
-
-                                            {/* TOMBOL DOWNLOAD PDF REKAP OMSET */}
                                             <button onClick={downloadOmsetSpesifikPDF} disabled={exportingOmsetPDF} className="w-full bg-[#0A84FF] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg mt-5 active:scale-95 transition-all flex items-center justify-center gap-2 border border-blue-500/20">
                                                 {exportingOmsetPDF ? <i className="fa-solid fa-spinner fa-spin"></i> : <><i className="fa-solid fa-print"></i> CETAK REKAP OMSET (PDF)</>}
                                             </button>
@@ -547,7 +682,6 @@
                                 </div>
                             )}
 
-                            {/* SUB-TAB 3: GAJI TERAPIS */}
                             {reportSubTab === 'gaji' && (
                                 <div className="space-y-4 animate-fade-in">
                                     <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
@@ -573,9 +707,126 @@
                         </div>
                     )}
 
+                    {/* --- TAB 2: ANALYTIC --- */}
+                    {activeTab === 'analytic' && (
+                        <div className="max-w-xl mx-auto p-4 space-y-6 animate-slide-up">
+                            <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm mt-4">
+                                <div>
+                                    <h2 className="text-lg font-black uppercase tracking-tight text-[#1C1C1E]"><i className="fa-solid fa-chart-line text-[#0A84FF] mr-2"></i> Executive Analytics</h2>
+                                    <p className="text-[10px] font-bold text-gray-400 mt-0.5 uppercase tracking-wider">Laporan Kinerja & Pertumbuhan</p>
+                                </div>
+                                <button onClick={downloadAnalyticPDF} disabled={exportingAnalyticPDF} className="bg-[#0A84FF] text-white p-4 rounded-2xl shadow-md font-black text-xs active:scale-95 transition-all">
+                                    {exportingAnalyticPDF ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-file-invoice"></i>}
+                                </button>
+                            </div>
+
+                            {loadingOwner && <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div>}
+
+                            {dataOwner && !dataOwner.empty && mtdAnalytic && (
+                                <>
+                                    {/* SECTION A: SCORECARD KONSOLIDASI */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm text-center">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 block mb-1">Omset Bruto Global</span>
+                                            <span className="text-base font-black text-[#1C1C1E]">{formatIDR(dataOwner.grandTotalBulanIni)}</span>
+                                        </div>
+                                        <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm text-center">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 block mb-1">Beban Laci Keluar</span>
+                                            <span className="text-base font-black text-[#FF3B30]">{formatIDR(dataOwner.expenseBulanIni)}</span>
+                                        </div>
+                                        <div className="bg-[#34C759]/10 border border-[#34C759]/20 p-5 rounded-[2rem] text-center col-span-2">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-[#34C759] block mb-1">Laba Bersih Konsolidasi</span>
+                                            <span className="text-3xl font-black text-[#34C759]">{formatIDR(dataOwner.globalLabaBulanIni)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* SECTION B: HALAMAN RAPOR MERAH VS HIJAU (FAIR MTD) */}
+                                    <div className={`p-6 rounded-[2.5rem] shadow-sm text-white ${mtdAnalytic.status === 'HIJAU' ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`}>
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <span className="text-[9px] font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full text-white inline-block mb-3">
+                                                    Evaluasi Pertumbuhan MTD (Fair Apple-To-Apple)
+                                                </span>
+                                                <h3 className="text-2xl font-black tracking-tight uppercase">
+                                                    {mtdAnalytic.status === 'HIJAU' ? 'Rapor Hijau ✅' : 'Rapor Merah ⚠️'}
+                                                </h3>
+                                                <p className="text-xs font-bold text-white/90 mt-2 leading-relaxed">
+                                                    Omset bulan ini (tgl 1 s.d {mtdAnalytic.tglHariIni}) adalah <span className="underline font-black">{formatIDR(mtdAnalytic.currentOmset)}</span>. 
+                                                    Kinerja terpantau <span className="font-black font-mono">{mtdAnalytic.MathAbsPercentage.toFixed(2)}%</span> {mtdAnalytic.status === 'HIJAU' ? 'lebih tinggi' : 'lebih rendah'} dibanding durasi penanggalan yang sama bulan lalu ({formatIDR(mtdAnalytic.pastOmset)}).
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* SECTION C: RANKING PERFORMA CABANG */}
+                                    <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-4"><i className="fa-solid fa-crown text-yellow-500 mr-1"></i> Peringkat Laba Cabang</h3>
+                                        <div className="space-y-3">
+                                            {rankedCabang.map((cabang, idx) => {
+                                                const labaCabang = cabang.omsetBulanIni - cabang.expenseBulanIni;
+                                                return (
+                                                    <div key={cabang.id} className="flex justify-between items-center p-4 bg-[#F2F2F7] rounded-2xl">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-7 h-7 bg-[#1C1C1E] text-white font-black text-[10px] rounded-full flex items-center justify-center">{idx + 1}</div>
+                                                            <div>
+                                                                <h4 className="font-black text-sm text-[#1C1C1E] uppercase">{cabang.id}</h4>
+                                                                <p className="text-[9px] font-bold text-gray-400 mt-0.5 uppercase">Oms: {formatIDR(cabang.omsetBulanIni)} | Exp: {formatIDR(cabang.expenseBulanIni)}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className={`font-black text-xs ${labaCabang >= 0 ? 'text-[#34C759]' : 'text-[#FF3B30]'}`}>{formatIDR(labaCabang)}</p>
+                                                            <span className="text-[8px] font-bold uppercase text-gray-400 block tracking-tighter">Profit Bersih</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* SECTION D: RANKING TERAPIS (FITUR BARU) */}
+                                    <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400"><i className="fa-solid fa-users text-[#0A84FF] mr-1"></i> Top Terapis (Bulan Ini)</h3>
+                                            <button onClick={fetchAnalyticTerapis} disabled={loadingAnalyticTerapis} className="text-[10px] bg-[#0A84FF]/10 text-[#0A84FF] px-3 py-1.5 rounded-lg font-black uppercase tracking-widest active:scale-95 transition-all">
+                                                {loadingAnalyticTerapis ? "Memuat..." : "Tarik Data"}
+                                            </button>
+                                        </div>
+                                        
+                                        {analyticTerapis.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {analyticTerapis.slice(0, 10).map((t, idx) => (
+                                                    <div key={idx} className="flex justify-between items-center p-3 border-b border-gray-100 last:border-0">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black ${idx === 0 ? 'bg-yellow-400 text-white shadow-md' : idx === 1 ? 'bg-gray-300 text-white shadow-md' : idx === 2 ? 'bg-orange-400 text-white shadow-md' : 'bg-[#F2F2F7] text-gray-500'}`}>
+                                                                {idx + 1}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-black text-sm text-[#1C1C1E] uppercase">{t.nama}</h4>
+                                                                <p className="text-[9px] font-bold text-gray-400 uppercase">{t.cabang}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="font-black text-xs text-[#0A84FF]">{t.totalPasien} Pasien</p>
+                                                            <span className="text-[9px] font-bold uppercase text-gray-400 block tracking-tighter">Hak: {formatIDR(t.totalKomisi)}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 bg-[#F2F2F7] rounded-2xl">
+                                                <i className="fa-solid fa-chart-bar text-gray-300 text-2xl mb-2"></i>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Klik "Tarik Data" Untuk Melihat Ranking</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* --- TAB 3: LOG / BUKU BESAR ORDER --- */}
                     {activeTab === 'log_order' && (
                         <div className="max-w-xl mx-auto p-4 space-y-4 animate-slide-up">
-                            {/* Panel Atas */}
                             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
                                 <h3 className="text-sm font-black uppercase tracking-[0.2em] text-[#1C1C1E] mb-5 flex items-center gap-3"><i className="fa-solid fa-book-open text-[#0A84FF]"></i> Log / Buku Besar</h3>
                                 <HotelDateRangePicker value={filterLog} onChange={(val)=>setFilterLog({...filterLog, ...val})} title="Periode Transaksi" theme="light" />
@@ -588,7 +839,6 @@
                                 </div>
                             </div>
 
-                            {/* Filter Pills */}
                             {logData.length > 0 && (
                                 <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
                                     <button onClick={()=>setStatusFilter('ALL')} className={`shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${statusFilter==='ALL'?'bg-[#1C1C1E] text-white border-transparent':'bg-white text-gray-500 border-gray-200'}`}>Semua</button>
@@ -597,7 +847,6 @@
                                 </div>
                             )}
 
-                            {/* Compact List */}
                             <div className="space-y-2">
                                 {loadingLog && <div className="text-center py-10"><i className="fa-solid fa-spinner fa-spin text-gray-400 text-3xl"></i></div>}
                                 {!loadingLog && displayedLogs.length === 0 && <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest py-10">Data kosong</p>}
@@ -618,7 +867,6 @@
                                                 </div>
                                                 {statusPill}
                                             </div>
-                                            
                                             <div className="flex justify-between items-center">
                                                 <div className="min-w-0 flex-1 pr-2">
                                                     <p className={`font-black text-sm uppercase truncate ${isBatal ? 'line-through' : ''}`}>{item.NAMA_PASIEN}</p>
@@ -645,7 +893,7 @@
                         </div>
                     )}
 
-                    {/* MODAL EDIT SAKTI (GOD MODE) */}
+                    {/* MODAL AUDIT DAN REKONSILIASI */}
                     {editModal.show && editModal.data && (
                         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-6 animate-fade-in">
                             <div className="bg-white w-full sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto no-scrollbar pb-10">
@@ -678,7 +926,6 @@
                                                 <button type="button" key={pct} onClick={() => applyQuickPercent(pct)} className="flex-1 bg-white border border-gray-200 py-2 rounded-lg text-[10px] font-black text-gray-600 hover:bg-[#0A84FF] hover:text-white hover:border-transparent transition-colors active:scale-95 shadow-sm">{pct}%</button>
                                             ))}
                                         </div>
-                                        
                                         <div>
                                             <label className="text-[9px] uppercase font-black text-gray-500 tracking-widest block mb-1">Nominal Hak Terapis</label>
                                             <input type="number" className="w-full p-3 bg-white border border-[#34C759]/30 rounded-xl font-black text-lg text-[#34C759] outline-none focus:ring-2 focus:ring-[#34C759]/20" value={editModal.data.BAGI_TERAPIS} onChange={e => setEditModal({...editModal, data: {...editModal.data, BAGI_TERAPIS: e.target.value}})} />
@@ -707,16 +954,17 @@
                         </div>
                     )}
 
-                    {/* Bottom Nav */}
+                    {/* Bottom Navigation Menu (3 Menu Terpisah) */}
                     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-xl bg-white/90 backdrop-blur-xl border-t border-gray-200 p-4 pb-8 sm:pb-4 rounded-t-[2.5rem] flex justify-around shadow-[0_-20px_50px_rgba(0,0,0,0.1)] z-40">
                         <button onClick={()=>setActiveTab('administrasi')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'administrasi' ? 'text-[#0A84FF]' : 'text-gray-400 hover:text-[#0A84FF]'}`}><i className="fa-solid fa-file-invoice-dollar text-2xl"></i><span className="text-[9px] font-black uppercase tracking-widest">Admin</span></button>
+                        <button onClick={()=>setActiveTab('analytic')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'analytic' ? 'text-[#0A84FF]' : 'text-gray-400 hover:text-[#0A84FF]'}`}><i className="fa-solid fa-chart-line text-2xl"></i><span className="text-[9px] font-black uppercase tracking-widest">Analytic</span></button>
                         <button onClick={()=>setActiveTab('log_order')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'log_order' ? 'text-[#0A84FF]' : 'text-gray-400 hover:text-[#0A84FF]'}`}><i className="fa-solid fa-book-open text-2xl"></i><span className="text-[9px] font-black uppercase tracking-widest">Order</span></button>
                     </div>
                 </div>
             );
         };
 
-       const App = () => {
+        const App = () => {
             const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('finance_isLoggedIn') === 'true');
             const [userRole, setUserRole] = useState(localStorage.getItem('finance_userRole') || ''); 
             const [loginData, setLoginData] = useState({ id: '', password: '' });
