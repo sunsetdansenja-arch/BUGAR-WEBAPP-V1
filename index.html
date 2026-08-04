@@ -74,7 +74,6 @@
         const WEBHOOK_URL = "https://n8n-mzbmiib3etk4.kangkung.sumopod.my.id/webhook/239f820a-2d32-4432-a4b1-af48e7f97550";
         const LOGO_URL = "https://raw.githubusercontent.com/sunsetdansenja-arch/BUGAR-WEBAPP-V1/main/logo%20bugar.png";
         
-        // Menu pilihan drop-down dibersihkan tanpa teks harga Rp 300.000
         const PAKET_STANDAR = ["Paket 1 (70 Menit) - Rp 100.000", "Paket 2 (90 Menit) - Rp 120.000", "Paket 3 (120 Menit) - Rp 140.000", "Paket 4 (120 Menit) - Rp 150.000", "Paket 5 (120 Menit) - Rp 150.000", "Paket 6 (120 Menit) - Rp 170.000", "Paket 7 (120 Menit) - Rp 200.000", "Chiropractic"];
         const PAKET_LHOKSEUMAWE = ["Paket 1 (1.5 Jam) - Rp 100.000", "Paket 2 (2 Jam) - Rp 120.000", "Paket 3 (2 Jam) - Rp 130.000", "Paket 4 (2 Jam) - Rp 150.000", "Paket 5 (2.5 Jam) - Rp 200.000", "Paket 6 (2 Jam) - Rp 150.000", "Chiropractic", "Paket 8 (2.5 Jam) - Rp 200.000", "Paket 9 (2.5 Jam) - Rp 200.000", "Paket 10 (3 Jam) - Rp 350.000"];
         const PAKET_HOTEL = ["Paket Hotel Hermes - Rp 180.000", "Paket Hotel Kriyad - Rp 200.000", "Paket Hotel Plum Lading - Rp 160.000", "Paket Hotel The Pade - Rp 180.000", "Paket Premium (Hotel) - Rp 220.000", "Paket Reguler (Hotel) - Rp 200.000", "Paket Standart (Hotel) - Rp 180.000"];
@@ -253,7 +252,6 @@
                 let bagiOwner = 0;
                 let tipeHitungan = "Persentase 30%";
 
-                // Deteksi murni berbasis kata kunci text "CHIROPRACTIC"
                 let isChiropractic = paketName.includes("CHIROPRACTIC");
 
                 if (isChiropractic) {
@@ -283,6 +281,11 @@
                 else if (paketName.includes("PIJAT KEPALA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
                 else if (paketName.includes("TERAPI TELINGA")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
                 else if (paketName.includes("BEKAM KERING")) { bagiTerapis = 20000; tipeHitungan = "Flat Non-Paket"; bagiOwner = cleanTagihan - bagiTerapis; } 
+                else if (activeCabang === 'BUGAR6' && paketName.includes("PAKET 8 SARAF TERJEPIT")) { 
+                    bagiTerapis = 50000; 
+                    bagiOwner = cleanTagihan - bagiTerapis; 
+                    tipeHitungan = "Flat Paket 8 Khusus"; 
+                }
                 else if (!paketName.includes("PAKET") && !paketName.includes("HOTEL") && paketName !== "") { 
                     bagiTerapis = cleanTagihan * 0.30; tipeHitungan = "Ala Carte (30%)"; bagiOwner = cleanTagihan - bagiTerapis;
                 } else {
@@ -299,7 +302,6 @@
 
             const handleSelectPaket = (selectedPaket) => {
                 let autoHarga = formData.TAGIHAN;
-                // Kosongkan form input harga khusus chiropractic agar nominal fleksibel bisa diisi sendiri
                 if (selectedPaket === "Chiropractic") {
                     autoHarga = "";
                 } else if (selectedPaket && !selectedPaket.includes("Ala Carte")) { 
@@ -312,10 +314,14 @@
             };
 
             const activeListPaket = useMemo(() => {
-                if (kategoriMenu === 'REGULER') return isLhokseumawe ? PAKET_LHOKSEUMAWE : PAKET_STANDAR;
+                if (kategoriMenu === 'REGULER') {
+                    if (isLhokseumawe) return PAKET_LHOKSEUMAWE;
+                    if (activeCabang === 'BUGAR6') return [...PAKET_STANDAR, "Paket 8 Saraf Terjepit (Bugar 6) - Rp 150.000"];
+                    return PAKET_STANDAR;
+                }
                 if (kategoriMenu === 'HOTEL') return PAKET_HOTEL;
                 return PAKET_NON;
-            }, [kategoriMenu, isLhokseumawe]);
+            }, [kategoriMenu, isLhokseumawe, activeCabang]);
 
             const handleOrderSubmit = async (metodeDipilih) => {
                 if(!formData.NAMA_PASIEN || !formData.TAGIHAN || !formData.TERAPIS) {
@@ -392,7 +398,6 @@
                         {expanded && (
                             <div className="bg-appleDark p-5 border-t border-white/5 space-y-3 animate-fade-in">
                                 {t.riwayat.map((r, i) => {
-                                    // --- FILTER SISI READ KASIR (Paksa konversi teks lama di database agar rapi menjadi 'Chiropractic') ---
                                     const namaPaketDiplay = String(r.PAKET || "").toUpperCase().includes("CHIROPRACTIC") 
                                         ? "Chiropractic" 
                                         : r.PAKET;
@@ -517,7 +522,6 @@
                                             </div>
                                         )}
 
-                                        {/* TIGA TOMBOL SUBMIT */}
                                         <div className="pt-4 grid grid-cols-3 gap-2">
                                             <button type="button" onClick={() => handleOrderSubmit('HOLD')} disabled={loading} className="w-full bg-transparent text-white/50 border border-white/20 font-black py-4 rounded-2xl hover:bg-white/5 hover:border-white/40 active:scale-95 transition-all flex flex-col items-center justify-center gap-1">
                                                 <i className="fa-regular fa-clock text-xl"></i>
@@ -535,7 +539,6 @@
                                     </div>
                                 </div>
 
-                                {/* TRAY HOLD (ANTREAN BELUM LUNAS) */}
                                 {holdList.length > 0 && (
                                     <div className="bg-[#1C1C1E] border border-appleRed/20 rounded-[2.5rem] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)] animate-slide-up relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-appleRed/0 via-appleRed/50 to-appleRed/0"></div>
